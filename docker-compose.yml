@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: monitoring
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+        
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql-db
+      PMA_USER: root
+      PMA_PASSWORD: root
+    ports:
+      - "8081:80"  # Access phpMyAdmin at http://localhost:8081
+    depends_on:
+      - mysql-db
+
+volumes:
+  mysql-data:
