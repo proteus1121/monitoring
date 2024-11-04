@@ -20,6 +20,12 @@ dependencies {
 
     // AOP
     implementation("org.springframework.boot:spring-boot-starter")
+    
+    // Mosquitto
+    implementation("org.springframework.integration:spring-integration-mqtt")
+    implementation("org.springframework.boot:spring-boot-starter-integration")
+    implementation("org.springframework.integration:spring-integration-mqtt")
+    implementation("com.fasterxml.jackson.core:jackson-databind")
 
     // Lombok dependency
     compileOnly("org.projectlombok:lombok:1.18.30")
