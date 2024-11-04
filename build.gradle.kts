@@ -17,10 +17,15 @@ dependencies {
     // Web
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-
-    // AOP
     implementation("org.springframework.boot:spring-boot-starter")
-    
+
+    // Jakarta Validation
+    implementation("jakarta.validation:jakarta.validation-api:3.1.0")
+
+    // Mapstruct
+    implementation("org.mapstruct:mapstruct:1.5.5.Final")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+
     // Mosquitto
     implementation("org.springframework.integration:spring-integration-mqtt")
     implementation("org.springframework.boot:spring-boot-starter-integration")

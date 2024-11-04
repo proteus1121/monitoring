@@ -1,8 +1,9 @@
 package org.proteus1121.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.proteus1121.model.dto.device.ControlDevice;
+import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
+import org.proteus1121.model.request.DeviceRequest;
 import org.proteus1121.service.DeviceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,32 +23,33 @@ import java.util.List;
 public class DeviceController {
 
     private final DeviceService deviceService;
+    private final DeviceMapper deviceMapper;
 
     @GetMapping
-    public ResponseEntity<List<Device>> getAllControlDevices() {
-        return deviceService.getAllDevices();
+    public ResponseEntity<List<Device>> getAllDevices() {
+        return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Device> getControlDeviceById(@PathVariable Long id) {
+    public ResponseEntity<Device> getDeviceById(@PathVariable Long id) {
         Device device = deviceService.getDeviceById(id);
         return ResponseEntity.ok(device);
     }
 
     @PostMapping
-    public ResponseEntity<Device> createControlDevice(@RequestBody ControlDevice device) {
-        Device createdDevice = deviceService.createDevice(device);
+    public ResponseEntity<Device> createDevice(@RequestBody DeviceRequest deviceRequest) {
+        Device createdDevice = deviceService.createDevice(deviceMapper.toDevice(deviceRequest));
         return ResponseEntity.ok(createdDevice);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Device> updateControlDevice(@PathVariable Long id, @RequestBody ControlDevice device) {
-        Device updatedDevice = deviceService.updateDevice(id, device);
+    public ResponseEntity<Device> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest deviceRequest) {
+        Device updatedDevice = deviceService.updateDevice(id, deviceMapper.toDevice(deviceRequest));
         return ResponseEntity.ok(updatedDevice);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteControlDevice(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDevice(@PathVariable Long id) {
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();
     }

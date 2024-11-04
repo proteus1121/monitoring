@@ -48,6 +48,7 @@ public class WebConfig {
                                 .requestMatchers("POST", "/login").permitAll()  // Allow POST for /login
                                 .requestMatchers("GET", "/login").permitAll()   // Allow GET for /login
                                 .requestMatchers("GET", "/users").permitAll()
+                                .requestMatchers("*", "/devices").permitAll()
                                 //.hasAuthority("USER")
                                 .anyRequest().authenticated()
                 )

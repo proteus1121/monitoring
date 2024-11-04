@@ -1,12 +1,16 @@
 package org.proteus1121.model.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @Entity
@@ -19,6 +23,9 @@ public class UserEntity {
     private Long id;
     private String name;
     private String password;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DeviceEntity> devices;
 
     public UserEntity(String username, String encodedPassword) {
         this.name = username;
