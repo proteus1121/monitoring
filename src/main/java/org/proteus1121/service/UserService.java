@@ -3,7 +3,6 @@ package org.proteus1121.service;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

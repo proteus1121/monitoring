@@ -3,7 +3,7 @@ package org.proteus1121.consumer;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TemperatureConsumer extends AbstractTopicMessageHandler {
+public class TemperatureConsumer implements MeasurementConsumer {
 
     @Override
     public String getTopic() {
@@ -11,7 +11,7 @@ public class TemperatureConsumer extends AbstractTopicMessageHandler {
     }
 
     @Override
-    protected void processMessage(String message) {
-        // Process the message
+    public void processMessage(String message) {
+        System.out.println("TemperatureConsumer: " + message);
     }
 }
