@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.RememberMeAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -18,11 +19,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.PUT;
 
 @Configuration
 @EnableWebSecurity
@@ -33,29 +42,30 @@ public class WebConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+        
         http
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) // Ensure session is created if required
+                .and()
                 .cors().and()
                 .csrf().disable()
-//                .formLogin()
-//                .failureHandler(new SimpleUrlAuthenticationFailureHandler())
-//                .and()
-//                .logout()
-//                .invalidateHttpSession(true)
-//                .deleteCookies("SESSION")
-//                .and()
-                .authorizeHttpRequests(authorizeRequests ->
-                        authorizeRequests
-                                .requestMatchers("POST", "/login").permitAll()  // Allow POST for /login
-                                .requestMatchers("GET", "/login").permitAll()   // Allow GET for /login
-                                .requestMatchers("GET", "/users").permitAll()
-                                .requestMatchers("*", "/devices").permitAll()
-                                //.hasAuthority("USER")
-                                .anyRequest().authenticated()
+                .logout()
+                .invalidateHttpSession(true)
+                .deleteCookies("SESSION")
+                .and()
+                .authorizeHttpRequests(authorizeRequests -> authorizeRequests
+                        .requestMatchers("GET", "/users").authenticated()
+                        .requestMatchers("POST", "/users/register").permitAll()
+                        .requestMatchers("POST", "/users/login").permitAll()
+                        .requestMatchers("*", "/devices").hasAuthority("USER")
+                        .anyRequest().authenticated()
                 )
+                .addFilterBefore(new SecurityContextLoggingFilter(), UsernamePasswordAuthenticationFilter.class) // Move here
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling.defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                new AntPathRequestMatcher("/**"))
+                                new AntPathRequestMatcher("/**")
+                        )
                 );
 
         return http.build();
@@ -69,5 +79,19 @@ public class WebConfig {
         authenticationManagerBuilder.userDetailsService(accountService);
 //        authenticationManagerBuilder.authenticationProvider(rememberMeAuthenticationProvider);
         return authenticationManagerBuilder.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        final CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:8080"));
+        configuration.setAllowedMethods(List.of(GET.name(), POST.name(), PUT.name(), DELETE.name()));
+        configuration.setAllowCredentials(true);
+        configuration.setAllowedHeaders(List.of("Cache-Control", "Content-Type"));
+
+        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
     }
 }

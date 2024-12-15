@@ -1,6 +1,7 @@
 package org.proteus1121.model.dto.device;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import org.proteus1121.model.enums.DeviceStatus;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 public class Device {
 
     private Long id;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Long userId;
     private String name;
     private String description;

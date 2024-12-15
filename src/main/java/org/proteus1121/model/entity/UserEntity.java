@@ -24,9 +24,6 @@ public class UserEntity {
     private String name;
     private String password;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DeviceEntity> devices;
-
     public UserEntity(String username, String encodedPassword) {
         this.name = username;
         this.password = encodedPassword;

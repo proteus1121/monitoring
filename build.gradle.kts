@@ -19,12 +19,18 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter")
 
+    // Session JDBC
+    implementation("org.springframework.session:spring-session-jdbc")
+    
     // Jakarta Validation
     implementation("jakarta.validation:jakarta.validation-api:3.1.0")
 
     // Mapstruct
     implementation("org.mapstruct:mapstruct:1.5.5.Final")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+
+    // Apache Commons
+    implementation("org.apache.commons:commons-lang3:3.17.0")
 
     // Mosquitto
     implementation("org.springframework.integration:spring-integration-mqtt")
