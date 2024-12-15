@@ -24,8 +24,7 @@ public class DeviceService {
         return deviceMapper.toDevice(deviceEntity);
     }
     
-    public Device createDevice(Device device) {
-        Long userId = 1L; // TODO: Get user ID from security context
+    public Device createDevice(Device device, Long userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User with ID " + device.getUserId() + " not found"));
 
