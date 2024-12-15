@@ -42,8 +42,7 @@ public class DeviceService {
         deviceRepository.deleteById(id);
     }
 
-    public List<Device> getAllDevices() {
-        Long userId = 1L; // TODO: Get user ID from security context
+    public List<Device> getAllDevices(Long userId) {
         return deviceRepository.findAllByUserId(userId).stream()
                 .map(deviceMapper::toDevice)
                 .toList();

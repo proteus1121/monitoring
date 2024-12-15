@@ -1,5 +1,6 @@
 package org.proteus1121.model.dto.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -19,5 +20,11 @@ public class User extends org.springframework.security.core.userdetails.User imp
                 Collection<? extends GrantedAuthority> authorities) {
         super(username, password, authorities);
         this.id = id;
+    }
+
+    @Override
+    @JsonIgnore
+    public String getPassword() {
+        return super.getPassword();
     }
 }

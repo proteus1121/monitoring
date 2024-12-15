@@ -38,7 +38,14 @@ import static org.springframework.http.HttpMethod.PUT;
 @RequiredArgsConstructor
 public class WebConfig {
 
-    private final UserService userService;
+    private static final String[] PUBLIC_RESOURCES = {
+            "/actuator/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/users/register",
+            "/users/login"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
@@ -54,13 +61,14 @@ public class WebConfig {
                 .deleteCookies("SESSION")
                 .and()
                 .authorizeHttpRequests(authorizeRequests -> authorizeRequests
-                        .requestMatchers("GET", "/users").authenticated()
-                        .requestMatchers("POST", "/users/register").permitAll()
-                        .requestMatchers("POST", "/users/login").permitAll()
-                        .requestMatchers("*", "/devices").hasAuthority("USER")
+                        // allow public resources
+                        .requestMatchers(PUBLIC_RESOURCES).permitAll()
+                        // user functionality
+                        .requestMatchers("/users/**").authenticated()
+                        // device functionality
+                        .requestMatchers("/devices/**").authenticated()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new SecurityContextLoggingFilter(), UsernamePasswordAuthenticationFilter.class) // Move here
                 .exceptionHandling(exceptionHandling ->
                         exceptionHandling.defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),

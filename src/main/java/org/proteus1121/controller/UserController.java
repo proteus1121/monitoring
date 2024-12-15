@@ -38,7 +38,6 @@ public class UserController {
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
 
     @GetMapping
-    // todo: make it secured
     public List<User> getUsers() {
         return userService.getUsers();
     }

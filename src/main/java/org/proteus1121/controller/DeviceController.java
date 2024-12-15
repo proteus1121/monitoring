@@ -1,11 +1,15 @@
 package org.proteus1121.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.request.DeviceRequest;
 import org.proteus1121.service.DeviceService;
+import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +31,9 @@ public class DeviceController {
 
     @GetMapping
     public ResponseEntity<List<Device>> getAllDevices() {
-        return ResponseEntity.ok(deviceService.getAllDevices());
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User principal = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(deviceService.getAllDevices(principal.getId()));
     }
 
     @GetMapping("/{id}")
