@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.proteus1121.model.dto.user.User;
+import org.proteus1121.model.request.LoginRequest;
 import org.proteus1121.model.request.UserRequest;
 import org.proteus1121.model.response.LoginResponse;
 import org.proteus1121.service.UserService;
@@ -21,7 +22,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 
@@ -49,21 +49,20 @@ public class UserController {
     
     @PostMapping("/register")
     public void createUser(@RequestBody UserRequest userRequest) {
-        userService.registerUser(userRequest.getName(), userRequest.getPassword());
+        userService.registerUser(userRequest.getUsername(), userRequest.getPassword());
     }
 
     @PostMapping(value = "/login")
-    public LoginResponse login(@RequestParam("username") String username,
-                               @RequestParam("password") String password,
+    public LoginResponse login(@RequestBody LoginRequest loginRequest,
                                HttpServletRequest request,
                                HttpServletResponse response) {
-        if (StringUtils.isAnyBlank(username, password)) {
+        if (StringUtils.isAnyBlank(loginRequest.getUsername(), loginRequest.getPassword())) {
             //TODO: exception handling
             throw new RuntimeException("Username and password params could be not empty");
         }
 
         Authentication authentication = authenticationManager
-                .authenticate(new UsernamePasswordAuthenticationToken(username, password));
+                .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
         SecurityContext context = SecurityContextHolder.getContext();
         context.setAuthentication(authentication);

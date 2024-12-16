@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class UserRequest {
+public class LoginRequest {
 
     @NotBlank
     @Size(max = 255)

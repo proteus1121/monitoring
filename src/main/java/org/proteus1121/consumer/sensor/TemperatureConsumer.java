@@ -1,7 +1,9 @@
-package org.proteus1121.consumer;
+package org.proteus1121.consumer.sensor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.proteus1121.consumer.MeasurementConsumer;
+import org.proteus1121.model.enums.DeviceType;
 import org.proteus1121.model.mapper.SensorDataMapper;
 import org.proteus1121.repository.SensorDataRepository;
 import org.springframework.stereotype.Component;
@@ -16,12 +18,12 @@ public class TemperatureConsumer implements MeasurementConsumer {
     
     @Override
     public String getTopic() {
-        return "thermometer/temperature";
+        return DeviceType.TEMPERATURE.getTopic();
     }
 
     @Override
     public void processMessage(String message) {
-        log.info("TemperatureConsumer: {}", message);
+        log.debug("TemperatureConsumer: {}", message);
         double value = Double.parseDouble(message);
         sensorDataRepository.save(sensorDataMapper.toSensorDataEntity(value, 1L));
     }

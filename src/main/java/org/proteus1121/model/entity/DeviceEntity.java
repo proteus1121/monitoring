@@ -30,6 +30,8 @@ public class DeviceEntity {
     private String name;
 
     private String description;
+    
+    private String type;
 
     private Double criticalValue;
 

@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Objects;
 
+import static org.proteus1121.util.SessionUtils.getCurrentUser;
+
 @RestController
 @RequestMapping("/devices")
 @RequiredArgsConstructor
@@ -34,13 +36,6 @@ public class DeviceController {
     public ResponseEntity<List<Device>> getAllDevices() {
         User principal = getCurrentUser();
         return ResponseEntity.ok(deviceService.getAllDevices(principal.getId()));
-    }
-
-    //TODO: move to utils
-    private static User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User principal = (User) authentication.getPrincipal();
-        return principal;
     }
 
     @GetMapping("/{id}")

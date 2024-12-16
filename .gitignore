@@ -43,3 +43,21 @@ bin/
 /.idea/
 /mosquitto/data/mosquitto.db
 /mosquitto/log/mosquitto.log
+
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# front-end
+src/frontend/node_modules
+.pnp
+.pnp.js
+
+# testing
+src/frontend/coverage
+
+# production
+src/frontend/build
+
+src/frontend/npm-debug.log*
+src/frontend/yarn-debug.log*
+src/frontend/yarn-error.log*
