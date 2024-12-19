@@ -10,6 +10,9 @@ import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+
+import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
 @Service
 @RequiredArgsConstructor
@@ -45,5 +48,15 @@ public class DeviceService {
         return deviceRepository.findAllByUserId(userId).stream()
                 .map(deviceMapper::toDevice)
                 .toList();
+    }
+
+    public Device checkDevice(Long id) {
+        Device device = getDeviceById(id);
+        if (!Objects.equals(device.getUserId(), getCurrentUser().getId())) {
+            //TODO: exception handling
+            throw new RuntimeException("Device " + id + " belong to another user");
+        }
+
+        return device;
     }
 }

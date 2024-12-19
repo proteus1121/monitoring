@@ -67,6 +67,8 @@ public class WebConfig {
                         .requestMatchers("/users/**").authenticated()
                         // device functionality
                         .requestMatchers("/devices/**").authenticated()
+                        // metrics functionality
+                        .requestMatchers("/metrics/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptionHandling ->

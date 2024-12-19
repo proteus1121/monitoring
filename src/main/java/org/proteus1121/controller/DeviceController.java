@@ -6,10 +6,7 @@ import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.request.DeviceRequest;
 import org.proteus1121.service.DeviceService;
-import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,7 +37,7 @@ public class DeviceController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Device> getDeviceById(@PathVariable Long id) {
-        Device device = checkDevice(id);
+        Device device = deviceService.checkDevice(id);
         return ResponseEntity.ok(device);
     }
 
@@ -52,25 +49,15 @@ public class DeviceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Device> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest deviceRequest) {
-        checkDevice(id);
+        deviceService.checkDevice(id);
 
         Device updatedDevice = deviceService.updateDevice(id, deviceMapper.toDevice(deviceRequest));
         return ResponseEntity.ok(updatedDevice);
     }
 
-    private Device checkDevice(Long id) {
-        Device device = deviceService.getDeviceById(id);
-        if (!Objects.equals(device.getUserId(), getCurrentUser().getId())) {
-            //TODO: exception handling
-            throw new RuntimeException("Device " + id + " belong to another user");
-        }
-        
-        return device;
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDevice(@PathVariable Long id) {
-        checkDevice(id);
+        deviceService.checkDevice(id);
 
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();
