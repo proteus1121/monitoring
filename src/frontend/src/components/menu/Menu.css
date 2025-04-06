@@ -1,0 +1,34 @@
+.vertical-menu {
+    width: 200px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 10px;
+    position: fixed;
+    height: 100%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.vertical-menu ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.vertical-menu li {
+    margin: 20px 0;
+}
+
+.vertical-menu a {
+    color: #007BFF;
+    text-decoration: none;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+}
+
+.vertical-menu a:hover {
+    color: #0056b3;
+}
+
+.vertical-menu a svg {
+    margin-right: 10px;
+}

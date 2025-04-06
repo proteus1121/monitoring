@@ -5,6 +5,8 @@ import AuthCheck from "./components/AuthCheck";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import CreateUserPage from "./pages/CreateUserPage";
+import DevicePage from "./pages/UsersPage";
+import UsersPage from "./pages/UsersPage";
 
 const App = () => {
 
@@ -44,6 +46,8 @@ const App = () => {
                             </AuthCheck>
                         }
                     />
+                    <Route path="/devices" element={<DevicePage />} />
+                    <Route path="/users" element={<UsersPage />} />
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                 </Routes>
             </div>
