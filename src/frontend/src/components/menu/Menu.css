@@ -1,34 +1,97 @@
-.vertical-menu {
-    width: 200px;
-    background-color: white;
-    border-radius: 10px;
-    padding: 10px;
+/* Navbar styles */
+.navbar {
+    display: flex;
+    align-items: center;
+    background-color: #007BFF;
+    padding: 10px 20px;
+    color: white;
+    height: 60px;
     position: fixed;
-    height: 100%;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 3;
+}
+
+.burger-button {
+    font-size: 24px;
+    cursor: pointer;
+    margin-right: 20px;
+}
+
+.navbar .title {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Base menu styles */
+.vertical-menu {
+    width: 220px;
+    background-color: white;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    padding: 20px 0;
+    position: fixed;
+    top: 60px; /* below navbar */
+    left: 0;
+    height: calc(100% - 60px);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 2;
+    justify-content: left;
+}
+
+.vertical-menu.open {
+    transform: translateX(0);
 }
 
 .vertical-menu ul {
     list-style-type: none;
     padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
 }
 
 .vertical-menu li {
-    margin: 20px 0;
+    margin: 0;
+    width: 100%;
+}
+
+/* Add margin-top only to the first list item */
+.vertical-menu li:first-child {
+    margin-top: 20px;
 }
 
 .vertical-menu a {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 18px;
     color: #007BFF;
     text-decoration: none;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+    box-sizing: border-box;
+    text-align: left;
 }
 
+/* Hover state */
 .vertical-menu a:hover {
+    background-color: #f0f4ff;
     color: #0056b3;
 }
 
+/* Icon next to text */
 .vertical-menu a svg {
     margin-right: 10px;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
 }

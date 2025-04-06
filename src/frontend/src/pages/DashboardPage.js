@@ -1,4 +1,3 @@
-// src/pages/DashboardPage.js
 import React from "react";
 import Dashboard from "../components/Dashboard";
 import Menu from "../components/menu/Menu";
