@@ -5,7 +5,7 @@ import AuthCheck from "./components/AuthCheck";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import CreateUserPage from "./pages/CreateUserPage";
-import DevicePage from "./pages/UsersPage";
+import DevicePage from "./pages/device/DevicePage";
 import UsersPage from "./pages/UsersPage";
 
 const App = () => {
