@@ -21,7 +21,8 @@ dependencies {
 
     // Session JDBC
     implementation("org.springframework.session:spring-session-jdbc")
-    
+    implementation("org.hibernate.orm:hibernate-core:6.4.1.Final")
+
     // Jakarta Validation
     implementation("jakarta.validation:jakarta.validation-api:3.1.0")
 
@@ -39,7 +40,6 @@ dependencies {
     // Mosquitto
     implementation("org.springframework.integration:spring-integration-mqtt")
     implementation("org.springframework.boot:spring-boot-starter-integration")
-    implementation("org.springframework.integration:spring-integration-mqtt")
     implementation("com.fasterxml.jackson.core:jackson-databind")
 
     // Lombok dependency
