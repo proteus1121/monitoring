@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.Copy
+
 plugins {
     java
     id("org.springframework.boot") version ("3.2.2")
@@ -45,7 +48,7 @@ dependencies {
     // Lombok dependency
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")
-    
+
     // Database
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("mysql:mysql-connector-java:8.0.33")
@@ -54,7 +57,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.security:spring-security-core")
     implementation("org.springframework.security:spring-security-config")
-    
+
     // Tests
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
@@ -63,4 +66,22 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+// Run `npm run build` in src/frontend
+val npmBuild by tasks.registering(Exec::class) {
+    workingDir = file("src/frontend")
+    commandLine = listOf("npm", "run", "build")
+}
+
+// Copy frontend build to build/frontend
+val copyFrontendBuild by tasks.registering(Copy::class) {
+    dependsOn(npmBuild)
+    from("src/frontend/build")
+    into("$buildDir/resources/main/frontend")
+}
+
+// Hook into the main build process
+tasks.named("build") {
+    dependsOn(copyFrontendBuild)
 }
