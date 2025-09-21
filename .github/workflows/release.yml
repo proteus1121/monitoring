@@ -31,11 +31,9 @@ jobs:
 
       - name: Grant execute permission to Gradle wrapper
         run: chmod +x ./gradlew
-        working-directory: ./backend
 
       - name: Build backend with Gradle
         run: ./gradlew build
-        working-directory: ./backend
 
 
       # --- Frontend: React ---
