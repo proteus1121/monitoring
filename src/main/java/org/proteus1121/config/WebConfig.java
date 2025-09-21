@@ -39,16 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
             "/swagger-ui.html",
             "/swagger-resources/**",
             "/users/register",
-            "/users/login",
-            // public frontend resources
-            "/index.html",
-            "/manifest.json",
-            "/favicon.ico",
-            "/asset-manifest.json",
-            "logo192.png",
-            "logo512.png",
-            "robots.txt",
-            "/static/**"
+            "/users/login"
     };
 
     @Override
@@ -112,12 +103,5 @@ public class WebConfig implements WebMvcConfigurer {
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry)  {
-        registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/frontend/")
-                .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)));
     }
 }

@@ -35,15 +35,29 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 
-#  monitoring:
-#    image: registry.gitlab.com/monitoring:latest
-#    container_name: monitoring
-#    ports:
-#      - "8080:8080"
-#    environment:
-#      PROFILE: docker
-#    depends_on:
-#      - mysql-db
+  monitoring:
+    image: registry.gitlab.com/monitoring:latest
+    container_name: monitoring
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      PROFILE: docker
+    depends_on:
+      - mysql-db
+        
+  monitoring-frontend:
+    image: registry.gitlab.com/monitoring-frontend:latest
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: monitoring-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - mysql-db
 
 volumes:
   mysql-data:

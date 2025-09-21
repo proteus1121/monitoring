@@ -67,21 +67,3 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
-
-// Run `npm run build` in src/frontend
-val npmBuild by tasks.registering(Exec::class) {
-    workingDir = file("src/frontend")
-    commandLine = listOf("npm", "run", "build")
-}
-
-// Copy frontend build to build/frontend
-val copyFrontendBuild by tasks.registering(Copy::class) {
-    dependsOn(npmBuild)
-    from("src/frontend/build")
-    into("$buildDir/resources/main/frontend")
-}
-
-// Hook into the main build process
-tasks.named("build") {
-    dependsOn(copyFrontendBuild)
-}
