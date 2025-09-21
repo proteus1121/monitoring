@@ -76,7 +76,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.meta-backend.outputs.tags }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
+            ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
 
       - name: Generate backend attestation
@@ -99,7 +101,9 @@ jobs:
         with:
           context: ./src/frontend
           push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }}
+          tags: |
+              ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+              ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
 
       - name: Generate frontend attestation
@@ -115,6 +119,15 @@ jobs:
           echo "MYSQL_PASS=${{ env.MYSQL_PASS }}" > .env
           echo "PROFILE=docker" >> .env
 
+      - name: Copy Docker Compose files to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SWARM_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_KEY }}
+          source: "docker-compose.yml,.env"
+          target: "/home/${{ secrets.SSH_USER }}/deploy"
+
       # --- Deploy to Swarm via SSH ---
       - name: Deploy stack on Swarm server
         uses: appleboy/ssh-action@v1
@@ -126,4 +139,5 @@ jobs:
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
-            docker stack deploy -c /path/to/docker-compose.yml mystack
+            cd /home/${{ secrets.SSH_USER }}/deploy
+            docker stack deploy -c docker-compose.yml mystack
