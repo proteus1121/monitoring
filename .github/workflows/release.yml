@@ -109,13 +109,19 @@ jobs:
           subject-digest: ${{ steps.push-frontend.outputs.digest }}
           push-to-registry: true
 
+    
+      - name: Create .env file for Docker Compose
+        run: |
+          echo "MYSQL_PASS=${{ env.MYSQL_PASS }}" > .env
+          echo "PROFILE=docker" >> .env
+
       # --- Deploy to Swarm via SSH ---
       - name: Deploy stack on Swarm server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
+          password: ${{ secrets.SSH_KEY }}
           script: |
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
