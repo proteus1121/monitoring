@@ -41,9 +41,9 @@ services:
       - /home/${SSH_USER}/deploy/mosquitto/data:/mosquitto/data
       - /home/${SSH_USER}/deploy/mosquitto/log:/mosquitto/log
 
-  monitoring:
-    image: ghcr.io/proteus1121/monitoring:latest
-    container_name: monitoring
+  monitoring-backend:
+    image: ghcr.io/proteus1121/monitoring-backend:latest
+    container_name: monitoring-backend
     build:
       context: .
       dockerfile: Dockerfile

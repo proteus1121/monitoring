@@ -8,7 +8,8 @@
 - 
 docker service ps mystack_phpmyadmin
 
-docker service ps monitoring_stack_mosquitto
+docker service ps monitoring_stack_monitoring
+docker pull ghcr.io/proteus1121/monitoring-backend:latest
 
 docker stack services monitoring_stack
 
