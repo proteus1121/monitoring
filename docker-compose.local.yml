@@ -5,7 +5,7 @@ services:
     image: bitnami/mysql:latest
     container_name: mysql-db
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: monitoring
     ports:
       - "3306:3306"
@@ -24,7 +24,7 @@ services:
     environment:
       PMA_HOST: mysql-db
       PMA_USER: root
-      PMA_PASSWORD: ${MYSQL_PASS}
+      PMA_PASSWORD: root
     ports:
       - "8081:80"  # Access phpMyAdmin at http://localhost:8081
     depends_on:
@@ -37,33 +37,9 @@ services:
       - "1883:1883"      # MQTT port
       - "9001:9001"      # WebSocket port (optional)
     volumes:
-      - /home/${SSH_USER}/deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - /home/${SSH_USER}/deploy/mosquitto/data:/mosquitto/data
-      - /home/${SSH_USER}/deploy/mosquitto/log:/mosquitto/log
-
-  monitoring:
-    image: ghcr.io/proteus1121/monitoring:latest
-    container_name: monitoring
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
-    environment:
-      PROFILE: ${PROFILE}
-    depends_on:
-      - mysql-db
-        
-  monitoring-frontend:
-    image: ghcr.io/proteus1121/monitoring-frontend:latest
-    build:
-      context: ./src/frontend
-      dockerfile: Dockerfile
-    container_name: monitoring-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - mysql-db
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
 
 volumes:
   mysql-data:

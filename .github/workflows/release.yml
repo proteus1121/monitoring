@@ -117,6 +117,7 @@ jobs:
       - name: Create .env file for Docker Compose
         run: |
           echo "MYSQL_PASS=${{ secrets.MYSQL_PASS }}" > .env
+          echo "SSH_USER=${{ secrets.SSH_USER }}" > .env
           echo "PROFILE=docker" >> .env
 
       - name: Copy Docker Compose files to server
@@ -125,7 +126,7 @@ jobs:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
-          source: "docker-compose.yml,.env"
+          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf"
           target: "/home/${{ secrets.SSH_USER }}/deploy"
 
       # --- Deploy to Swarm via SSH ---
@@ -139,6 +140,9 @@ jobs:
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
+            docker pull eclipse-mosquitto:latest
+            docker pull phpmyadmin:latest
+            docker pull bitnami/mysql:latest
             cd /home/${{ secrets.SSH_USER }}/deploy
             set -a; . ./.env; set +a
-            docker stack deploy -c docker-compose.yml mystack
+            docker stack deploy -c docker-compose.yml monitoring_stack
