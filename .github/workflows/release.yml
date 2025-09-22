@@ -116,6 +116,7 @@ jobs:
     
       - name: Create .env file for Docker Compose
         run: |
+          mkdir -p deploy
           echo "MYSQL_PASS=${{ env.MYSQL_PASS }}" > deploy/.env
           echo "PROFILE=docker" >> deploy/.env
 
