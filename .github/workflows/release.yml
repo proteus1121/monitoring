@@ -144,5 +144,7 @@ jobs:
             docker pull phpmyadmin:latest
             docker pull bitnami/mysql:latest
             cd /home/${{ secrets.SSH_USER }}/deploy
+            mkdir -p ./mosquitto/data
+            mkdir -p ./mosquitto/log
             set -a; . ./.env; set +a
             docker stack deploy -c docker-compose.yml monitoring_stack

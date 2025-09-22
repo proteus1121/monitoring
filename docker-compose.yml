@@ -37,7 +37,7 @@ services:
       - "1883:1883"      # MQTT port
       - "9001:9001"      # WebSocket port (optional)
     volumes:
-      - /home/${SSH_USER}/deploy/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - /home/${SSH_USER}/deploy/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - /home/${SSH_USER}/deploy/mosquitto/data:/mosquitto/data
       - /home/${SSH_USER}/deploy/mosquitto/log:/mosquitto/log
 
