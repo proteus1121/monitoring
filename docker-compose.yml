@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mysql-db:
-    image: bitnami/mysql:8.0
+    image: bitnami/mysql:latest
     container_name: mysql-db
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}
