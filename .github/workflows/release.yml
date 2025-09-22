@@ -116,9 +116,8 @@ jobs:
     
       - name: Create .env file for Docker Compose
         run: |
-          mkdir -p deploy
-          echo "MYSQL_PASS=${{ env.MYSQL_PASS }}" > deploy/.env
-          echo "PROFILE=docker" >> deploy/.env
+          echo "MYSQL_PASS=${{ secrets.MYSQL_PASS }}" > .env
+          echo "PROFILE=docker" >> .env
 
       - name: Copy Docker Compose files to server
         uses: appleboy/scp-action@v0.1.4
@@ -126,7 +125,7 @@ jobs:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
-          source: "docker-compose.yml,deploy/.env"
+          source: "docker-compose.yml,.env"
           target: "/home/${{ secrets.SSH_USER }}/deploy"
 
       # --- Deploy to Swarm via SSH ---
