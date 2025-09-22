@@ -117,7 +117,7 @@ jobs:
       - name: Create .env file for Docker Compose
         run: |
           echo "MYSQL_PASS=${{ secrets.MYSQL_PASS }}" > .env
-          echo "SSH_USER=${{ secrets.SSH_USER }}" > .env
+          echo "SSH_USER=${{ secrets.SSH_USER }}" >> .env
           echo "PROFILE=docker" >> .env
 
       - name: Copy Docker Compose files to server

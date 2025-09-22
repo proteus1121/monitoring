@@ -8,6 +8,8 @@
 - 
 docker service ps mystack_phpmyadmin
 
+docker service ps monitoring_stack_mysql-db
+
 docker stack services monitoring_stack
 
 
