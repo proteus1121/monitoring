@@ -36,7 +36,7 @@ services:
       - ./mosquitto/log:/mosquitto/log
 
   monitoring:
-    image: registry.gitlab.com/monitoring:latest
+    image: ghcr.io/proteus1121/monitoring:latest
     container_name: monitoring
     build:
       context: .
@@ -49,7 +49,7 @@ services:
       - mysql-db
         
   monitoring-frontend:
-    image: registry.gitlab.com/monitoring-frontend:latest
+    image: ghcr.io/proteus1121/monitoring-frontend:latest
     build:
       context: ./src/frontend
       dockerfile: Dockerfile
