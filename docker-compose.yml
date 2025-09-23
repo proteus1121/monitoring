@@ -58,6 +58,8 @@ services:
       context: ./src/frontend
       dockerfile: Dockerfile
     container_name: monitoring-frontend
+    environment:
+      REACT_APP_BACKEND_URL: http://ssn.pp.ua:8080
     ports:
       - "80:80"
     depends_on:

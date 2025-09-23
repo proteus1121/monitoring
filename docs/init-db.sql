@@ -65,7 +65,10 @@ create table persistent_logins (username varchar(64) not null,
 -- Insert sample data with bcrypt-hashed passwords
 INSERT INTO users (name, password) VALUES ('Artem', '$2a$12$VcngKA3zL9DUcBJD7vBoautPX3fO84xm0JIucatVr3MA1XZI9rdn.');
 
-INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Temperature Sensor', 75.0, 'OK');
-INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Pressure Sensor', 50.0, 'WARNING');
-INSERT INTO devices (user_id, name, critical_value, status) VALUES (2, 'Humidity Sensor', 60.0, 'OK');
-INSERT INTO devices (user_id, name, critical_value, status) VALUES (3, 'CO2 Sensor', 100.0, 'CRITICAL');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Temperature Sensor', 35.0, 'OK');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'LPG', 50.0, 'WARNING');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Humidity Sensor', 60.0, 'OK');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'CH4', 100.0, 'OK');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Smoke', 100.0, 'OK');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Flame', 100.0, 'OK');
+INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Light', 100.0, 'OK');

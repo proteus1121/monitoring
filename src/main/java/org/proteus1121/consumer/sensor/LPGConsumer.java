@@ -11,20 +11,20 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class HumidityConsumer implements MeasurementConsumer {
+public class LPGConsumer implements MeasurementConsumer {
 
     private final SensorDataRepository sensorDataRepository;
     private final SensorDataMapper sensorDataMapper;
     
     @Override
     public String getTopic() {
-        return DeviceType.HUMIDITY.getTopic();
+        return DeviceType.LPG.getTopic();
     }
 
     @Override
     public void processMessage(String message) {
-        log.debug("HumidityConsumer: {}", message);
+        log.debug("LPGConsumer: {}", message);
         double value = Double.parseDouble(message);
-        sensorDataRepository.save(sensorDataMapper.toSensorDataEntity(value, 2L));
+        sensorDataRepository.save(sensorDataMapper.toSensorDataEntity(value, 3L));
     }
 }
