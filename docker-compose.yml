@@ -23,8 +23,6 @@ services:
     container_name: phpmyadmin
     environment:
       PMA_HOST: mysql-db
-      PMA_USER: root
-      PMA_PASSWORD: ${MYSQL_PASS}
     ports:
       - "8081:80"  # Access phpMyAdmin at http://localhost:8081
     depends_on:
