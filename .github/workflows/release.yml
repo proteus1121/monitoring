@@ -150,6 +150,7 @@ jobs:
             cd /home/${{ secrets.SSH_USER }}/deploy
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
+            mkdir -p ./mysql
             set -a; . ./.env; set +a
             sleep 20
             docker stack deploy -c docker-compose.yml monitoring_stack
