@@ -8,8 +8,11 @@
 - 
 docker service ps mystack_phpmyadmin
 
-docker service ps monitoring_stack_monitoring
+docker service ps monitoring_stack_monitoring-backend
 docker pull ghcr.io/proteus1121/monitoring-backend:latest
+
+
+docker logs $(docker ps -q --filter name=monitoring_stack_monitoring-backend)
 
 docker stack services monitoring_stack
 
@@ -51,7 +54,7 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plug
 
 ## 2. Initialize Docker Swarm
 ```bash
-sudo docker swarm init
+sudo docker swarm init --advertise-addr 139.59.148.159
 ```
 
 ---
@@ -78,12 +81,12 @@ sudo systemctl stop docker
 
 ### Move Docker Data:
 ```bash
-sudo mv /var/lib/docker /mnt/volume_fra1_01/docker
+sudo mv /var/lib/docker /mnt/volume_fra1_02/docker
 ```
 
 ### Create a Symlink:
 ```bash
-sudo ln -s /mnt/volume_fra1_01/docker /var/lib/docker
+sudo ln -s /mnt/volume_fra1_02/docker /var/lib/docker
 ```
 
 ### Start Docker:

@@ -54,6 +54,8 @@ jobs:
       - name: Build frontend project
         working-directory: ./src/frontend
         run: npm run build
+        env:
+          REACT_APP_BACKEND_URL: http://ssn.pp.ua:8080
 
       # --- Docker login ---
       - name: Log in to GitHub Container registry
@@ -137,12 +139,14 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
           script: |
+            docker system prune -a
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
             docker pull eclipse-mosquitto:latest
             docker pull phpmyadmin:latest
             docker pull bitnami/mysql:latest
+            docker stack rm monitoring_stack
             cd /home/${{ secrets.SSH_USER }}/deploy
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
