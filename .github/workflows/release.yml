@@ -152,6 +152,7 @@ jobs:
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
             mkdir -p ./mysql
+            sudo chown -R 1001:1001 /home/${SSH_USER}/deploy/mysql
             set -a; . ./.env; set +a
             sleep 20
             docker stack deploy -c docker-compose.yml monitoring_stack
