@@ -139,6 +139,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
           script: |
+            docker stack rm monitoring_stack
+            docker image prune -a
             docker system prune -a
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
@@ -146,7 +148,6 @@ jobs:
             docker pull eclipse-mosquitto:latest
             docker pull phpmyadmin:latest
             docker pull bitnami/mysql:latest
-            docker stack rm monitoring_stack
             cd /home/${{ secrets.SSH_USER }}/deploy
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
