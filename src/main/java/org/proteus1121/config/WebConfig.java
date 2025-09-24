@@ -2,6 +2,7 @@ package org.proteus1121.config;
 
 import org.proteus1121.config.deserializer.StringToLocalDateTimeConverter;
 import org.proteus1121.service.UserService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
@@ -92,9 +93,13 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${profile}") String profile) {
         final CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+        if (profile.equals("docker")) {
+            configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua"));
+        } else {
+            configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+        }
         configuration.setAllowedMethods(List.of(GET.name(), POST.name(), PUT.name(), DELETE.name()));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(List.of("Cache-Control", "Content-Type"));
