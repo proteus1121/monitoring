@@ -151,4 +151,5 @@ jobs:
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
             set -a; . ./.env; set +a
+            sleep 20
             docker stack deploy -c docker-compose.yml monitoring_stack
