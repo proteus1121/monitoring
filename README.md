@@ -12,7 +12,12 @@ docker service ps monitoring_stack_monitoring-backend
 docker pull ghcr.io/proteus1121/monitoring-backend:latest
 
 
+docker service ps monitoring_stack_mysql-db
+
 docker logs $(docker ps -q --filter name=monitoring_stack_monitoring-backend)
+docker logs $(docker ps -q --filter name=monitoring_stack_mysql-db)
+
+
 
 docker stack services monitoring_stack
 
