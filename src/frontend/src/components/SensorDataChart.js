@@ -84,7 +84,7 @@ const SensorDataChart = ({ deviceId, criticalValue }) => {
                         withCredentials: true,
                     });
 
-                    const actualData = aggregateToHourly(actualResponse.data);
+                    const actualData = actualResponse.data;
 
                     // Fetch predicted data
                     const predictedResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/metrics/predicted`, {
