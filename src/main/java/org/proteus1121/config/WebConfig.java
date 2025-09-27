@@ -93,7 +93,7 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource(@Value("${profile}") String profile) {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${spring.profiles.active:default}") String profile) {
         final CorsConfiguration configuration = new CorsConfiguration();
         if (profile.equals("docker")) {
             configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua"));
