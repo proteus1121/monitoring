@@ -24,6 +24,8 @@ public class MqttConfig {
         factory.setConnectionOptions(new MqttConnectOptions() {{
             setServerURIs(new String[] {mqttBrokerUrl});
             setCleanSession(true);
+            setAutomaticReconnect(true);
+            setKeepAliveInterval(30);
         }});
         return factory;
     }
