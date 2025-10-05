@@ -9,6 +9,7 @@ services:
       MYSQL_DATABASE: monitoring
     volumes:
       - /home/${SSH_USER}/deploy/mysql:/bitnami/mysql
+      - /home/${SSH_USER}/deploy/mysql/my_custom.cnf:/opt/bitnami/mysql/conf/my_custom.cnf:ro
     deploy:
       resources:
         limits:

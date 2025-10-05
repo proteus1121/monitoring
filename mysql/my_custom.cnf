@@ -1,0 +1,26 @@
+[mysqld]
+# --- Performance Tuning ---
+innodb_buffer_pool_size = 64M
+innodb_log_file_size = 64M
+innodb_flush_log_at_trx_commit = 2
+skip-name-resolve
+performance_schema = OFF
+event_scheduler = OFF
+
+# --- Connection Management ---
+wait_timeout = 30
+interactive_timeout = 30
+max_connections = 50
+thread_cache_size = 16
+
+# --- Temporary Table and Sorting Buffers ---
+tmp_table_size = 32M
+max_heap_table_size = 32M
+
+# --- Logging ---
+slow_query_log = 1
+long_query_time = 1
+slow_query_log_file = /bitnami/mysql/data/slow.log
+
+# --- Other ---
+sql_mode = STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION

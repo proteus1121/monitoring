@@ -128,7 +128,7 @@ jobs:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
-          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf"
+          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mysql/my_custom.cnf"
           target: "/home/${{ secrets.SSH_USER }}/deploy"
 
       # --- Deploy to Swarm via SSH ---
