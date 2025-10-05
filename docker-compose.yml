@@ -1,5 +1,10 @@
 version: '3.8'
 
+networks:
+  traefik-public:
+    driver: overlay
+    attachable: true
+
 services:
   traefik:
     image: traefik:v2.10
@@ -10,56 +15,77 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /home/${SSH_USER}/deploy/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - /home/${SSH_USER}/deploy/traefik/acme.json:/acme.json
+    networks:
+      - traefik-public
     deploy:
       placement:
         constraints:
           - node.role == manager
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.api.rule=Host(`traefik.ssn.pp.ua`)"
-      - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.routers.api.tls.certresolver=myresolver"
+      labels:
+        - "traefik.enable=true"
+
+        # Dashboard over HTTPS
+        - "traefik.http.routers.api.rule=Host(`traefik.ssn.pp.ua`)"
+        - "traefik.http.routers.api.entrypoints=websecure"
+        - "traefik.http.routers.api.service=api@internal"
+        - "traefik.http.routers.api.tls=true"
+        - "traefik.http.routers.api.tls.certresolver=myresolver"
+
+        # Optional: HTTP -> HTTPS redirect for everything (doesn't break ACME)
+        - "traefik.http.routers.http-catchall.rule=HostRegexp(`{any:.+}`)"
+        - "traefik.http.routers.http-catchall.entrypoints=web"
+        - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+        - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
   mysql-db:
     image: bitnamilegacy/mysql:9.4.0-debian-12-r1
-    container_name: mysql-db
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}
       MYSQL_DATABASE: monitoring
     volumes:
       - /home/${SSH_USER}/deploy/mysql:/bitnami/mysql
       - /home/${SSH_USER}/deploy/mysql/my_custom.cnf:/opt/bitnami/mysql/conf/my_custom.cnf:ro
+    networks:
+      - traefik-public
     deploy:
       resources:
         limits:
           memory: 256M
         reservations:
           memory: 128M
-        
+
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: phpmyadmin
     environment:
       PMA_HOST: mysql-db
     depends_on:
       - mysql-db
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.db.rule=Host(`db.ssn.pp.ua`)"
-      - "traefik.http.routers.db.entrypoints=websecure"
-      - "traefik.http.routers.db.tls.certresolver=myresolver"
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.db.rule=Host(`db.ssn.pp.ua`)"
+        - "traefik.http.routers.db.entrypoints=websecure"
+        - "traefik.http.routers.db.tls=true"
+        - "traefik.http.routers.db.tls.certresolver=myresolver"
+        # phpMyAdmin listens on 80
+        - "traefik.http.services.db.loadbalancer.server.port=80"
 
   mosquitto:
     image: eclipse-mosquitto:latest
-    container_name: mosquitto
     ports:
-      - "1883:1883"      # MQTT port
-      - "9001:9001"      # WebSocket port (optional)
+      - "1883:1883"
+      - "9001:9001"
     volumes:
       - /home/${SSH_USER}/deploy/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - /home/${SSH_USER}/deploy/mosquitto/data:/mosquitto/data
       - /home/${SSH_USER}/deploy/mosquitto/log:/mosquitto/log
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 1
 
   monitoring-backend:
     image: ghcr.io/proteus1121/monitoring-backend:latest
@@ -68,18 +94,32 @@ services:
       MYSQL_PASS: ${MYSQL_PASS}
     depends_on:
       - mysql-db
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`api.ssn.pp.ua`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.backend.rule=Host(`api.ssn.pp.ua`)"
+        - "traefik.http.routers.backend.entrypoints=websecure"
+        - "traefik.http.routers.backend.tls=true"
+        - "traefik.http.routers.backend.tls.certresolver=myresolver"
+        # TODO: set correct port your backend listens on
+        - "traefik.http.services.backend.loadbalancer.server.port=80"
 
   monitoring-frontend:
     image: ghcr.io/proteus1121/monitoring-frontend:latest
     depends_on:
       - mysql-db
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`ssn.pp.ua`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.frontend.rule=Host(`ssn.pp.ua`)"
+        - "traefik.http.routers.frontend.entrypoints=websecure"
+        - "traefik.http.routers.frontend.tls=true"
+        - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+        # TODO: set correct port your frontend listens on
+        - "traefik.http.services.frontend.loadbalancer.server.port=80"

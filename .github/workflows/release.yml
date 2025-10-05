@@ -55,7 +55,7 @@ jobs:
         working-directory: ./src/frontend
         run: npm run build
         env:
-          REACT_APP_BACKEND_URL: http://ssn.pp.ua:8080
+          REACT_APP_BACKEND_URL: https://api.ssn.pp.ua
 
       # --- Docker login ---
       - name: Log in to GitHub Container registry
