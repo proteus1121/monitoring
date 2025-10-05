@@ -4,6 +4,10 @@ entryPoints:
   websecure:
     address: ":443"
 
+log:
+  level: DEBUG
+  filePath: "/var/log/traefik/traefik.log"
+
 providers:
   docker:
     swarmMode: true
@@ -13,6 +17,6 @@ certificatesResolvers:
   myresolver:
     acme:
       email: artem.ischchenko@gmail.com
-      storage: /acme.json
+      storage: acme.json
       httpChallenge:
         entryPoint: web
