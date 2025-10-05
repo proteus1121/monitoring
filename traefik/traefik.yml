@@ -17,6 +17,6 @@ certificatesResolvers:
   myresolver:
     acme:
       email: artem.ischchenko@gmail.com
-      storage: acme.json
+      storage: /acme.json
       httpChallenge:
         entryPoint: web

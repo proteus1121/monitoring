@@ -9,7 +9,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /home/${SSH_USER}/deploy/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-      - /home/${SSH_USER}/deploy/traefik/acme.json:acme.json
+      - /home/${SSH_USER}/deploy/traefik/acme.json:/acme.json
     deploy:
       placement:
         constraints:
@@ -22,7 +22,7 @@ services:
       - "traefik.http.routers.api.tls.certresolver=myresolver"
 
   mysql-db:
-    image: bitnami/mysql:latest
+    image: bitnamilegacy/mysql:9.4.0-debian-12-r1
     container_name: mysql-db
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASS}

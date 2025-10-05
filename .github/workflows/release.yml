@@ -148,7 +148,8 @@ jobs:
             docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
             docker pull eclipse-mosquitto:latest
             docker pull phpmyadmin:latest
-            docker pull bitnami/mysql:latest
+            docker pull bitnamilegacy/mysql:9.4.0-debian-12-r1
+            docker pull traefik:v2.10
             cd /home/${{ secrets.SSH_USER }}/deploy
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
