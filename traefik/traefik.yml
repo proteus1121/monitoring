@@ -1,0 +1,18 @@
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+providers:
+  docker:
+    swarmMode: true
+    exposedByDefault: false
+
+certificatesResolvers:
+  myresolver:
+    acme:
+      email: artem.ischchenko@gmail.com
+      storage: /acme.json
+      httpChallenge:
+        entryPoint: web
