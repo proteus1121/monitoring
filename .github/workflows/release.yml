@@ -128,7 +128,7 @@ jobs:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
-          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mysql/my_custom.cnf"
+          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mysql/my_custom.cnf,./traefik/traefik.yml"
           target: "/home/${{ secrets.SSH_USER }}/deploy"
 
       # --- Deploy to Swarm via SSH ---
@@ -153,10 +153,10 @@ jobs:
             mkdir -p ./mosquitto/data
             mkdir -p ./mosquitto/log
             mkdir -p ./mysql
-            mkdir -p traefik
+            mkdir -p ./traefik
             touch traefik/acme.json
             chmod 600 traefik/acme.json
-            sudo chown -R 1001:1001 /home/${SSH_USER}/deploy/mysql
+            sudo chown -R 1001:1001 /home/${{ secrets.SSH_USER }}/deploy/mysql
             set -a; . ./.env; set +a
             sleep 20
             docker stack deploy -c docker-compose.yml monitoring_stack
