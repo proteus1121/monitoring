@@ -11,6 +11,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.proteus1121.model.enums.DeviceStatus;
+import org.proteus1121.model.enums.DeviceType;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -30,24 +33,22 @@ public class DeviceEntity {
     private String name;
 
     private String description;
-    
-    private String type;
 
     private Double criticalValue;
 
     @Enumerated(EnumType.STRING)
     private DeviceStatus status = DeviceStatus.OFFLINE;
 
+    @Enumerated(EnumType.STRING)
+    private DeviceType type;
+
     private LocalDateTime lastChecked = LocalDateTime.now();
 
-    public DeviceEntity(UserEntity user, String name, String description, Double criticalValue) {
+    public DeviceEntity(UserEntity user, String name, String description, Double criticalValue, DeviceType type) {
         this.user = user;
         this.name = name;
         this.description = description;
         this.criticalValue = criticalValue;
-    }
-
-    public enum DeviceStatus {
-        OK, WARNING, CRITICAL, OFFLINE
+        this.type = type;
     }
 }
