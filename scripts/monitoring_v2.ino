@@ -13,8 +13,8 @@
 #define PIN_LIGHT D8   // Light sensor analog pin
 
 // WiFi
-#define WIFI_SSID "Proteus"
-#define WIFI_PASS "proteus0123456789"
+#define WIFI_SSID "wi-fi-name"
+#define WIFI_PASS "wi-fi-pass"
 
 IPAddress _ip(192,168,1,50);
 IPAddress _gw(192,168,1,1);
