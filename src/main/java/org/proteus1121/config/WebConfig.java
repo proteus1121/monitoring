@@ -20,10 +20,14 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.HEAD;
+import static org.springframework.http.HttpMethod.OPTIONS;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 
@@ -99,9 +103,16 @@ public class WebConfig implements WebMvcConfigurer {
 //            configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
 //        }
         configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua", "http://localhost:3000"));
-        configuration.setAllowedMethods(List.of(GET.name(), POST.name(), PUT.name(), DELETE.name()));
+        configuration.setAllowedMethods(List.of(
+                GET.name(),
+                POST.name(),
+                PUT.name(),
+                DELETE.name(),
+                PATCH.name(),
+                OPTIONS.name(),
+                HEAD.name()));
         configuration.setAllowCredentials(true);
-        configuration.setAllowedHeaders(List.of("Cache-Control", "Content-Type"));
+        configuration.setAllowedHeaders(Collections.singletonList("*"));
 
         final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
