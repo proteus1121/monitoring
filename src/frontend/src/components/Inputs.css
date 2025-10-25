@@ -1,0 +1,79 @@
+.input-bg {
+  box-shadow:
+    0px 1px 2px 0px rgba(0, 0, 0, 0.08),
+    0px 0px 0px 1px rgba(0, 0, 0, 0.13);
+}
+
+.input-bg:focus-within {
+  box-shadow:
+    0px 1px 2px 0px rgba(0, 0, 0, 0.08),
+    0px 0px 0px 1px rgba(0, 0, 0, 0.2);
+}
+
+.input-bg-invalid {
+  box-shadow:
+    0px 1px 2px 0px rgba(150, 19, 44, 0.32),
+    0px 0px 0px 1px #df1c41,
+    0px 0px 0px 2px #fff,
+    0px 0px 0px 3px rgba(223, 28, 65, 0.24);
+}
+
+.input-bg-disabled {
+  background: #f8fafb;
+}
+
+@layer components {
+  .checkbox-bg {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(193, 199, 208, 0.02) 100%
+      ),
+      #fff;
+
+    box-shadow:
+      0px 1px 2px 0px rgba(164, 172, 185, 0.24),
+      0px 0px 0px 1px rgba(18, 55, 105, 0.08);
+  }
+
+  .group:hover .group-hover\:checkbox-hovered-bg {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(193, 199, 208, 0.08) 100%
+      ),
+      #fff;
+    box-shadow:
+      0px 1px 2px 0px rgba(9, 25, 72, 0.16),
+      0px 0px 0px 1px rgba(9, 25, 72, 0.16);
+  }
+
+  .checkbox-checked-bg {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0) 100%
+      ),
+      var(--color-blue-500);
+    box-shadow:
+      0px 1px 2px 0px rgba(88, 233, 178, 0.5),
+      var(--color-blue-500);
+  }
+
+  .group[data-state='checked']
+    .group-data-\[state\=checked\]\:checkbox-checked-bg {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0) 100%
+      ),
+      #00cb7d;
+    box-shadow:
+      0px 1px 2px 0px rgba(88, 233, 178, 0.5),
+      0px 0px 0px 1px #58e9b2;
+  }
+}

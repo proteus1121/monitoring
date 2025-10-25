@@ -1,14 +1,14 @@
-import path from "path";
-import { fileURLToPath } from "url";
-import HtmlWebpackPlugin from "html-webpack-plugin";
-import { CleanWebpackPlugin } from "clean-webpack-plugin";
-import Dotenv from "dotenv-webpack";
-import CopyWebpackPlugin from "copy-webpack-plugin";
-import ForkTsCheckerWebpackPlugin from "fork-ts-checker-webpack-plugin";
-import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
-import TerserPlugin from "terser-webpack-plugin";
-import { BundleAnalyzerPlugin } from "webpack-bundle-analyzer";
-import { createRequire } from "module";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import { CleanWebpackPlugin } from 'clean-webpack-plugin';
+import Dotenv from 'dotenv-webpack';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+import TerserPlugin from 'terser-webpack-plugin';
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
@@ -16,25 +16,25 @@ const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const isDev = process.env.NODE_ENV !== "production";
-console.log(`🧬 App is in ${isDev ? "development" : "production"} mode`);
+const isDev = process.env.NODE_ENV !== 'production';
+console.log(`🧬 App is in ${isDev ? 'development' : 'production'} mode`);
 
 export default {
-  entry: ["regenerator-runtime/runtime.js", "./src/index.tsx"],
+  entry: ['regenerator-runtime/runtime.js', './src/index.tsx'],
   output: {
     path: isDev
-      ? path.resolve(__dirname, ".dev")
-      : path.resolve(__dirname, "dist"),
-    filename: isDev ? "static/[name].js" : "static/[name]-[contenthash].js",
-    chunkFilename: "static/[name].[contenthash].js",
+      ? path.resolve(__dirname, '.dev')
+      : path.resolve(__dirname, 'build'),
+    filename: isDev ? 'static/[name].js' : 'static/[name]-[contenthash].js',
+    chunkFilename: 'static/[name].[contenthash].js',
   },
-  mode: isDev ? "development" : "production",
+  mode: isDev ? 'development' : 'production',
   resolve: {
-    extensions: [".tsx", ".ts", ".js"], // Расширения для импорта
+    extensions: ['.tsx', '.ts', '.js'], // Расширения для импорта
     alias: {
-      "@src": path.resolve(__dirname, "src"),
-      "@assets": path.resolve(__dirname, "src/assets"),
-      "@shared": path.resolve(__dirname, "src/shared"),
+      '@src': path.resolve(__dirname, 'src'),
+      '@assets': path.resolve(__dirname, 'src/assets'),
+      '@shared': path.resolve(__dirname, 'src/shared'),
     },
   },
   module: {
@@ -43,22 +43,22 @@ export default {
         test: /\.(ts|tsx)$/,
         exclude: /node_modules/,
         use: [
-          ...(isDev ? [] : ["thread-loader"]),
+          ...(isDev ? [] : ['thread-loader']),
           {
-            loader: "babel-loader",
+            loader: 'babel-loader',
             options: {
-              plugins: isDev ? [require("react-refresh/babel")] : [],
+              plugins: isDev ? [require('react-refresh/babel')] : [],
               presets: [
                 [
-                  "@babel/preset-env",
+                  '@babel/preset-env',
                   {
-                    targets: ">0.25%, not dead",
-                    useBuiltIns: "entry",
+                    targets: '>0.25%, not dead',
+                    useBuiltIns: 'entry',
                     corejs: 3,
                   },
                 ],
-                "@babel/preset-typescript",
-                ["@babel/preset-react", { runtime: "automatic" }],
+                '@babel/preset-typescript',
+                ['@babel/preset-react', { runtime: 'automatic' }],
               ],
             },
           },
@@ -67,62 +67,62 @@ export default {
       {
         test: /\.css$/,
         use: [
-          "style-loader",
+          'style-loader',
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: {
               url: {
-                filter: (url) => !url.startsWith("/"),
+                filter: url => !url.startsWith('/'),
               },
               importLoaders: 1, // Учитываем postcss-loader
             },
           },
-          "postcss-loader", // Только для CSS
+          'postcss-loader', // Только для CSS
         ],
       },
       {
         test: /\.scss$/,
         exclude: /\.module\.scss$/,
         use: [
-          "style-loader",
+          'style-loader',
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: {
               url: {
-                filter: (url) => !url.startsWith("/"), // Skip processing URLs that start with '/'
+                filter: url => !url.startsWith('/'), // Skip processing URLs that start with '/'
               },
             },
           },
-          "sass-loader", // Только для SCSS
+          'sass-loader', // Только для SCSS
         ],
       },
       {
         test: /\.module\.scss$/,
         use: [
-          "style-loader",
+          'style-loader',
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: {
               modules: {
-                localIdentName: "[name]__[local]___[hash:base64:5]",
+                localIdentName: '[name]__[local]___[hash:base64:5]',
               },
               url: {
-                filter: (url) => !url.startsWith("/"), // Skip processing URLs that start with '/'
+                filter: url => !url.startsWith('/'), // Skip processing URLs that start with '/'
               },
               importLoaders: 1,
             },
           },
-          "sass-loader", // Только для SCSS
+          'sass-loader', // Только для SCSS
         ],
       },
       {
         test: /\.(png|jpe?g|gif)$/i,
         use: [
           {
-            loader: "file-loader",
+            loader: 'file-loader',
             options: {
-              outputPath: "static",
-              name: "[name].[hash].[ext]",
+              outputPath: 'static',
+              name: '[name].[hash].[ext]',
             },
           },
         ],
@@ -131,10 +131,10 @@ export default {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: "./src/index.html",
+      template: './src/index.html',
     }),
     new CleanWebpackPlugin(),
-    new Dotenv({ silent: true }),
+    new Dotenv({ silent: true, systemvars: true }),
     ...(isDev ? [new ReactRefreshWebpackPlugin()] : []),
     new ForkTsCheckerWebpackPlugin({
       async: isDev,
@@ -148,10 +148,10 @@ export default {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, "public"),
-          to: path.resolve(__dirname, isDev ? ".dev" : "dist"),
+          from: path.resolve(__dirname, 'public'),
+          to: path.resolve(__dirname, isDev ? '.dev' : 'build'),
           globOptions: {
-            ignore: ["**/index.html"],
+            ignore: ['**/index.html'],
           },
         },
       ],
@@ -160,13 +160,13 @@ export default {
       ? []
       : [
           new BundleAnalyzerPlugin({
-            analyzerMode: "disabled",
+            analyzerMode: 'disabled',
             generateStatsFile: true,
           }),
         ]),
   ],
   devServer: {
-    static: path.join(__dirname, "public"),
+    static: path.join(__dirname, 'public'),
     port: 3000,
     open: false,
     historyApiFallback: {
@@ -176,7 +176,7 @@ export default {
       overlay: false,
     },
     hot: isDev,
-    allowedHosts: "all",
+    allowedHosts: 'all',
     liveReload: false,
   },
   optimization: {
@@ -195,7 +195,7 @@ export default {
       }),
     ],
     splitChunks: {
-      chunks: "all",
+      chunks: 'all',
     },
   },
   performance: {
@@ -204,21 +204,15 @@ export default {
     maxAssetSize: 5120000,
   },
   cache: {
-    type: "filesystem",
-    cacheDirectory: path.resolve(__dirname, ".webpack_cache"),
+    type: 'filesystem',
+    cacheDirectory: path.resolve(__dirname, '.webpack_cache'),
     allowCollectingMemory: true,
   },
   watchOptions: {
-    ignored: [
-      "**/.dev/**",
-      "**/dist/**",
-      "**/node_modules",
-      "**/.tauri/**",
-      "**/src-tauri/**",
-    ],
+    ignored: ['**/.dev/**', '**/build/**', '**/node_modules'],
   },
 };
 
-process.on("SIGINT", () => {
+process.on('SIGINT', () => {
   process.exit(0);
 });

@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { useState } from 'react';
+import { Navigate, Outlet } from 'react-router-dom';
 
 const getCookie = (name: string) => {
-  const cookies = document.cookie.split("; ");
-  const cookie = cookies.find((c) => c.startsWith(`${name}=`));
-  return cookie ? cookie.split("=")[1] : null;
+  const cookies = document.cookie.split('; ');
+  const cookie = cookies.find(c => c.startsWith(`${name}=`));
+  return cookie ? cookie.split('=')[1] : null;
 };
 
 const AuthGuard = () => {
+  //TODO: ADD /ME req
   const [hasSessionCookie] = useState<boolean>(() => {
-    return !!getCookie("SESSION");
+    console.log(getCookie('SESSION'));
+    return !!getCookie('SESSION');
   });
 
   return hasSessionCookie ? <Outlet /> : <Navigate to="/auth/login" replace />;

@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @theme {
   --z-index-negative: -1;
@@ -15,5 +15,5 @@
 }
 
 body {
-  @apply text-black font-[Arial];
+  @apply bg-gray-100 font-[Arial] text-black;
 }
