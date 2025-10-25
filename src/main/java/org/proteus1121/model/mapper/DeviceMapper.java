@@ -3,6 +3,7 @@ package org.proteus1121.model.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.proteus1121.model.dto.device.Device;
+import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.request.DeviceRequest;
 
@@ -25,5 +26,7 @@ public interface DeviceMapper {
     @Mapping(target = "user.id", source = "device.userId")
     @Mapping(target = "id", source = "id") // ID will be auto-generated
     DeviceEntity toDeviceEntity(Long id, Device device);
+    
+    DeviceConfiguration toDeviceConfiguration(Device device);
 
 }

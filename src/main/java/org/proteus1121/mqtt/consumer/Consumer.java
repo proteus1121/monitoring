@@ -1,9 +1,7 @@
-package org.proteus1121.consumer;
+package org.proteus1121.mqtt.consumer;
 
 import org.proteus1121.model.dto.mqtt.Topic;
 import org.proteus1121.model.enums.TopicType;
-import org.proteus1121.model.mapper.SensorDataMapper;
-import org.proteus1121.repository.SensorDataRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

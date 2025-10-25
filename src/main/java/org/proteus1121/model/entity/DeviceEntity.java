@@ -41,6 +41,8 @@ public class DeviceEntity {
 
     @Enumerated(EnumType.STRING)
     private DeviceType type;
+    
+    private Long delay; // in ms
 
     private LocalDateTime lastChecked = LocalDateTime.now();
 

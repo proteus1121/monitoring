@@ -1,8 +1,8 @@
-package org.proteus1121.consumer.sensor;
+package org.proteus1121.mqtt.consumer.sensor;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.proteus1121.consumer.Consumer;
+import org.proteus1121.mqtt.consumer.Consumer;
 import org.proteus1121.model.dto.mqtt.Topic;
 import org.proteus1121.model.mapper.SensorDataMapper;
 import org.proteus1121.repository.SensorDataRepository;

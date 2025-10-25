@@ -1,4 +1,4 @@
-package org.proteus1121.consumer;
+package org.proteus1121.mqtt.consumer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TopicMessageHandler implements MessageHandler {
+public class MessageConsumer implements MessageHandler {
 
     private final List<Consumer> consumers;
     
@@ -28,7 +28,11 @@ public class TopicMessageHandler implements MessageHandler {
             Optional<Topic> topicInfo = consumer.parseTopic(topic);
             if (topicInfo.isPresent()) {
                 String payload = String.valueOf(message.getPayload());
-                consumer.processMessage(topicInfo.get(), payload);
+                try {
+                    consumer.processMessage(topicInfo.get(), payload);
+                } catch (Exception e) {
+                    log.error("Error processing message for topic: {}, payload: {}", topic, payload, e);
+                }
             }
         });
     }

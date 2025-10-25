@@ -10,7 +10,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public enum TopicType {
 
-    MEASUREMENTS("measurements");
+    MEASUREMENTS("measurements"),
+    CONFIGURATION("configuration");
 
     private final String value;
 

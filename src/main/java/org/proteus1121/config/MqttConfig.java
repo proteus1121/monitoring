@@ -7,12 +7,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
+import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 
 @Configuration
 public class MqttConfig {
 
     private static final String MQTT_CLIENT_ID = "consumerClient";
+    private static final String MQTT_PRODUCER_ID = "producerClient";
+
     private static final String[] TOPICS = new String[]{
             "users/+/devices/+/measurements"
     };
@@ -36,9 +40,21 @@ public class MqttConfig {
     }
 
     @Bean
+    public MessageChannel mqttOutboundChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
     public MqttPahoMessageDrivenChannelAdapter mqttInbound(DefaultMqttPahoClientFactory mqttClientFactory) {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(MQTT_CLIENT_ID, mqttClientFactory, TOPICS);
         adapter.setOutputChannel(mqttInputChannel());
         return adapter;
+    }
+
+    @Bean
+    public MessageHandler mqttOutbound(DefaultMqttPahoClientFactory mqttClientFactory) {
+        MqttPahoMessageHandler messageHandler = new MqttPahoMessageHandler(MQTT_PRODUCER_ID, mqttClientFactory);
+        messageHandler.setAsync(true);
+        return messageHandler;
     }
 }
