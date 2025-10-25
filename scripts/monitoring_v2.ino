@@ -1,183 +1,229 @@
-#include <DHT11.h>
-#include <TroykaMQ.h>
 #include <Arduino.h>
-#include <U8g2lib.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ESP8266HTTPClient.h>
+#include <U8g2lib.h>
+#include <DHT11.h>
+#include <TroykaMQ.h>
 
-// Pin definitions
-#define PIN_MQ2   A0   // MQ-2 analog pin
-#define PIN_DHT   D0   // DHT11 data pin
-#define PIN_FLAME D1   // Flame sensor digital pin
-#define PIN_LIGHT D8   // Light sensor analog pin
+// ========================= CONFIG =========================
+#define WIFI_SSID ""
+#define WIFI_PASS ""
 
-// WiFi
-#define WIFI_SSID "wi-fi-name"
-#define WIFI_PASS "wi-fi-pass"
-
-IPAddress _ip(192,168,1,50);
-IPAddress _gw(192,168,1,1);
-IPAddress _sn(255,255,255,0);
-IPAddress _dns(192,168,1,1);
-
-// MQTT
 #define MQTT_SERVER "139.59.148.159"
 #define MQTT_PORT   1883
 #define MQTT_USER   ""
 #define MQTT_PASS   ""
 
+// Pins
+#define PIN_MQ2    A0
+#define PIN_DHT    D0
+#define PIN_FLAME  D1
+#define PIN_LIGHT  D8
+
+// WiFi Static Config
+IPAddress ip(192,168,1,50);
+IPAddress gw(192,168,1,1);
+IPAddress sn(255,255,255,0);
+IPAddress dns(192,168,1,1);
+
 // Timing
-unsigned long lastSendTime = 0;
-const unsigned long sendInterval = 1800000; // 30 minutes
+const unsigned long SEND_INTERVAL = 1800000;  // 30 min
+const unsigned long RECONNECT_INTERVAL = 5000;
+const unsigned long DISPLAY_INTERVAL = 1000;
 
-unsigned long lastMqttReconnectAttempt = 0;
-unsigned long lastWifiReconnectAttempt = 0;
-const unsigned long reconnectInterval = 5000; // 5 sec
-
+// ========================= GLOBAL OBJECTS =========================
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
 MQ2 mq2(PIN_MQ2);
 DHT11 dht11(PIN_DHT);
+U8G2_ST7565_NHD_C12864_F_4W_SW_SPI u8g2(U8G2_R2, D5, D6, D2, D7, D4);
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+// State
+unsigned long lastSendTime = 0;
+unsigned long lastWifiReconnectAttempt = 0;
+unsigned long lastMqttReconnectAttempt = 0;
+unsigned long lastDisplayUpdate = 0;
 
-// Software SPI, 4-wire, reset on D4
-U8G2_ST7565_NHD_C12864_F_4W_SW_SPI u8g2(
-  U8G2_R2, D5, D6, D2, D7, D4
-);
+// Sensor cache
+int temperature = 0;
+int humidity = 0;
+float lpg = 0;
+float methane = 0;
+float smoke = 0;
+bool flameDetected = false;
+bool lightDetected = false;
 
+// ========================= FUNCTION DECLARATIONS =========================
+void connectWiFi();
+void connectMQTT();
+void readSensors();
+void publishMeasurements();
+void updateDisplay();
+void displayStartup();
+void testInternet();
+void publishMeasurement(const char* topic, const char* payload);
+
+// ========================= SETUP =========================
 void setup() {
   Serial.begin(9600);
-  Serial.println("Starting monitoring program");
-  delay(2000);
+  Serial.println("\n[BOOT] Starting Environmental Monitor v1.0");
 
   u8g2.begin();
   u8g2.setContrast(200);
   u8g2.enableUTF8Print();
+  displayStartup();
 
-  // --- Startup screen ---
+  pinMode(PIN_FLAME, INPUT);
+  pinMode(PIN_LIGHT, INPUT);
+
+  mq2.calibrate();
+  Serial.print("[MQ2] Calibrated, Ro = ");
+  Serial.println(mq2.getRo());
+
+  WiFi.config(ip, gw, sn, dns);
+  connectWiFi();
+
+  mqttClient.setServer(MQTT_SERVER, MQTT_PORT);
+}
+
+// ========================= MAIN LOOP =========================
+void loop() {
+  unsigned long now = millis();
+
+  // Non-blocking WiFi reconnect
+  if (WiFi.status() != WL_CONNECTED && now - lastWifiReconnectAttempt > RECONNECT_INTERVAL) {
+    lastWifiReconnectAttempt = now;
+    connectWiFi();
+  }
+
+  // Non-blocking MQTT reconnect
+  if (!mqttClient.connected() && WiFi.status() == WL_CONNECTED && now - lastMqttReconnectAttempt > RECONNECT_INTERVAL) {
+    lastMqttReconnectAttempt = now;
+    connectMQTT();
+  }
+
+  mqttClient.loop();
+
+  // Sensor readings and publish
+  if (mqttClient.connected() && (now - lastSendTime >= SEND_INTERVAL || lastSendTime == 0)) {
+    readSensors();
+    publishMeasurements();
+    lastSendTime = now;
+  }
+
+  // LCD update
+  if (now - lastDisplayUpdate > DISPLAY_INTERVAL) {
+    updateDisplay();
+    lastDisplayUpdate = now;
+  }
+}
+
+// ========================= WIFI =========================
+void connectWiFi() {
+  Serial.printf("[WiFi] Connecting to %s...\n", WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_guildenstern_nbp_t_all);
+  u8g2.drawStr(10, 20, "Connecting WiFi...");
+  u8g2.sendBuffer();
+
+  unsigned long start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < 10000) {
+    delay(250);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n[WiFi] Connected!");
+  } else {
+    Serial.println("\n[WiFi] Connection timeout.");
+  }
+}
+
+// ========================= MQTT =========================
+void connectMQTT() {
+  Serial.print("[MQTT] Connecting...");
+  if (mqttClient.connect("ESP8266Client", MQTT_USER, MQTT_PASS)) {
+    Serial.println("connected");
+  } else {
+    Serial.printf("failed (rc=%d)\n", mqttClient.state());
+  }
+}
+
+// ========================= SENSORS =========================
+void readSensors() {
+  int dhtResult = dht11.readTemperatureHumidity(temperature, humidity);
+  if (dhtResult != 0) {
+    temperature = humidity = -1; // mark as error
+  }
+
+  lpg = mq2.readLPG();
+  methane = mq2.readMethane();
+  smoke = mq2.readSmoke();
+  flameDetected = (digitalRead(PIN_FLAME) == LOW);
+  lightDetected = (analogRead(PIN_LIGHT) == LOW);
+
+  Serial.printf("[SENSORS] T=%dC H=%d%% LPG=%.1f CH4=%.1f Smoke=%.1f Flame=%d Light=%d\n",
+                temperature, humidity, lpg, methane, smoke, flameDetected, lightDetected);
+}
+
+// ========================= MQTT PUBLISH =========================
+void publishMeasurements() {
+  if (temperature != -1) {
+    char buf[8];
+    snprintf(buf, sizeof(buf), "%d", temperature);
+    publishMeasurement("users/1/devices/1/measurements", buf);
+
+    snprintf(buf, sizeof(buf), "%d", humidity);
+    publishMeasurement("users/1/devices/2/measurements", buf);
+  }
+
+  char buf[16];
+  snprintf(buf, sizeof(buf), "%.1f", lpg);
+  publishMeasurement("users/1/devices/3/measurements", buf);
+
+  snprintf(buf, sizeof(buf), "%.1f", methane);
+  publishMeasurement("users/1/devices/4/measurements", buf);
+
+  snprintf(buf, sizeof(buf), "%.1f", smoke);
+  publishMeasurement("users/1/devices/5/measurements", buf);
+
+  publishMeasurement("users/1/devices/6/measurements", flameDetected ? "1" : "0");
+  publishMeasurement("users/1/devices/7/measurements", lightDetected ? "1" : "0");
+
+  Serial.println("[MQTT] Data sent");
+}
+
+void publishMeasurement(const char* topic, const char* payload) {
+  mqttClient.publish(topic, payload, true);
+  yield();
+}
+
+// ========================= DISPLAY =========================
+void displayStartup() {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_guildenstern_nbp_t_all);
   u8g2.drawStr(10, 20, "Env Monitor v1.0");
   u8g2.drawStr(10, 40, "Initializing...");
   u8g2.sendBuffer();
   delay(2000);
-
-  pinMode(PIN_FLAME, INPUT);
-  pinMode(PIN_LIGHT, INPUT);
-
-  mq2.calibrate();
-  yield();
-  delay(100);
-  Serial.print("MQ-2 Ro = ");
-  Serial.println(mq2.getRo());
-
-  // Show MQ2 calibration info
-  u8g2.clearBuffer();
-  u8g2.drawStr(10, 20, "MQ2 Calibrated");
-  u8g2.sendBuffer();
-  delay(1000);
-
-  WiFi.config(_ip, _gw, _sn, _dns);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-  u8g2.clearBuffer();
-  u8g2.drawStr(10, 20, "WiFi connecting...");
-  u8g2.sendBuffer();
-
-  client.setServer(MQTT_SERVER, MQTT_PORT);
 }
 
-void loop() {
-  unsigned long now = millis();
+void updateDisplay() {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_guildenstern_nbp_t_all);
 
-  // --- Non-blocking WiFi reconnect ---
-  if (WiFi.status() != WL_CONNECTED) {
-    if (now - lastWifiReconnectAttempt > reconnectInterval) {
-      lastWifiReconnectAttempt = now;
-      Serial.println("WiFi lost. Reconnecting...");
-      WiFi.begin(WIFI_SSID, WIFI_PASS);
-      testInternet();
-    }
-  }
+  char tempStr[16], humStr[16], lpgStr[16], ch4Str[16], smokeStr[16], flameStr[16], lightStr[16];
 
-  // --- Non-blocking MQTT reconnect ---
-  if (!client.connected() && WiFi.status() == WL_CONNECTED) {
-    if (now - lastMqttReconnectAttempt > reconnectInterval) {
-      lastMqttReconnectAttempt = now;
-      Serial.println("Attempting MQTT connection...");
-      if (client.connect("ESP8266Client", MQTT_USER, MQTT_PASS)) {
-        Serial.println("MQTT connected");
-      } else {
-        Serial.print("MQTT failed, rc=");
-        Serial.println(client.state());
-      }
-    }
-  } else if (client.connected()) {
-    client.loop();
-  }
-
-  // --- Sensor reads ---
-  int t = 0, h = 0;
-  int dhtResult = dht11.readTemperatureHumidity(t, h);
-
-  char tempStr[16];
-  char humStr[16];
-  if (dhtResult == 0) {
-    snprintf(tempStr, sizeof(tempStr), "T:%dC", t);
-    snprintf(humStr, sizeof(humStr), "H:%d%%", h);
-  } else {
-    snprintf(tempStr, sizeof(tempStr), "T:ERR");
-    snprintf(humStr, sizeof(humStr), "H:ERR");
-  }
-
-  float lpg     = mq2.readLPG(); yield();
-  float methane = mq2.readMethane(); yield();
-  float smoke   = mq2.readSmoke(); yield();
-
-  char lpgStr[16], ch4Str[16], smokeStr[16];
+  snprintf(tempStr, sizeof(tempStr), "T:%sC", (temperature == -1) ? "ERR" : String(temperature).c_str());
+  snprintf(humStr, sizeof(humStr), "H:%s%%", (humidity == -1) ? "ERR" : String(humidity).c_str());
   snprintf(lpgStr, sizeof(lpgStr), "LPG:%.1f", lpg);
   snprintf(ch4Str, sizeof(ch4Str), "CH4:%.1f", methane);
   snprintf(smokeStr, sizeof(smokeStr), "Smoke:%.1f", smoke);
-
-  bool flameDetected = digitalRead(PIN_FLAME) == LOW;
-  char flameStr[16];
   snprintf(flameStr, sizeof(flameStr), "Flame:%s", flameDetected ? "YES" : "NO");
-
-  bool lightDetected = analogRead(PIN_LIGHT) == LOW;
-  char lightStr[16];
   snprintf(lightStr, sizeof(lightStr), "Light:%s", lightDetected ? "YES" : "NO");
-
-  // --- MQTT publish ---
-  if (client.connected()) {
-    if ((now - lastSendTime) >= sendInterval || lastSendTime == 0) {
-      lastSendTime = now;
-
-      if (dhtResult == 0) {
-        char buf[8];
-        snprintf(buf, sizeof(buf), "%d", t);
-        client.publish("users/1/devices/1/measurements", buf, true);
-        snprintf(buf, sizeof(buf), "%d", h);
-        client.publish("users/1/devices/2/measurements", buf, true);
-      }
-
-      char buf[16];
-      snprintf(buf, sizeof(buf), "%.1f", lpg);
-      client.publish("users/1/devices/3/measurements", buf, true);
-      snprintf(buf, sizeof(buf), "%.1f", methane);
-      client.publish("users/1/devices/4/measurements", buf, true);
-      snprintf(buf, sizeof(buf), "%.1f", smoke);
-      client.publish("users/1/devices/5/measurements", buf, true);
-      client.publish("users/1/devices/6/measurements", flameDetected ? "1" : "0", true);
-      client.publish("users/1/devices/7/measurements", lightDetected ? "1" : "0", true);
-
-      Serial.println("MQTT data sent");
-    }
-  }
-
-  // --- LCD update ---
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_guildenstern_nbp_t_all);
 
   int leftColX = 5, rightColX = 60;
   int rowY = 12, rowSpacing = 14;
@@ -188,18 +234,16 @@ void loop() {
   rowY += rowSpacing;
   u8g2.drawStr(leftColX, rowY, lpgStr);
 
-  unsigned long elapsed = now - lastSendTime;  // milliseconds since last send
-
+  unsigned long elapsed = millis() - lastSendTime;
   unsigned int seconds = (elapsed / 1000) % 60;
   unsigned int minutes = (elapsed / 60000) % 60;
-
-  char timeStr[16];
-  snprintf(timeStr, sizeof(timeStr), "%02u:%02u", minutes, seconds);
-  char wifiTimeStr[24];
-  snprintf(wifiTimeStr, sizeof(wifiTimeStr), "%s%s", (WiFi.status() == WL_CONNECTED) ? "+, " : "-, ", timeStr);
+  char timeStr[24];
+  snprintf(timeStr, sizeof(timeStr), "%s%02u:%02u",
+           (WiFi.status() == WL_CONNECTED) ? "+, " : "-, ",
+           minutes, seconds);
 
   rowY += rowSpacing;
-  u8g2.drawStr(leftColX, rowY, wifiTimeStr);
+  u8g2.drawStr(leftColX, rowY, timeStr);
 
   rowY = 12;
   u8g2.drawStr(rightColX, rowY, ch4Str);
@@ -210,17 +254,16 @@ void loop() {
   rowY += rowSpacing;
   u8g2.drawStr(rightColX, rowY, lightStr);
 
-  yield();
   u8g2.sendBuffer();
-  yield();
 }
 
+// ========================= INTERNET TEST =========================
 void testInternet() {
-  WiFiClient client;
-  if (client.connect("8.8.8.8", 53)) {
-    Serial.println("Internet reachable (8.8.8.8 connected)");
-    client.stop();
+  WiFiClient testClient;
+  if (testClient.connect("8.8.8.8", 53)) {
+    Serial.println("[NET] Internet reachable");
+    testClient.stop();
   } else {
-    Serial.println("Cannot reach 8.8.8.8");
+    Serial.println("[NET] No Internet access");
   }
 }
