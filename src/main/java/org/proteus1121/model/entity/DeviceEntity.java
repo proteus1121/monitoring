@@ -40,7 +40,7 @@ public class DeviceEntity {
     private DeviceStatus status = DeviceStatus.OFFLINE;
 
     @Enumerated(EnumType.STRING)
-    private DeviceType type;
+    private DeviceType type = DeviceType.UNKNOWN;
     
     private Long delay; // in ms
 
