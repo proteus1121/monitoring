@@ -5,6 +5,7 @@ import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.entity.UserEntity;
+import org.proteus1121.mqtt.publisher.configuration.ConfigurationPublisher;
 import org.proteus1121.repository.DeviceRepository;
 import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class DeviceService {
     private final DeviceMapper deviceMapper;
     private final DeviceRepository deviceRepository;
     private final UserRepository userRepository;
+    private final ConfigurationPublisher configurationPublisher;
     
     public Device getDeviceById(Long id) {
         DeviceEntity deviceEntity = deviceRepository.getReferenceById(id);
@@ -32,12 +34,19 @@ public class DeviceService {
                 .orElseThrow(() -> new IllegalArgumentException("User with ID " + device.getUserId() + " not found"));
 
         DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device, user.getId()));
-        return deviceMapper.toDevice(deviceEntity);
+        Device createdDevice = deviceMapper.toDevice(deviceEntity);
+        configurationPublisher.publish(createdDevice.getUserId(), deviceEntity.getId(), 
+                deviceMapper.toDeviceConfiguration(createdDevice));
+        
+        return createdDevice;
     }
     
     public Device updateDevice(Long id, Device device) {
         DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(id, device));
-        return deviceMapper.toDevice(deviceEntity);
+        Device updatedDevice = deviceMapper.toDevice(deviceEntity);
+        configurationPublisher.publish(updatedDevice.getUserId(), deviceEntity.getId(),
+                deviceMapper.toDeviceConfiguration(updatedDevice));
+        return updatedDevice;
     }
     
     public void deleteDevice(Long id) {

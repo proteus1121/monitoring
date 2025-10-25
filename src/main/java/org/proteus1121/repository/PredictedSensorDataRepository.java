@@ -1,7 +1,6 @@
 package org.proteus1121.repository;
 
 import org.proteus1121.model.entity.PredictedSensorDataEntity;
-import org.proteus1121.model.entity.SensorDataEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

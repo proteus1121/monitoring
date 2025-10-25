@@ -122,15 +122,16 @@ void loop() {
   Serial.println(lightStr);
 
   // --- MQTT publish ---
+  //   "users/+/devices/+/measurements"
   if (dhtResult == 0) {
-    client.publish("sensor/temperature", String(t).c_str(), true);
-    client.publish("sensor/humidity", String(h).c_str(), true);
+    client.publish("users/1/devices/1/measurements", String(t).c_str(), true);
+    client.publish("users/1/devices/2/measurements", String(h).c_str(), true);
   }
-  client.publish("home/sensors/lpg", String(lpg,1).c_str(), true);
-  client.publish("home/sensors/ch4", String(methane,1).c_str(), true);
-  client.publish("home/sensors/smoke", String(smoke,1).c_str(), true);
-  client.publish("home/sensors/flame", flameDetected ? "1" : "0", true);
-  client.publish("home/sensors/light", lightDetected ? "1" : "0", true);
+  client.publish("users/1/devices/3/measurements", String(lpg,1).c_str(), true);
+  client.publish("users/1/devices/4/measurements", String(methane,1).c_str(), true);
+  client.publish("users/1/devices/5/measurements", String(smoke,1).c_str(), true);
+  client.publish("users/1/devices/6/measurements", flameDetected ? "1" : "0", true);
+  client.publish("users/1/devices/7/measurements", lightDetected ? "1" : "0", true);
 
   // LCD output
   u8g2.clearBuffer();

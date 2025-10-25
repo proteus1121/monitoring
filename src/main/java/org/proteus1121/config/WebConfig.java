@@ -92,11 +92,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Bean
     public CorsConfigurationSource corsConfigurationSource(@Value("${spring.profiles.active:default}") String profile) {
         final CorsConfiguration configuration = new CorsConfiguration();
-        if (profile.equals("docker")) {
-            configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua"));
-        } else {
-            configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
-        }
+        // TODO: adjust allowed origins before deploying to production
+//        if (profile.equals("docker")) {
+//            configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua"));
+//        } else {
+//            configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+//        }
+        configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua", "http://localhost:3000"));
         configuration.setAllowedMethods(List.of(GET.name(), POST.name(), PUT.name(), DELETE.name()));
         configuration.setAllowCredentials(true);
         configuration.setAllowedHeaders(List.of("Cache-Control", "Content-Type"));

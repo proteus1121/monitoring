@@ -7,13 +7,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum DeviceType {
 
-    TEMPERATURE("sensor/temperature"), 
-    HUMIDITY("sensor/humidity"), 
-    LPG("sensor/lpg"),
-    CH4("sensor/ch4"),
-    SMOKE("sensor/smoke"),
-    FLAME("sensor/flame"),
-    LIGHT("sensor/light");
+    TEMPERATURE, 
+    HUMIDITY, 
+    LPG,
+    CH4,
+    SMOKE,
+    FLAME,
+    LIGHT,
+    UNKNOWN;
     
-    private final String topic;
 }

@@ -1,7 +1,7 @@
 package org.proteus1121.controller;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.RequiredArgsConstructor;
+import org.proteus1121.model.enums.Period;
 import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.service.MetricService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,25 +17,27 @@ import java.util.List;
 @RequestMapping("/metrics")
 @RequiredArgsConstructor
 public class MetricController {
-    
+
     private final MetricService metricService;
-    
+
     @GetMapping
     public List<SensorData> getMetrics(@RequestParam("deviceId") Long deviceId,
                                        @RequestParam("start") LocalDateTime startTimestamp,
-                                       @RequestParam("end") LocalDateTime endTimestamp) {
-        return metricService.getMetrics(deviceId, startTimestamp, endTimestamp).stream()
+                                       @RequestParam("end") LocalDateTime endTimestamp,
+                                       @RequestParam(value = "period", defaultValue = "LIVE") Period period) {
+        return metricService.getMetrics(deviceId, startTimestamp, endTimestamp, period).stream()
                 .toList();
     }
 
     @GetMapping("/predicted")
     public List<SensorData> getMetricsPredicted(@RequestParam("deviceId") Long deviceId,
-                                       @RequestParam("start") LocalDateTime startTimestamp,
-                                       @RequestParam("end") LocalDateTime endTimestamp) {
-        return metricService.getMetricsPredicted(deviceId, startTimestamp, endTimestamp).stream()
+                                                @RequestParam("start") LocalDateTime startTimestamp,
+                                                @RequestParam("end") LocalDateTime endTimestamp,
+                                                @RequestParam(value = "period", defaultValue = "LIVE") Period period) {
+        return metricService.getMetricsPredicted(deviceId, startTimestamp, endTimestamp, period).stream()
                 .toList();
     }
-    
+
     @PostMapping("/predict")
     public void predictMetrics(@RequestParam("deviceId") Long deviceId,
                                @RequestParam("start") LocalDateTime startTimestamp) {
