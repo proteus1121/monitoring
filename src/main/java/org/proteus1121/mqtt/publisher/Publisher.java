@@ -1,18 +1,20 @@
 package org.proteus1121.mqtt.publisher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
 import org.proteus1121.model.dto.mqtt.Topic;
 import org.proteus1121.model.enums.TopicType;
 
 @Slf4j
+@RequiredArgsConstructor
 public abstract class Publisher<T> {
 
     protected static final String TOPIC_TEMPLATE = "users/%d/devices/%d/%s";
 
-    private MessagePublisher publisher;
-    private ObjectMapper objectMapper;
+    private final MessagePublisher publisher;
+    private final ObjectMapper objectMapper;
     
     protected String getTopic(Topic topic) {
         return TOPIC_TEMPLATE.formatted(topic.getUserId(), topic.getDeviceId(), topic.getType().getValue());

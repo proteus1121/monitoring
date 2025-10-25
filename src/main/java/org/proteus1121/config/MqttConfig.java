@@ -40,8 +40,10 @@ public class MqttConfig {
     }
 
     @Bean
-    public MessageChannel mqttOutboundChannel() {
-        return new DirectChannel();
+    public MessageChannel mqttOutboundChannel(MessageHandler mqttOutbound) {
+        DirectChannel dc = new DirectChannel();
+        dc.subscribe(mqttOutbound);
+        return dc;
     }
 
     @Bean

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class MessagePublisher {
 
-    private MessageChannel mqttOutboundChannel;
+    private final MessageChannel mqttOutboundChannel;
 
     @ServiceActivator(outputChannel = "mqttOutboundChannel")
     public void publishMessage(String topic, String payload) {

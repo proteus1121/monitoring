@@ -17,5 +17,7 @@ public class DeviceRequest {
     private String description;
 
     private Double criticalValue;
+    
+    private Long delay; // in ms
 
 }
