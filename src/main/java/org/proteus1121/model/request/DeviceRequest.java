@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.proteus1121.model.enums.DeviceType;
 
 @Data
 @NoArgsConstructor
@@ -19,5 +20,7 @@ public class DeviceRequest {
     private Double criticalValue;
     
     private Long delay; // in ms
+    
+    private DeviceType type;
 
 }
