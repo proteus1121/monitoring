@@ -13,6 +13,7 @@ public enum DeviceType {
     CH4,
     SMOKE,
     FLAME,
-    LIGHT;
+    LIGHT,
+    UNKNOWN;
     
 }
