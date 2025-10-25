@@ -92,6 +92,8 @@ services:
     environment:
       PROFILE: ${PROFILE}
       MYSQL_PASS: ${MYSQL_PASS}
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASS: ${MQTT_PASS}
     depends_on:
       - mysql-db
     networks:

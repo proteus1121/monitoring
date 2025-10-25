@@ -22,11 +22,15 @@ public class MqttConfig {
     };
 
     @Bean
-    public DefaultMqttPahoClientFactory mqttClientFactory(@Value("${mqtt.broker.url}") String mqttBrokerUrl) {
+    public DefaultMqttPahoClientFactory mqttClientFactory(@Value("${mqtt.broker.url}") String mqttBrokerUrl,
+                                                          @Value("${mqtt.broker.username:}") String username,
+                                                          @Value("${mqtt.broker.password:}") String password) {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         // Configure your MQTT broker URL and other settings here
         factory.setConnectionOptions(new MqttConnectOptions() {{
             setServerURIs(new String[]{mqttBrokerUrl});
+            setUserName(username);
+            setPassword(password.toCharArray());
             setCleanSession(true);
             setAutomaticReconnect(true);
             setKeepAliveInterval(30);
