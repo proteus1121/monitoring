@@ -18,7 +18,8 @@ public class MqttConfig {
     private static final String MQTT_PRODUCER_ID = "producerClient";
 
     private static final String[] TOPICS = new String[]{
-            "users/+/devices/+/measurements"
+            "users/+/devices/+/measurements",
+            "users/+/configuration/+",
     };
 
     @Bean
