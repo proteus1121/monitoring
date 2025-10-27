@@ -30,7 +30,7 @@ services:
       - "1883:1883" # MQTT port
       - "9001:9001" # WebSocket port (optional)
     volumes:
-      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/config/mosquitto-local.conf:/mosquitto/config/mosquitto.conf
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 

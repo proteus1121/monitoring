@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
 import org.proteus1121.model.dto.mqtt.Topic;
+import org.proteus1121.model.enums.ActionType;
 import org.proteus1121.model.enums.TopicType;
 
 @Slf4j
@@ -25,7 +26,7 @@ public abstract class Publisher<T> {
     public void publish(Long userId, Long deviceId, DeviceConfiguration configuration) {
         try {
             String message = objectMapper.writeValueAsString(configuration);
-            String topic = getTopic(new Topic(userId, deviceId, getTopicType()));
+            String topic = getTopic(new Topic(userId, deviceId, getTopicType(), ActionType.DATA));
             log.debug("Publishing configuration to topic: {}, configuration: {}", topic, message);
             publisher.publishMessage(topic, message);
         } catch (Exception e) {

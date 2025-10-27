@@ -21,6 +21,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        
+      - name: Install Mosquitto CLI tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository -y ppa:mosquitto-dev/mosquitto-ppa
+          sudo apt-get update
+          sudo apt-get install -y mosquitto mosquitto-clients
 
       # --- Backend: Java with Gradle ---
       - name: Set up JDK 17
@@ -115,11 +123,17 @@ jobs:
           subject-digest: ${{ steps.push-frontend.outputs.digest }}
           push-to-registry: true
 
+      - name: Create Mosquitto password file
+        run: |
+          mkdir -p ./mosquitto/config
+          mosquitto_passwd -b -c ./mosquitto/config/passwords.txt "${{ secrets.MQTT_USER }}" "${{ secrets.MQTT_PASS }}"
     
       - name: Create .env file for Docker Compose
         run: |
           echo "MYSQL_PASS=${{ secrets.MYSQL_PASS }}" > .env
           echo "SSH_USER=${{ secrets.SSH_USER }}" >> .env
+          echo "MQTT_USER=${{ secrets.MQTT_USER }}" >> .env
+          echo "MQTT_PASS=${{ secrets.MQTT_PASS }}" >> .env
           echo "PROFILE=docker" >> .env
 
       - name: Copy Docker Compose files to server
@@ -128,7 +142,7 @@ jobs:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
-          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mysql/my_custom.cnf,./traefik/traefik.yml"
+          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mosquitto/config/passwords.txt,./mysql/my_custom.cnf,./traefik/traefik.yml"
           target: "/home/${{ secrets.SSH_USER }}/deploy"
 
       # --- Deploy to Swarm via SSH ---
