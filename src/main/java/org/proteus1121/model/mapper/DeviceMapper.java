@@ -1,8 +1,10 @@
 package org.proteus1121.model.mapper;
 
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
 import org.proteus1121.model.entity.DeviceEntity;
@@ -30,5 +32,6 @@ public interface DeviceMapper {
     
     DeviceConfiguration toDeviceConfiguration(Device device);
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void toDevice(DeviceRequest deviceRequest, @MappingTarget Device device);
 }
