@@ -51,7 +51,7 @@ public class DeviceController {
     public ResponseEntity<Device> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest deviceRequest) {
         deviceService.checkDevice(id);
 
-        Device updatedDevice = deviceService.updateDevice(id, deviceMapper.toDevice(deviceRequest));
+        Device updatedDevice = deviceService.updateDevice(id, deviceMapper.toDevice(deviceRequest), getCurrentUser().getId());
         return ResponseEntity.ok(updatedDevice);
     }
 
