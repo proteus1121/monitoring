@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
@@ -41,10 +42,8 @@ public class DeviceService {
         return createdDevice;
     }
     
-    public Device updateDevice(Long id, Device device, Long userId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User with ID " + device.getUserId() + " not found"));
-        DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(id, device, user.getId()));
+    public Device updateDevice(Long id, Device device) {
+        DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(id, device));
         Device updatedDevice = deviceMapper.toDevice(deviceEntity);
         configurationPublisher.publish(updatedDevice.getUserId(), deviceEntity.getId(),
                 deviceMapper.toDeviceConfiguration(updatedDevice));
