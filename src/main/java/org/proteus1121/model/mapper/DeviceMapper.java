@@ -26,7 +26,7 @@ public interface DeviceMapper {
     @Mapping(target = "user.id", source = "device.userId")
     @Mapping(target = "id", source = "id") // ID will be auto-generated
     @Mapping(target = "user.id", source = "userId")
-    DeviceEntity toDeviceEntity(Long id, Device device);
+    DeviceEntity toDeviceEntity(Long id, Device device, Long userId);
     
     DeviceConfiguration toDeviceConfiguration(Device device);
 
