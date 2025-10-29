@@ -31,25 +31,24 @@ IPAddress gw(192,168,1,1);
 IPAddress sn(255,255,255,0);
 IPAddress dns(192,168,1,1);
 
-String userId = "1";        // <--- configurable user ID
-
 // ========================= DEVICE CONFIG STRUCT =========================
 struct DeviceConfig {
   unsigned long interval;
   float critical;
+  float lower;
 };
 
 DeviceConfig configs[8]; // 1-indexed for simplicity
 const int NUM_DEVICES = sizeof(configs) / sizeof(configs[0]);
 
 void initDefaultConfigs() {
-  configs[1] = {600000, 25.0};   // Temperature
-  configs[2] = {600000, 85.0};   // Humidity
-  configs[3] = {900000, 1000.0}; // LPG
-  configs[4] = {900000, 1000.0}; // CH4
-  configs[5] = {900000, 1000.0}; // Smoke
-  configs[6] = {300000, 1.0};    // Flame
-  configs[7] = {300000, 2.0};    // Light
+  configs[1] = {600000, 25.0, 0};   // Temperature
+  configs[2] = {600000, 85.0, 10};   // Humidity
+  configs[3] = {900000, 1000.0, 0}; // LPG
+  configs[4] = {900000, 1000.0, 0}; // CH4
+  configs[5] = {900000, 1000.0, 0}; // Smoke
+  configs[6] = {300000, 1.0, -1};    // Flame
+  configs[7] = {300000, 2.0, -1};    // Light
 }
 
 // ========================= OBJECTS =========================
@@ -70,6 +69,8 @@ bool flameDetected = false;
 bool lightDetected = false;
 bool isCritical[NUM_DEVICES + 1] = {false};
 
+// Dynamic identifiers
+String userId = "1";        // <--- configurable user ID
 String devicePrefix;        // "users/<userId>/devices/"
 
 // ========================= FUNCTION DECLARATIONS =========================
@@ -79,7 +80,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length);
 void readSensors();
 void publishMeasurement(const char* topic, const char* payload);
 void publishSensorIfDue();
-void applyConfig(int deviceId, unsigned long interval, float critical);
+void applyConfig(int deviceId, unsigned long interval, float critical, float lower);
 void displayStartup();
 void updateDisplay();
 String buildTopic(int deviceId, const char* suffix);
@@ -111,13 +112,16 @@ void setup() {
 
 // ========================= LOOP =========================
 void loop() {
+  ESP.wdtEnable(20000);
   if (!mqttClient.connected()) connectMQTT();
   mqttClient.loop();
-
+  yield();
   readSensors();
+  yield();
   updateDisplay();
+  yield();
   publishSensorIfDue();
-  delay(6000);
+  yield();
 }
 
 // ========================= WIFI =========================
@@ -144,15 +148,27 @@ void connectMQTT() {
       // Subscribe to all device configuration topics
       for (int i = 1; i < NUM_DEVICES; i++) {
         String topic = buildTopic(i, "configuration");
-        mqttClient.subscribe(topic.c_str());
-        Serial.printf("[MQTT] Subscribed to %s\n", topic.c_str());
+        if (mqttClient.subscribe(topic.c_str())) {
+          Serial.printf("[MQTT] Subscribed OK: %s\n", topic.c_str());
+        } else {
+          Serial.printf("[MQTT] Subscription failed: %s\n", topic.c_str());
+        }
+        yield();
       }
+
+      requestLatestConfigs();
 
     } else {
       Serial.printf("failed (rc=%d). Retry in 5s.\n", mqttClient.state());
       delay(5000);
     }
   }
+}
+
+void requestLatestConfigs() {
+  String requestTopic = "users/" + userId + "/configuration/request";
+  mqttClient.publish(requestTopic.c_str(), "get");
+  Serial.printf("[MQTT] Requested latest configs on %s\n", requestTopic.c_str());
 }
 
 // ========================= CALLBACK =========================
@@ -181,16 +197,20 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
   unsigned long interval = doc["delay"] | configs[deviceId].interval;
   float critical = doc["criticalValue"] | configs[deviceId].critical;
+  float lower = doc["lowerValue"] | configs[deviceId].lower;
 
-  applyConfig(deviceId, interval, critical);
+  applyConfig(deviceId, interval, critical, lower);
+  yield();
   saveConfigsToEEPROM();
+  yield();
 }
 
-void applyConfig(int deviceId, unsigned long interval, float critical) {
+void applyConfig(int deviceId, unsigned long interval, float critical, float lower) {
   configs[deviceId].interval = interval;
   configs[deviceId].critical = critical;
-  Serial.printf("[CONFIG] Device %d updated: interval=%lu ms, critical=%.2f\n",
-                deviceId, interval, critical);
+  configs[deviceId].lower = lower;
+  Serial.printf("[CONFIG] Device %d updated: interval=%lu ms, critical=%.2f, lower=%.2f\n",
+                deviceId, interval, critical, lower);
 }
 
 // ========================= SENSOR LOGIC =========================
@@ -198,11 +218,14 @@ void readSensors() {
   int dhtResult = dht11.readTemperatureHumidity(temperature, humidity);
   if (dhtResult != 0) temperature = humidity = -1;
 
+  yield();
   lpg = mq2.readLPG();
   methane = mq2.readMethane();
   smoke = mq2.readSmoke();
+  yield();
   flameDetected = (digitalRead(PIN_FLAME) == LOW);
   lightDetected = (digitalRead(PIN_LIGHT) == LOW);
+  yield();
 }
 
 void publishSensorIfDue() {
@@ -222,16 +245,18 @@ void publishSensorIfDue() {
   };
 
     for (auto &s : sensors) {
+      yield();
       if (s.id >= NUM_DEVICES) continue;
 
       unsigned long interval = configs[s.id].interval;
       float crit = configs[s.id].critical;
-      bool critical = (s.value >= crit);
+      float low = configs[s.id].lower;
+      bool critical = (s.value >= crit || s.value <= low);
       // Track for display
       isCritical[s.id] = critical;
       if (critical)
-        Serial.printf("[ALERT] Device %d critical (%.1f >= %.1f)\n",
-                s.id, s.value, crit);
+        Serial.printf("[ALERT] Device %d critical (%.1f >= %.1f OR %.1f <= %.1f)\n",
+                s.id, s.value, crit, s.value, low);
 
       if (now - lastSend[s.id] >= interval || critical) {
         char payload[16];
@@ -245,8 +270,11 @@ void publishSensorIfDue() {
 
 // ========================= PUBLISH =========================
 void publishMeasurement(const char* topic, const char* payload) {
+  yield();
   mqttClient.publish(topic, payload, true);
+  yield();
   Serial.printf("[MQTT] %s => %s\n", topic, payload);
+  yield();
 }
 
 // ========================= DISPLAY =========================
