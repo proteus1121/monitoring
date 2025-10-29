@@ -1,9 +1,20 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import {
+  DevicesResponseDto,
+  LoginResponseDto,
+  MetricsResponseDto,
+  RegisterResponseDto,
+} from './api.types';
 
-class Api {
+type ApiResponse<T> =
+  | { ok: true; data: T; status: number }
+  | { ok: false; message: string; status?: number };
+
+export class Api {
   private client: AxiosInstance;
+  private onUnauthorized;
 
-  constructor(baseURL: string) {
+  constructor(baseURL: string, onUnauthorized: () => void) {
     console.log(baseURL);
     this.client = axios.create({
       baseURL,
@@ -12,6 +23,7 @@ class Api {
       },
       withCredentials: true,
     });
+    this.onUnauthorized = onUnauthorized;
   }
 
   private async reqWrapper<T>(
@@ -21,7 +33,9 @@ class Api {
       const response = await fn();
       return { ok: true, data: response.data, status: response.status };
     } catch (error: any) {
-      console.log(error);
+      if (error?.status === 401) {
+        this.onUnauthorized();
+      }
       return {
         ok: false,
         message: error?.message ?? 'Unexpected error occurred',
@@ -47,30 +61,15 @@ class Api {
       this.client.get('/devices')
     );
   }
+  async getMetricsByDevice(deviceId: number, start: Date, end: Date) {
+    return this.reqWrapper<MetricsResponseDto>(() =>
+      this.client.get('/metrics', {
+        params: {
+          deviceId,
+          start: start.toISOString(),
+          end: end.toISOString(),
+        },
+      })
+    );
+  }
 }
-
-type ApiResponse<T> =
-  | { ok: true; data: T; status: number }
-  | { ok: false; message: string; status?: number };
-type LoginResponseDto = any;
-type RegisterResponseDto = any;
-type DevicesResponseDto = Array<Device>;
-
-export enum DeviceStatus {
-  OK = 'OK',
-  WARNING = 'WARNING',
-  CRITICAL = 'CRITICAL',
-  OFFLINE = 'OFFLINE',
-}
-
-export interface Device {
-  id: number;
-  userId?: number;
-  name: string;
-  description: string;
-  criticalValue: number;
-  status: DeviceStatus;
-  lastChecked: string; // ISO date string
-}
-
-export const api = new Api(process.env.BASE_URL!);

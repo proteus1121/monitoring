@@ -21,6 +21,12 @@ export const MainLayout = () => {
         Smart Sensor Network
       </header>
 
+      <div
+        className={clsx(
+          { 'opacity-0': !isVisible },
+          'pointer-events-none absolute top-20 h-[calc(100%-80px)] w-[100vw] bg-black/10 transition-all'
+        )}
+      />
       <nav
         ref={navRef}
         className={clsx(

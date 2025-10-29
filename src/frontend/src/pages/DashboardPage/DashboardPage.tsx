@@ -12,12 +12,15 @@ import {
   SelectViewport,
 } from '@src/components/Select';
 import { useToast } from '@src/components/Toast';
-import { api, Device } from '@src/lib/api';
 import { useEffect, useState } from 'react';
+import GeneralDataChart from './components/GeneralDataChart';
+import { Device } from '@src/lib/api/api.types';
+import { useApi } from '@src/lib/api/ApiProvider';
 
 const DashboardPage = () => {
   const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
   const [device, setDevice] = useState<Device | undefined>(undefined);
+  const api = useApi();
 
   const { toast } = useToast();
   useEffect(() => {
@@ -34,7 +37,7 @@ const DashboardPage = () => {
   }, [api, setDevices]);
 
   return (
-    <div className="mx-auto mt-8 mb-8 w-[80vw] max-w-[1400px] rounded-xl bg-white shadow-xl">
+    <div className="w-full bg-white p-8">
       {devices && devices.length > 0 && (
         <>
           Select a device:
@@ -78,6 +81,7 @@ const DashboardPage = () => {
           </SelectRoot>
         </>
       )}
+      <GeneralDataChart />
     </div>
   );
 };

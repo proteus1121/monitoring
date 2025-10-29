@@ -2,7 +2,7 @@ import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
 import { useToast } from '@src/components/Toast';
-import { api } from '@src/lib/api';
+import { useApi } from '@src/lib/api/ApiProvider';
 import { Form } from 'radix-ui';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ const SignInPage = () => {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const api = useApi();
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const SignInPage = () => {
 
         navigate('/dashboard');
       }}
-      className="m-auto flex w-[360px] flex-col gap-3"
+      className="flex w-full max-w-[320px] flex-col gap-3"
     >
       <h1 className="mx-auto text-2xl">Login</h1>
       <Form.Field name="username">
@@ -92,11 +93,11 @@ const SignInPage = () => {
         Submit
       </Button>
 
-      <div>
+      <div className="flex flex-wrap gap-1">
         Dont have an account?
         <NavLink
           to={'/auth/register'}
-          className="underscore ml-2 text-blue-700 transition-all hover:opacity-70"
+          className="underscore text-blue-700 transition-all hover:opacity-70"
         >
           Register now{' '}
         </NavLink>

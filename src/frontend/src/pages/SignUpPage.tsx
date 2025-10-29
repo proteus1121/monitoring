@@ -2,7 +2,7 @@ import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
 import { useToast } from '@src/components/Toast';
-import { api } from '@src/lib/api';
+import { useApi } from '@src/lib/api/ApiProvider';
 import { Form } from 'radix-ui';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ const SignUpPage = () => {
   const [password, setPassword] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const { toast } = useToast();
+  const api = useApi();
 
   const navigate = useNavigate();
 
