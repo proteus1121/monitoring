@@ -17,6 +17,7 @@ public class Device {
     private String name;
     private String description;
     private Double criticalValue;
+    private Double lowerValue;
     private Long delay; // in ms
     private DeviceStatus status;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")

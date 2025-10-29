@@ -8,6 +8,7 @@ import lombok.Data;
 public class DeviceConfiguration {
 
     private Double criticalValue;
+    private Double lowerValue;
     private Long delay; // ms
     
 }

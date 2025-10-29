@@ -49,9 +49,11 @@ public class DeviceController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Device> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest deviceRequest) {
-        deviceService.checkDevice(id);
+        Device device = deviceService.checkDevice(id);
 
-        Device updatedDevice = deviceService.updateDevice(id, deviceMapper.toDevice(deviceRequest));
+        deviceMapper.toDevice(deviceRequest, device);
+
+        Device updatedDevice = deviceService.updateDevice(id, device);
         return ResponseEntity.ok(updatedDevice);
     }
 
