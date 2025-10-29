@@ -19,6 +19,9 @@ public class DeviceRequest {
 
     private Double criticalValue;
     
+    private Double lowerValue;
+
+    @NotBlank
     private Long delay; // in ms
     
     private DeviceType type;

@@ -36,6 +36,8 @@ public class DeviceEntity {
 
     private Double criticalValue;
 
+    private Double lowerValue;
+
     @Enumerated(EnumType.STRING)
     private DeviceStatus status = DeviceStatus.OFFLINE;
 
@@ -46,11 +48,12 @@ public class DeviceEntity {
 
     private LocalDateTime lastChecked = LocalDateTime.now();
 
-    public DeviceEntity(UserEntity user, String name, String description, Double criticalValue, DeviceType type) {
+    public DeviceEntity(UserEntity user, String name, String description, Double criticalValue, Double lowerValue, DeviceType type) {
         this.user = user;
         this.name = name;
         this.description = description;
         this.criticalValue = criticalValue;
+        this.lowerValue = lowerValue;
         this.type = type;
     }
 }
