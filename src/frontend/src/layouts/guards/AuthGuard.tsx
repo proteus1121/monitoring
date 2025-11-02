@@ -14,8 +14,8 @@ const AuthGuard = () => {
     return !!getCookie('SESSION');
   });
 
-  return <Outlet />;
-  // return hasSessionCookie ? <Outlet /> : <Navigate to="/auth/login" replace />;
+  // return <Outlet />;
+  return hasSessionCookie ? <Outlet /> : <Navigate to="/auth/login" replace />;
 };
 
 export default AuthGuard;
