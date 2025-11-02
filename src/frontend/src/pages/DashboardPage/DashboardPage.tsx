@@ -16,10 +16,11 @@ import { useEffect, useState } from 'react';
 import GeneralDataChart from './components/GeneralDataChart';
 import { Device } from '@src/lib/api/api.types';
 import { useApi } from '@src/lib/api/ApiProvider';
+import clsx from 'clsx';
 
 const DashboardPage = () => {
   const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
-  const [device, setDevice] = useState<Device | undefined>(undefined);
+  const [deviceName, setDeviceName] = useState<string>('');
   const api = useApi();
 
   const { toast } = useToast();
@@ -42,16 +43,19 @@ const DashboardPage = () => {
         <>
           Select a device:
           <SelectRoot
-            value={device?.name ?? 'Choose a Device'}
+            value={deviceName}
             onValueChange={value => {
-              const deviceTmp = devices?.find(device => device.name === value);
-              if (deviceTmp) setDevice(deviceTmp);
-              else setDevice(undefined);
+              setDeviceName(value);
             }}
           >
             <SelectTrigger asChild>
-              <Button variant="flat">
-                <SelectValue />
+              <Button
+                variant="outlined"
+                className={clsx('ml-2 min-w-32 transition-all', {
+                  'text-[rgba(0,0,0,0.6)]': !deviceName,
+                })}
+              >
+                <SelectValue placeholder="None" />
                 <Icon
                   icon="material-symbols:keyboard-arrow-down-rounded"
                   className="size-5"

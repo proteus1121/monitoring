@@ -1,6 +1,6 @@
-import { NavLink, NavLinkProps } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { forwardRef } from 'react';
+import './Button.css';
 
 type Variant = 'primary' | 'outlined' | 'danger' | 'flat' | 'danger-outlined';
 type Size = 'small' | 'normal' | 'large';

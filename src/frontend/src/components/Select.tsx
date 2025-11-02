@@ -10,6 +10,8 @@ import './Select.css';
 import clsx from 'clsx';
 import { Icon } from '@iconify/react';
 
+// INFO: There is a known bug where you can't unselect a field, even if the select is not required
+
 type SelectContextType = {
   openSelectId: string | null;
   setOpenSelectId: (id: string | null) => void;
