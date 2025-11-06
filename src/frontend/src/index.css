@@ -12,8 +12,12 @@
   --z-index-dropdown: 200;
   --z-index-select: 200;
   --z-index-toast: 300;
+
+  --header-height: calc(var(--spacing) * 20);
+  --height-header: var(--header-height);
+  --margin-header: var(--header-height);
 }
 
 body {
-  @apply bg-gray-100 font-[Arial] text-black;
+  @apply font-[Arial] text-black lg:bg-gray-100;
 }
