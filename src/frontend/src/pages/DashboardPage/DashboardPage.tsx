@@ -39,6 +39,7 @@ const DashboardPage = () => {
 
   return (
     <div className="w-full bg-white p-8">
+      <GeneralDataChart />
       {devices && devices.length > 0 && (
         <>
           Select a device:
@@ -85,7 +86,6 @@ const DashboardPage = () => {
           </SelectRoot>
         </>
       )}
-      <GeneralDataChart />
     </div>
   );
 };

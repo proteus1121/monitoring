@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
+import { DatePicker } from 'antd';
 import {
   Chart as ChartJS,
   LineElement,
@@ -11,6 +12,9 @@ import {
   Title,
 } from 'chart.js';
 import { useApi } from '@src/lib/api/ApiProvider';
+import dayjs, { Dayjs } from 'dayjs';
+
+const { RangePicker } = DatePicker;
 
 ChartJS.register(
   LineElement,
@@ -40,7 +44,10 @@ const GeneralDataChart = () => {
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [daysCount, setDaysCount] = useState<number>(2);
+  const [startDate, setStartDate] = useState<Dayjs>(
+    dayjs(new Date()).subtract(5, 'days')
+  );
+  const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
   const api = useApi();
 
   useEffect(() => {
@@ -48,10 +55,6 @@ const GeneralDataChart = () => {
       try {
         setIsLoading(true);
         setError(null);
-
-        const now = new Date();
-        const startDate = new Date();
-        startDate.setDate(now.getDate() - daysCount);
 
         const deviceIds = [1, 2, 3, 4, 5];
         const colors = [
@@ -73,7 +76,9 @@ const GeneralDataChart = () => {
         ];
 
         const responses = await Promise.all(
-          deviceIds.map(id => api.getMetricsByDevice(id, startDate, now))
+          deviceIds.map(id =>
+            api.getMetricsByDevice(id, startDate.toDate(), endDate.toDate())
+          )
         );
 
         const allTimestampsSet = new Set<string>();
@@ -129,28 +134,27 @@ const GeneralDataChart = () => {
     };
 
     fetchData();
-  }, [daysCount]);
+  }, [startDate, endDate]);
 
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
   return (
     <div>
-      <h2>Sensor Data for all devices</h2>
+      <div className="mb-4 flex max-w-[1200px] justify-between">
+        <h2 className="text-lg">Sensor Data for all devices</h2>
 
-      <label>
-        Days to load:
-        <input
-          type="datetime-local"
-          value={daysCount}
-          onChange={e => alert(e.target.value)}
+        <RangePicker
+          id={{
+            start: 'startInput',
+            end: 'endInput',
+          }}
+          defaultValue={[startDate, endDate]}
+          onChange={dates => {
+            console.log(dates?.map(date => date?.unix()));
+          }}
         />
-        <input
-          type="datetime-local"
-          value={daysCount}
-          onChange={e => alert(e.target.value)}
-        />
-      </label>
+      </div>
 
       {chartData && <Line data={chartData} options={{ responsive: true }} />}
     </div>
