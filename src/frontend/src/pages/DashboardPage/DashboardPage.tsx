@@ -5,7 +5,6 @@ import DeviceDataChart from './components/DeviceDataChart';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { Device } from '@src/lib/api/api.types';
 import { useToast } from '@src/components/Toast';
-import { Card } from 'antd';
 
 const DashboardPage = () => {
   const api = useApi();
@@ -38,3 +37,21 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
+const Card = (props: {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) => {
+  return (
+    <div
+      className={clsx(
+        'w-full bg-white p-4 last:mb-6 sm:mx-auto sm:mt-6 sm:max-w-[36rem] sm:rounded-xl sm:shadow-xl md:max-w-[44rem] md:p-8 lg:max-w-[56rem]',
+        props.className
+      )}
+      onClick={props.onClick}
+    >
+      {props.children}
+    </div>
+  );
+};

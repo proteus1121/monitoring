@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import {
+  Device,
   DevicesResponseDto,
   LoginResponseDto,
   MetricsResponseDto,
@@ -61,6 +62,7 @@ export class Api {
       this.client.get('/devices')
     );
   }
+
   async getMetricsByDevice(deviceId: number, start: Date, end: Date) {
     return this.reqWrapper<MetricsResponseDto>(() =>
       this.client.get('/metrics', {
@@ -70,6 +72,18 @@ export class Api {
           end: end.toISOString(),
         },
       })
+    );
+  }
+
+  async deleteDevice(deviceId: number) {
+    return this.reqWrapper<unknown>(() =>
+      this.client.delete(`/devices/${deviceId}`)
+    );
+  }
+
+  async updateDevice(device: Device) {
+    return this.reqWrapper<Device>(() =>
+      this.client.put(`/devices/${device.id}`, device)
     );
   }
 }

@@ -19,5 +19,5 @@
 }
 
 body {
-  @apply font-[Arial] text-black sm:bg-gray-100;
+  @apply font-[Arial] text-black;
 }
