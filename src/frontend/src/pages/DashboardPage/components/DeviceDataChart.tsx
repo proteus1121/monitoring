@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
-import { DatePicker } from 'antd';
+import { DatePicker, Select } from 'antd';
 import {
   Chart as ChartJS,
   LineElement,
@@ -11,8 +11,9 @@ import {
   Legend,
   Title,
 } from 'chart.js';
-import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs, { Dayjs } from 'dayjs';
+import { Device } from '@src/lib/api/api.types';
+import { useApi } from '@src/lib/api/ApiProvider';
 
 const { RangePicker } = DatePicker;
 
@@ -40,7 +41,10 @@ interface ChartData {
   datasets: DatasetConfig[];
 }
 
-const GeneralDataChart = () => {
+const DeviceDataChart = ({ devices }: { devices?: Device[] }) => {
+  const [choosenDevicesIds, setChoosenDevicesIds] = useState<number[]>([]);
+
+  const api = useApi();
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +52,6 @@ const GeneralDataChart = () => {
     dayjs(new Date()).subtract(5, 'days')
   );
   const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
-  const api = useApi();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +59,10 @@ const GeneralDataChart = () => {
         setIsLoading(true);
         setError(null);
 
-        const deviceIds = [1, 2, 3, 4, 5];
+        if (!devices) {
+          return;
+        }
+
         const colors = [
           'rgba(255, 99, 132, 1)',
           'rgba(54, 162, 235, 1)',
@@ -67,16 +73,8 @@ const GeneralDataChart = () => {
           'rgb(71,255,0)',
         ];
 
-        const devices = [
-          'Temperature Sensor',
-          'Humidity Sensor',
-          'LPG',
-          'CH4',
-          'Smoke',
-        ];
-
         const responses = await Promise.all(
-          deviceIds.map(id =>
+          choosenDevicesIds.map(id =>
             api.getMetricsByDevice(id, startDate.toDate(), endDate.toDate())
           )
         );
@@ -97,12 +95,15 @@ const GeneralDataChart = () => {
         });
 
         const allTimestamps = Array.from(allTimestampsSet).sort();
+        const choosenDevices = devices.filter(device =>
+          choosenDevicesIds.includes(device.id)
+        );
 
         const datasets: DatasetConfig[] = deviceDataMaps.map(
           (dataMap, index) => {
             const color = colors[index % colors.length];
             return {
-              label: devices[index] || `Device ${index + 1}`,
+              label: choosenDevices[index].name || `Device ${index + 1}`,
               data: allTimestamps.map(timestamp =>
                 dataMap[timestamp] !== undefined ? dataMap[timestamp] : null
               ),
@@ -134,29 +135,50 @@ const GeneralDataChart = () => {
     };
 
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, devices, choosenDevicesIds]);
 
   return (
     <div>
-      <div className="mb-4 flex justify-between">
-        <h2 className="text-lg">Sensor Data for all devices</h2>
+      <div className="mb-2">
+        <h2 className="mb-2 text-lg">Sensor Data for specific devices</h2>
+        <div className="flex w-full items-center">
+          {devices && devices.length > 0 && (
+            <>
+              <Select
+                placeholder="Select devices"
+                className="w-60"
+                maxTagCount={'responsive'}
+                popupMatchSelectWidth={false}
+                mode="multiple"
+                onChange={devicesId => {
+                  setChoosenDevicesIds(devicesId);
+                }}
+                options={devices.map(device => ({
+                  value: device.id,
+                  label: <span>{device.name}</span>,
+                }))}
+              />
+            </>
+          )}
 
-        <RangePicker
-          id={{
-            start: 'startInput',
-            end: 'endInput',
-          }}
-          defaultValue={[startDate, endDate]}
-          onChange={dates => {
-            if (dates?.[0]) {
-              setStartDate(dates[0]);
-            }
+          <RangePicker
+            className="!ml-auto"
+            id={{
+              start: 'startInput',
+              end: 'endInput',
+            }}
+            defaultValue={[startDate, endDate]}
+            onChange={dates => {
+              if (dates?.[0]) {
+                setStartDate(dates[0]);
+              }
 
-            if (dates?.[1]) {
-              setEndDate(dates[1]);
-            }
-          }}
-        />
+              if (dates?.[1]) {
+                setEndDate(dates[1]);
+              }
+            }}
+          />
+        </div>
       </div>
 
       {chartData ? (
@@ -170,4 +192,4 @@ const GeneralDataChart = () => {
   );
 };
 
-export default GeneralDataChart;
+export default DeviceDataChart;

@@ -27,10 +27,6 @@ export const MainLayout = () => {
         Smart Sensor Network
       </header>
 
-      <div className="relative flex-1 overflow-y-auto">
-        <Outlet />
-      </div>
-
       <div
         className={clsx(
           { '-translate-x-full opacity-0': !isVisible },
@@ -71,6 +67,10 @@ export const MainLayout = () => {
             Logout
           </button>
         </nav>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <Outlet />
       </div>
     </main>
   );
