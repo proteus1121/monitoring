@@ -102,7 +102,7 @@ public class WebConfig implements WebMvcConfigurer {
 //        } else {
 //            configuration.setAllowedOriginPatterns(List.of("http://localhost:3000"));
 //        }
-        configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua", "http://localhost:3000"));
+        configuration.setAllowedOriginPatterns(List.of("http://ssn.pp.ua", "https://ssn.pp.ua", "http://localhost:3000", "http://localhost:4000"));
         configuration.setAllowedMethods(List.of(
                 GET.name(),
                 POST.name(),
