@@ -14,7 +14,7 @@ import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import AuthLayout from './layouts/AuthLayout';
 import { ToastProvider } from './components/Toast';
-import DevicePage from './pages/DevicePage';
+import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
@@ -50,7 +50,7 @@ export const router = createBrowserRouter(
         <Route element={<MainLayout />}>
           <Route path="/" element={<AuthGuard />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/devices" element={<DevicePage />} />
+            <Route path="/devices" element={<DevicesPage />} />
             {/* <Route path="/users" element={<UsersPage />} /> */}
             <Route path="/" element={<Navigate to="/dashboard" />} />
           </Route>

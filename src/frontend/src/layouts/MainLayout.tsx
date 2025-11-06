@@ -27,16 +27,20 @@ export const MainLayout = () => {
         Smart Sensor Network
       </header>
 
+      <div className="flex-1 overflow-y-auto">
+        <Outlet />
+      </div>
+
       <div
         className={clsx(
           { '-translate-x-full opacity-0': !isVisible },
-          'pointer-events-none fixed top-20 h-[calc(100%-80px)] w-[100vw] transition-all'
+          'fixed top-20 h-[calc(100%-80px)] w-[100vw] transition-all'
         )}
       >
         <nav
           ref={navRef}
           className={clsx(
-            'pointer-events-auto flex h-full w-[220px] flex-col items-center gap-1 bg-white p-2 shadow-xl transition-all'
+            'flex h-full w-[220px] flex-col items-center gap-1 bg-white p-2 shadow-xl transition-all'
           )}
         >
           <Link
@@ -67,10 +71,6 @@ export const MainLayout = () => {
             Logout
           </button>
         </nav>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        <Outlet />
       </div>
     </main>
   );
