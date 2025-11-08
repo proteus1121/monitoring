@@ -1,10 +1,12 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import {
+  CreateDeviceRequest,
   Device,
-  DevicesResponseDto,
-  LoginResponseDto,
-  MetricsResponseDto,
-  RegisterResponseDto,
+  DevicesResponse,
+  LoginResponse,
+  MetricsResponse,
+  RegisterResponse,
+  UpdateDeviceRequest,
 } from './api.types';
 
 type ApiResponse<T> =
@@ -46,25 +48,23 @@ export class Api {
   }
 
   async login(username: string, password: string) {
-    return this.reqWrapper<LoginResponseDto>(() =>
+    return this.reqWrapper<LoginResponse>(() =>
       this.client.post('/users/login', { username, password })
     );
   }
 
   async register(username: string, password: string) {
-    return this.reqWrapper<RegisterResponseDto>(() =>
+    return this.reqWrapper<RegisterResponse>(() =>
       this.client.post('/users/register', { username, password })
     );
   }
 
   async getDevices() {
-    return this.reqWrapper<DevicesResponseDto>(() =>
-      this.client.get('/devices')
-    );
+    return this.reqWrapper<DevicesResponse>(() => this.client.get('/devices'));
   }
 
   async getMetricsByDevice(deviceId: number, start: Date, end: Date) {
-    return this.reqWrapper<MetricsResponseDto>(() =>
+    return this.reqWrapper<MetricsResponse>(() =>
       this.client.get('/metrics', {
         params: {
           deviceId,
@@ -81,9 +81,13 @@ export class Api {
     );
   }
 
-  async updateDevice(device: Device) {
+  async updateDevice(device: UpdateDeviceRequest) {
     return this.reqWrapper<Device>(() =>
       this.client.put(`/devices/${device.id}`, device)
     );
+  }
+
+  async createDevice(device: CreateDeviceRequest) {
+    return this.reqWrapper<Device>(() => this.client.post('/devices', device));
   }
 }

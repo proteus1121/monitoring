@@ -1,12 +1,13 @@
 import { useToast } from '@src/components/Toast';
-import { Device } from '@src/lib/api/api.types';
 import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
 import { ReactNode, useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Button, Input, InputNumber, Popconfirm, Tooltip } from 'antd';
+import { Button, Form, Input, InputNumber, Popconfirm, Tooltip } from 'antd';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
+import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
+import { DeviceCard } from './components/DeviceCard';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -28,48 +29,57 @@ const DevicesPage = () => {
     fetchDevices();
   }, [api, setDevices]);
 
-  const handleDelete = async (device: Device) => {
-    const res = await api.deleteDevice(device.id);
+  const handleDelete = async (deviceId: number, deviceName: string) => {
+    const res = await api.deleteDevice(deviceId);
     if (res.ok) {
-      toast({ title: `Deleted ${device.name}`, variant: 'info' });
+      toast({ title: `Deleted ${deviceName}`, variant: 'info' });
     }
 
     await fetchDevices();
   };
 
   const handleUpdate = async (device: Device) => {
-    const res = await api.updateDevice(device);
+    if (!device.id || !device.name) {
+      toast({ title: 'Failed to update device', variant: 'warning' });
+      return;
+    }
+
+    const res = await api.updateDevice({
+      id: device.id!,
+      deviceType: device.type,
+      name: device.name,
+      delay: device.delay,
+      description: device.description,
+      criticalValue: device.criticalValue,
+    });
     if (res.ok) {
       toast({ title: `${device.name} updated succesfully`, variant: 'info' });
+    } else {
+      toast({ title: 'Failed to update device', variant: 'warning' });
     }
 
     await fetchDevices();
   };
 
   const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
-  const handleCreate = (device: Device) => {}; // TODO: HANDLE CREATION
+  const handleCreate = async (device: CreateDeviceRequest) => {
+    const res = await api.createDevice(device);
+    if (res.ok) {
+      toast({ title: `${device.name} updated succesfully`, variant: 'info' });
+    } else {
+      toast({ title: 'Failed to update device', variant: 'warning' });
+    }
+
+    await fetchDevices();
+  };
 
   return (
     <>
       {isCreationVisible ? (
-        <Card className="relative">
-          <div className="absolute top-2 right-2 flex gap-1">
-            <Button size="small" type="default">
-              Add
-            </Button>
-            <Popconfirm
-              title={`Are you sure to proceed without saving?`}
-              onConfirm={() => setIsCreationVisible(false)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button size="small" type="primary" danger>
-                Exit
-              </Button>
-            </Popconfirm>
-          </div>
-          Creation
-        </Card>
+        <DeviceCreationForm
+          onCreate={handleCreate}
+          setIsCreationVisible={setIsCreationVisible}
+        />
       ) : (
         <Card
           onClick={() => {
@@ -82,12 +92,17 @@ const DevicesPage = () => {
         </Card>
       )}
       {devices &&
-        devices.map(device => (
+        devices.map((device, id) => (
           <DeviceCard
+            key={device.id ?? id}
             device={device}
             onSave={handleUpdate}
             onDelete={() => {
-              handleDelete(device);
+              if (!device.id) {
+                toast({ title: 'Failed to delete device', variant: 'warning' });
+                return;
+              }
+              handleDelete(device.id, device.name ?? '');
             }}
           />
         ))}
@@ -97,7 +112,7 @@ const DevicesPage = () => {
 
 export default DevicesPage;
 
-const Card = (props: {
+export const Card = (props: {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
@@ -115,138 +130,107 @@ const Card = (props: {
   );
 };
 
-const DeviceCard = ({
-  device,
-  onSave,
-  onDelete,
+const DeviceCreationForm = ({
+  onCreate,
+  setIsCreationVisible,
 }: {
-  device: Device;
-  onSave: (newDevice: Device) => void;
-  onDelete: () => void;
+  onCreate: (device: CreateDeviceRequest) => void;
+  setIsCreationVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [newDevice, setNewDevice] = useState<Device>(device);
+  const [device, setDevice] = useState<CreateDeviceRequest>({
+    name: '',
+  });
 
-  useEffect(() => {
-    setNewDevice(device);
-  }, [isEditing, device]);
-
-  const handleSave = () => {
-    onSave(newDevice);
-    setIsEditing(false);
+  const handleCreate = () => {
+    if (device && device.name) {
+      onCreate(device);
+    }
   };
+
   return (
-    <Card className="relative flex flex-col gap-2">
-      <form
-        className="contents"
-        onSubmit={e => {
-          e.preventDefault();
-          handleSave();
-        }}
-      >
-        {isEditing ? (
-          <>
-            Name:
-            <Input
-              value={newDevice.name}
-              onChange={e => {
-                setNewDevice(prev => ({
-                  ...prev,
-                  name: e.currentTarget.value,
-                }));
-              }}
-            />
-          </>
-        ) : (
-          <div className="text-lg font-semibold">{device.name}</div>
-        )}
+    <Card>
+      <Form className="contents" layout="vertical">
+        <Form.Item label="Name" required>
+          <Input
+            required
+            value={device?.name}
+            onChange={e => {
+              setDevice({ ...device, name: e.currentTarget.value });
+            }}
+          />
+        </Form.Item>
+        <Form.Item label="Description">
+          <Input.TextArea
+            autoSize={{
+              minRows: 3,
+              maxRows: 6,
+            }}
+            value={device?.description}
+            onChange={e => {
+              setDevice({ ...device, description: e.currentTarget.value });
+            }}
+          />
+        </Form.Item>
 
-        <div>
-          Description:{' '}
-          {isEditing ? (
-            <Input
-              value={newDevice.description}
-              onChange={e => {
-                setNewDevice(prev => ({
-                  ...prev,
-                  description: e.currentTarget.value,
-                }));
-              }}
-            />
-          ) : (
-            <span className="text-gray-600">
-              {device.description ?? 'No description available'}
-            </span>
-          )}
-        </div>
+        <Form.Item label="Critical value">
+          <InputNumber
+            className="!block !w-full"
+            value={device.criticalValue}
+            onChange={val => {
+              setDevice(prev => ({
+                ...prev,
+                criticalValue: val ?? undefined,
+              }));
+            }}
+          />
+        </Form.Item>
 
-        <div>
-          Critical value:{' '}
-          {isEditing ? (
-            <InputNumber
-              className="!block !w-full"
-              value={newDevice.criticalValue}
-              onChange={val => {
-                setNewDevice(prev => ({
-                  ...prev,
-                  criticalValue: val ?? 0,
-                }));
-              }}
-            />
-          ) : (
-            <span className="text-gray-600">{device.criticalValue}</span>
-          )}
-        </div>
+        {/* <Form.Item label="Lower value"> */}
+        {/*   <InputNumber */}
+        {/*     className="!block !w-full" */}
+        {/*     value={device.lowerValue} */}
+        {/*     onChange={val => { */}
+        {/*       setDevice(prev => ({ */}
+        {/*         ...prev, */}
+        {/*         lowerValue: val ?? undefined, */}
+        {/*       })); */}
+        {/*     }} */}
+        {/*   /> */}
+        {/* </Form.Item> */}
 
-        {!isEditing && (
-          <div>
-            Status: <span className="text-gray-600"> {device.status}</span>
-          </div>
-        )}
-
-        {!isEditing && (
-          <div className="text-sm text-gray-500">
-            Last checked:{' '}
-            <Tooltip title={dayjs(new Date(device.lastChecked)).toString()}>
-              {dayjs(new Date(device.lastChecked)).fromNow()}
-            </Tooltip>
-          </div>
-        )}
+        <Form.Item label="Delay (ms)">
+          <InputNumber
+            className="!block !w-full"
+            value={device.delay}
+            onChange={val => {
+              setDevice(prev => ({
+                ...prev,
+                delay: val ?? undefined,
+              }));
+            }}
+          />
+        </Form.Item>
 
         <div className="ml-auto flex gap-2">
-          {isEditing ? (
-            <>
-              <Button
-                onClick={() => {
-                  setIsEditing(false);
-                }}
-              >
-                Cancel
-              </Button>
+          <Button
+            onClick={() => {
+              setIsCreationVisible(false);
+            }}
+          >
+            Cancel
+          </Button>
 
-              <Button type="primary" onClick={handleSave} htmlType="submit">
-                Save
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button type="default" onClick={() => setIsEditing(true)}>
-                Edit
-              </Button>
-              <Popconfirm
-                title={`Are you sure to delete ${device.name}?`}
-                onConfirm={onDelete}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Button type="primary" danger>
-                  Delete
-                </Button>
-              </Popconfirm>
-            </>
-          )}
+          <Button
+            type="primary"
+            onClick={() => {
+              // handleCreate(device);
+            }}
+            htmlType="submit"
+          >
+            Create
+          </Button>
         </div>
-      </form>
+      </Form>
     </Card>
   );
 };

@@ -95,8 +95,8 @@ const DeviceDataChart = ({ devices }: { devices?: Device[] }) => {
         });
 
         const allTimestamps = Array.from(allTimestampsSet).sort();
-        const choosenDevices = devices.filter(device =>
-          choosenDevicesIds.includes(device.id)
+        const choosenDevices = devices.filter(
+          device => device.id && choosenDevicesIds.includes(device.id)
         );
 
         const datasets: DatasetConfig[] = deviceDataMaps.map(
