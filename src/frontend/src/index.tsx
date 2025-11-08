@@ -8,12 +8,12 @@ import {
   Route,
   RouterProvider,
 } from 'react-router-dom';
+import '@ant-design/v5-patch-for-react-19';
 import { MainLayout } from './layouts/MainLayout';
 import AuthGuard from './layouts/guards/AuthGuard';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import AuthLayout from './layouts/AuthLayout';
-import { ToastProvider } from './components/Toast';
 import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
@@ -22,11 +22,9 @@ import { ApiProvider } from './lib/api/ApiProvider';
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
   return (
-    <ToastProvider>
-      <SelectProvider>
-        <RouterProvider router={router} />
-      </SelectProvider>
-    </ToastProvider>
+    <SelectProvider>
+      <RouterProvider router={router} />
+    </SelectProvider>
   );
 };
 

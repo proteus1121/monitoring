@@ -1,8 +1,8 @@
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
-import { useToast } from '@src/components/Toast';
 import { useApi } from '@src/lib/api/ApiProvider';
+import { notification } from 'antd';
 import { Form } from 'radix-ui';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -12,7 +12,6 @@ const SignUpPage = () => {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
-  const { toast } = useToast();
   const api = useApi();
 
   const navigate = useNavigate();
@@ -24,9 +23,9 @@ const SignUpPage = () => {
 
         const registerRes = await api.register(username, password);
         if (registerRes.ok === false) {
-          toast({
-            title: registerRes.message,
-            variant: 'warning',
+          notification.error({
+            message: 'Failed to register',
+            description: registerRes.message,
           });
           return;
         }
@@ -34,9 +33,9 @@ const SignUpPage = () => {
         const loginRes = await api.login(username, password);
 
         if (loginRes.ok === false) {
-          toast({
-            title: loginRes.message,
-            variant: 'warning',
+          notification.error({
+            message: 'Failed to log in',
+            description: loginRes.message,
           });
           return;
         }

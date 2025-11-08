@@ -1,8 +1,8 @@
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
-import { useToast } from '@src/components/Toast';
 import { useApi } from '@src/lib/api/ApiProvider';
+import { notification } from 'antd';
 import { Form } from 'radix-ui';
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
@@ -14,7 +14,6 @@ const SignInPage = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const api = useApi();
 
-  const { toast } = useToast();
   const navigate = useNavigate();
 
   return (
@@ -24,9 +23,9 @@ const SignInPage = () => {
 
         const res = await api.login(username, password);
         if (res.ok === false) {
-          toast({
-            title: res.message,
-            variant: 'warning',
+          notification.error({
+            message: 'Failed to login',
+            description: res.message,
           });
           return;
         }

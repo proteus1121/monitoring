@@ -9,6 +9,7 @@ export type DeviceRequest = {
   name: string;
   description?: string;
   criticalValue?: number;
+  lowerValue?: number;
   delay?: number;
   deviceType?: DeviceType;
 };

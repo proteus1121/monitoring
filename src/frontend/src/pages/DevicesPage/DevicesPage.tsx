@@ -1,9 +1,8 @@
-import { useToast } from '@src/components/Toast';
 import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
 import { ReactNode, useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Button, Form, Input, InputNumber, Popconfirm, Tooltip } from 'antd';
+import { Button, Form, Input, InputNumber, notification } from 'antd';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
 import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
@@ -13,12 +12,14 @@ dayjs.extend(relativeTime);
 const DevicesPage = () => {
   const api = useApi();
   const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
-  const { toast } = useToast();
 
   const fetchDevices = async () => {
     const res = await api.getDevices();
     if (!res.ok) {
-      toast({ title: res.message, variant: 'warning' });
+      notification.error({
+        message: 'Failed to fetch devices',
+        description: res.message,
+      });
       return;
     }
 
@@ -32,7 +33,7 @@ const DevicesPage = () => {
   const handleDelete = async (deviceId: number, deviceName: string) => {
     const res = await api.deleteDevice(deviceId);
     if (res.ok) {
-      toast({ title: `Deleted ${deviceName}`, variant: 'info' });
+      notification.success({ message: `Deleted ${deviceName}` });
     }
 
     await fetchDevices();
@@ -40,7 +41,10 @@ const DevicesPage = () => {
 
   const handleUpdate = async (device: Device) => {
     if (!device.id || !device.name) {
-      toast({ title: 'Failed to update device', variant: 'warning' });
+      notification.error({
+        message: 'Failed to update device',
+        description: 'Device should have id and name',
+      });
       return;
     }
 
@@ -53,9 +57,12 @@ const DevicesPage = () => {
       criticalValue: device.criticalValue,
     });
     if (res.ok) {
-      toast({ title: `${device.name} updated succesfully`, variant: 'info' });
+      notification.success({ message: `${device.name} updated succesfully` });
     } else {
-      toast({ title: 'Failed to update device', variant: 'warning' });
+      notification.error({
+        message: 'Failed to update device',
+        description: res.message,
+      });
     }
 
     await fetchDevices();
@@ -65,11 +72,15 @@ const DevicesPage = () => {
   const handleCreate = async (device: CreateDeviceRequest) => {
     const res = await api.createDevice(device);
     if (res.ok) {
-      toast({ title: `${device.name} updated succesfully`, variant: 'info' });
+      notification.success({ message: `${device.name} created succesfully` });
     } else {
-      toast({ title: 'Failed to update device', variant: 'warning' });
+      notification.error({
+        message: 'Failed to create device',
+        description: res.message,
+      });
     }
 
+    setIsCreationVisible(false);
     await fetchDevices();
   };
 
@@ -99,7 +110,10 @@ const DevicesPage = () => {
             onSave={handleUpdate}
             onDelete={() => {
               if (!device.id) {
-                toast({ title: 'Failed to delete device', variant: 'warning' });
+                notification.error({
+                  message: 'Failed to delete device',
+                  description: 'Device should have id',
+                });
                 return;
               }
               handleDelete(device.id, device.name ?? '');
@@ -149,7 +163,7 @@ const DeviceCreationForm = ({
 
   return (
     <Card>
-      <Form className="contents" layout="vertical">
+      <Form className="contents" layout="vertical" onFinish={handleCreate}>
         <Form.Item label="Name" required>
           <Input
             required
@@ -185,18 +199,18 @@ const DeviceCreationForm = ({
           />
         </Form.Item>
 
-        {/* <Form.Item label="Lower value"> */}
-        {/*   <InputNumber */}
-        {/*     className="!block !w-full" */}
-        {/*     value={device.lowerValue} */}
-        {/*     onChange={val => { */}
-        {/*       setDevice(prev => ({ */}
-        {/*         ...prev, */}
-        {/*         lowerValue: val ?? undefined, */}
-        {/*       })); */}
-        {/*     }} */}
-        {/*   /> */}
-        {/* </Form.Item> */}
+        <Form.Item label="Lower value">
+          <InputNumber
+            className="!block !w-full"
+            value={device.lowerValue}
+            onChange={val => {
+              setDevice(prev => ({
+                ...prev,
+                lowerValue: val ?? undefined,
+              }));
+            }}
+          />
+        </Form.Item>
 
         <Form.Item label="Delay (ms)">
           <InputNumber
@@ -220,13 +234,7 @@ const DeviceCreationForm = ({
             Cancel
           </Button>
 
-          <Button
-            type="primary"
-            onClick={() => {
-              // handleCreate(device);
-            }}
-            htmlType="submit"
-          >
+          <Button type="primary" htmlType="submit">
             Create
           </Button>
         </div>
