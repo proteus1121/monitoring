@@ -1,6 +1,5 @@
 package org.proteus1121.model.entity;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

@@ -8,25 +8,27 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
 import org.proteus1121.model.entity.DeviceEntity;
+import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.model.request.DeviceRequest;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = { UserMapper.class })
 public interface DeviceMapper {
 
-    @Mapping(source = "user.id", target = "userId")
+    @Mapping(target = "user", source = "user", qualifiedByName = "toPlainUser")
     Device toDevice(DeviceEntity deviceEntity);
 
-    @Mapping(target = "userId", ignore = true) // User will be set separately in the service
+    @Mapping(target = "user", ignore = true) // User will be set separately in the service
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
     @Mapping(target = "lastChecked", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "status", constant = "OFFLINE")
     Device toDevice(DeviceRequest deviceRequest);
 
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
-    @Mapping(target = "user.id", source = "userId")
-    DeviceEntity toDeviceEntity(Device device, Long userId);
+    @Mapping(target = "user", source = "user")
+    @Mapping(target = "name", source = "device.name")
+    DeviceEntity toDeviceEntity(Device device, UserEntity user);
 
-    @Mapping(target = "user.id", source = "device.userId")
+    @Mapping(target = "user.id", source = "device.user.id")
     @Mapping(target = "id", source = "id") // ID will be auto-generated
     DeviceEntity toDeviceEntity(Long id, Device device);
     

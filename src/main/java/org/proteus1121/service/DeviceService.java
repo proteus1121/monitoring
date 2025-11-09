@@ -1,11 +1,13 @@
 package org.proteus1121.service;
 
 import lombok.RequiredArgsConstructor;
+import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.mqtt.publisher.configuration.ConfigurationPublisher;
 import org.proteus1121.repository.DeviceRepository;
+import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,6 +22,7 @@ public class DeviceService {
     
     private final DeviceMapper deviceMapper;
     private final DeviceRepository deviceRepository;
+    private final UserRepository userRepository;
     private final ConfigurationPublisher configurationPublisher;
 
     public Optional<Device> getDeviceById(Long id) {
@@ -28,7 +31,9 @@ public class DeviceService {
     }
     
     public Device createDevice(Device device, Long userId) {
-        DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device, userId));
+        UserEntity userEntity = userRepository.findById(userId).orElseThrow(() ->
+                new RuntimeException("User " + userId + " not found"));//TODO: exception handling
+        DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device, userEntity));
         Device createdDevice = deviceMapper.toDevice(deviceEntity);
         configurationPublisher.publish(createdDevice.getUserId(), deviceEntity.getId(), 
                 deviceMapper.toDeviceConfiguration(createdDevice));

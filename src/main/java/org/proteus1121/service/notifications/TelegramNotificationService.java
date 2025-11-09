@@ -7,13 +7,13 @@ import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.notification.TelegramNotification;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.entity.NotificationEntity;
+import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.model.enums.NotificationType;
 import org.proteus1121.model.mapper.NotificationMapper;
 import org.proteus1121.model.telegram.SendMessageRequest;
 import org.proteus1121.repository.NotificationRepository;
-import org.proteus1121.service.UserService;
+import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,7 +26,7 @@ import java.util.Map;
 public class TelegramNotificationService {
 
     private final NotificationRepository repository;
-    private final UserService userService;
+    private final UserRepository userRepository;
     private final NotificationMapper notificationMapper;
     private final TelegramClient telegramClient;
 
@@ -42,7 +42,9 @@ public class TelegramNotificationService {
     }
 
     public TelegramNotification create(TelegramNotification notification, Long userId) {
-        NotificationEntity telegramEntity = notificationMapper.toEntity(notification, userId);
+        UserEntity userEntity = userRepository.findById(userId).orElseThrow(() ->
+                new RuntimeException("User " + userId + " not found"));//TODO: exception handling
+        NotificationEntity telegramEntity = notificationMapper.toEntity(notification, userEntity);
         NotificationEntity entity = repository.save(telegramEntity);
         return notificationMapper.toTelegramNotification(entity);
     }
@@ -65,10 +67,9 @@ public class TelegramNotificationService {
     }
 
     public void sendCriticalNotifications(Device device, Double value) {
-        Long userId = device.getUserId();
-        User user = userService.getUser(userId);
+        User user = device.getUser();
         
-        getNotifications(userId).stream()
+        getNotifications(user.getId()).stream()
                 .filter(n -> n.getType() == NotificationType.CRITICAL)
                 .forEach(n -> sendNotification(n.getTelegramChatId(), getMessage(n.getTemplate(), user, device, value)));
     }

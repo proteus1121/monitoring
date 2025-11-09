@@ -14,7 +14,6 @@ public class FeignCommonConfig {
     private final long maxPeriod;
     private final int maxAttempts;
     
-    // RENAME
     public FeignCommonConfig(@Value("${http.retry.period}") long period,
                                 @Value("${http.retry.max-period}") long maxPeriod,
                                 @Value("${http.retry.attempts}") int maxAttempts) {
