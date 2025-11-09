@@ -134,6 +134,7 @@ jobs:
           echo "SSH_USER=${{ secrets.SSH_USER }}" >> .env
           echo "MQTT_USER=${{ secrets.MQTT_USER }}" >> .env
           echo "MQTT_PASS=${{ secrets.MQTT_PASS }}" >> .env
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
           echo "PROFILE=docker" >> .env
 
       - name: Copy Docker Compose files to server
