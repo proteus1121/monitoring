@@ -55,6 +55,7 @@ const DevicesPage = () => {
       delay: device.delay,
       description: device.description,
       criticalValue: device.criticalValue,
+      lowerValue: device.lowerValue
     });
     if (res.ok) {
       notification.success({ message: `${device.name} updated succesfully` });
