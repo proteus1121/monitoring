@@ -10,7 +10,6 @@ import {
 } from '@src/lib/api/api.types';
 import { NotificationCard } from './components/NotificationCard';
 
-// Reuse same “Card” component pattern from DevicesPage for consistent look.
 export const Card = (props: { children: ReactNode; className?: string; onClick?: () => void }) => {
     return (
         <div
@@ -25,7 +24,7 @@ export const Card = (props: { children: ReactNode; className?: string; onClick?:
     );
 };
 
-const TYPE_OPTIONS = ['INFO', 'ALERT', 'WARNING', 'CRITICAL'];
+const TYPE_OPTIONS = ['INFO', 'WARNING', 'CRITICAL'];
 
 const NotificationsPage = () => {
     const api = useApi();

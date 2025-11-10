@@ -18,7 +18,7 @@ import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
-import NotificationsPage from "@src/pages/notification/NotificationsPage";
+import NotificationsPage from "@src/pages/NotificationsPage/NotificationsPage";
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);

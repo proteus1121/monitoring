@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Popconfirm, Select, Tooltip } from 'antd';
 import { Card } from '../NotificationsPage';
-import { TelegramNotification } from '@src/lib/api/api.types';
-
-const TYPE_OPTIONS = ['INFO', 'WARNING', 'CRITICAL'];
+import {NOTIFICATION_TYPES, TelegramNotification} from '@src/lib/api/api.types';
 
 export const NotificationCard = ({
                                      notification,
@@ -67,11 +65,6 @@ export const PreviewNotificationCard = ({
                     <div>
                         <span className="font-medium">Type:</span> {notification.type || '—'}
                     </div>
-                    <div className="whitespace-pre-wrap">
-                        <span className="font-medium">Template:</span>
-                        <br />
-                        {notification.template || '—'}
-                    </div>
                     {notification.user && (
                         <div>
                             <span className="font-medium">User:</span>{' '}
@@ -80,11 +73,20 @@ export const PreviewNotificationCard = ({
                                 (notification.user.id ? `#${notification.user.id}` : '—')}
                         </div>
                     )}
+                    <div className="whitespace-pre-wrap">
+                        <span className="font-medium">Template:</span>
+                        <br/>
+                        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 overflow-x-auto shadow-sm">
+                            <code className="text-sm font-mono text-gray-700 block whitespace-pre-wrap">
+                                {notification.template || '—'}
+                            </code>
+                        </div>
+                    </div>
                 </div>
                 <div className="ml-4 flex flex-col gap-2">
                     <Tooltip title="Edit">
                         <Button onClick={onEnableEditing} type="default">
-                            Edit
+                        Edit
                         </Button>
                     </Tooltip>
                     <Popconfirm
@@ -129,7 +131,7 @@ const EditableNotificationCard = ({
                     <Select
                         value={notification.type}
                         onChange={(val) => setNotification((prev) => ({ ...prev, type: val }))}
-                        options={TYPE_OPTIONS.map((t) => ({ label: t, value: t }))}
+                        options={NOTIFICATION_TYPES.map((t) => ({ label: t, value: t }))}
                     />
                 </Form.Item>
 
