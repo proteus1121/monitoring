@@ -2,6 +2,7 @@ export type LoginResponse = any;
 export type RegisterResponse = any;
 export type DevicesResponse = Array<Device>;
 export type MetricsResponse = Array<Metrics>;
+export type TelegramNotificationResponse = Array<TelegramNotification>;
 export type CreateDeviceRequest = DeviceRequest;
 export type UpdateDeviceRequest = DeviceRequest & { id: number };
 
@@ -49,3 +50,24 @@ export interface Metrics {
   timestamp: string; // ISO date string
   value: number;
 }
+
+export type TelegramNotification = {
+  id: number;
+  user?: { id?: number; username?: string; email?: string };
+  telegramChatId: string;
+  type: string;      // or a string union for your enum
+  template: string;
+};
+
+export type CreateTelegramNotificationRequest = {
+  telegramChatId: string;
+  type: string;
+  template: string;
+};
+
+export type UpdateTelegramNotificationRequest = {
+  id: number;
+  telegramChatId: string;
+  type: string;
+  template: string;
+};
