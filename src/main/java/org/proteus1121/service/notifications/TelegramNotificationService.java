@@ -20,6 +20,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
 @Service
 @RequiredArgsConstructor
@@ -131,5 +135,16 @@ public class TelegramNotificationService {
                     .replaceAll("\\.0+$", "");
         }
         return str;
+    }
+
+    public TelegramNotification checkNotification(Long id) {
+        TelegramNotification notification = getById(id);
+
+        if (!Objects.equals(notification.getUser().getId(), getCurrentUser().getId())) {
+            //TODO: exception handling
+            throw new RuntimeException("Device " + id + " belong to another user");
+        }
+
+        return notification;
     }
 }

@@ -1,7 +1,10 @@
 package org.proteus1121.model.mapper;
 
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.notification.TelegramNotification;
 import org.proteus1121.model.entity.NotificationEntity;
@@ -26,5 +29,8 @@ public interface NotificationMapper {
     @Mapping(target = "user", ignore = true) // User will be set separately in the service
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
     TelegramNotification toTelegramNotification(TelegramNotificationRequest request);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    void toNotification(TelegramNotificationRequest request, @MappingTarget TelegramNotification notification);
     
 }

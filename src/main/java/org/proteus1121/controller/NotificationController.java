@@ -42,7 +42,10 @@ public class NotificationController {
 
     @PutMapping("/{id}")
     public ResponseEntity<TelegramNotification> updateNotification(@PathVariable Long id,
-                                                                   @RequestBody TelegramNotification notification) {
+                                                                   @RequestBody TelegramNotificationRequest notificationRequest) {
+        TelegramNotification notification = telegramService.checkNotification(id);
+        mapper.toNotification(notificationRequest, notification);
+        
         TelegramNotification updated = telegramService.update(id, notification);
         return ResponseEntity.ok(updated);
     }
