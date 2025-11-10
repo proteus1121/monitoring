@@ -104,6 +104,7 @@ const NotificationsPage = () => {
   const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
 
   const handleCreate = async (req: CreateTelegramNotificationRequest) => {
+    //TODO: loader for creation
     const res = await api.createNotification(req);
     if (res.ok) {
       notification.success({ message: 'Notification created successfully' });

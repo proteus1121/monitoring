@@ -98,7 +98,7 @@ const DevicesPage = () => {
         </div>
       ) : isCreationVisible ? (
         <DeviceCreationForm
-          onCreate={handleCreate}
+          onCreate={handleCreate} // TODO: loader for creation
           setIsCreationVisible={setIsCreationVisible}
         />
       ) : (
