@@ -7,22 +7,27 @@ import { Icon } from '@iconify/react';
 import clsx from 'clsx';
 import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
 import { DeviceCard } from './components/DeviceCard';
+import Spinner from '@assets/Spinner';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
   const api = useApi();
   const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchDevices = async () => {
+    setIsLoading(true);
     const res = await api.getDevices();
     if (!res.ok) {
       notification.error({
         message: 'Failed to fetch devices',
         description: res.message,
       });
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(false);
     setDevices(res.data);
   };
 
@@ -55,7 +60,7 @@ const DevicesPage = () => {
       delay: device.delay,
       description: device.description,
       criticalValue: device.criticalValue,
-      lowerValue: device.lowerValue
+      lowerValue: device.lowerValue,
     });
     if (res.ok) {
       notification.success({ message: `${device.name} updated succesfully` });
@@ -87,7 +92,11 @@ const DevicesPage = () => {
 
   return (
     <>
-      {isCreationVisible ? (
+      {isLoading && !devices ? (
+        <div className="flex h-full w-full items-center justify-center">
+          <Spinner />
+        </div>
+      ) : isCreationVisible ? (
         <DeviceCreationForm
           onCreate={handleCreate}
           setIsCreationVisible={setIsCreationVisible}
