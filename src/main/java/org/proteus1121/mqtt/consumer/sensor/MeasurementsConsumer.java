@@ -6,8 +6,7 @@ import org.proteus1121.model.enums.ActionType;
 import org.proteus1121.model.enums.TopicType;
 import org.proteus1121.mqtt.consumer.Consumer;
 import org.proteus1121.model.dto.mqtt.Topic;
-import org.proteus1121.model.mapper.SensorDataMapper;
-import org.proteus1121.repository.SensorDataRepository;
+import org.proteus1121.service.MetricService;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -24,8 +23,7 @@ public class MeasurementsConsumer implements Consumer {
             Pattern.CASE_INSENSITIVE
     );
 
-    private final SensorDataRepository sensorDataRepository;
-    private final SensorDataMapper sensorDataMapper;
+    private final MetricService metricService;
 
     @Override
     public Optional<Topic> parseTopic(String topic) {
@@ -56,6 +54,6 @@ public class MeasurementsConsumer implements Consumer {
     public void processMessage(Topic topic, String message) {
         log.debug("Processing message for topic: {}, message: {}", topic, message);
         double value = Double.parseDouble(message);
-        sensorDataRepository.save(sensorDataMapper.toSensorDataEntity(value, topic.getDeviceId()));
+        metricService.processMetrics(topic.getDeviceId(), value);
     }
 }

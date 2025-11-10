@@ -12,7 +12,7 @@ services:
       - ./docs/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
 
   phpmyadmin:
-    image: phpmyadmin:latest
+    image: phpmyadmin:5.2.3
     container_name: phpmyadmin
     environment:
       PMA_HOST: mysql-db

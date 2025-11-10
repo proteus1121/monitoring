@@ -18,6 +18,7 @@ import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
+import NotificationsPage from "@src/pages/NotificationsPage/NotificationsPage";
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
@@ -49,6 +50,7 @@ export const router = createBrowserRouter(
           <Route path="/" element={<AuthGuard />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/devices" element={<DevicesPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             {/* <Route path="/users" element={<UsersPage />} /> */}
             <Route path="/" element={<Navigate to="/dashboard" />} />
           </Route>

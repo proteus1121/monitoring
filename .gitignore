@@ -63,3 +63,4 @@ src/frontend/yarn-debug.log*
 src/frontend/yarn-error.log*
 
 src/main/resources/public
+/src/frontend/.webpack_cache/

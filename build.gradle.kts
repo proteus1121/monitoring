@@ -45,6 +45,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-integration")
     implementation("com.fasterxml.jackson.core:jackson-databind")
 
+    // Open Feign client
+    implementation("org.springframework.cloud:spring-cloud-starter-openfeign:4.1.0")
+
     // Lombok dependency
     compileOnly("org.projectlombok:lombok:1.18.30")
     annotationProcessor("org.projectlombok:lombok:1.18.30")

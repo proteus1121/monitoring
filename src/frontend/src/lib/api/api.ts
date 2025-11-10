@@ -7,6 +7,10 @@ import {
   MetricsResponse,
   RegisterResponse,
   UpdateDeviceRequest,
+  TelegramNotificationResponse,
+  TelegramNotification,
+  CreateTelegramNotificationRequest,
+  UpdateTelegramNotificationRequest,
 } from './api.types';
 
 type ApiResponse<T> =
@@ -89,5 +93,29 @@ export class Api {
 
   async createDevice(device: CreateDeviceRequest) {
     return this.reqWrapper<Device>(() => this.client.post('/devices', device));
+  }
+
+  async getNotifications() {
+    return this.reqWrapper<TelegramNotificationResponse>(() => this.client.get('/notifications'));
+  }
+
+  async deleteNotification(notificationId: number) {
+    return this.reqWrapper<unknown>(() =>
+        this.client.delete(`/notifications/${notificationId}`)
+    );
+  }
+
+  async updateNotification(req: UpdateTelegramNotificationRequest) {
+    // Server expects body shape equal to TelegramNotificationRequest (no id in body)
+    const { id, telegramChatId, type, template } = req;
+    return this.reqWrapper<TelegramNotification>(() =>
+        this.client.put(`/notifications/${id}`, { telegramChatId, type, template })
+    );
+  }
+
+  async createNotification(req: CreateTelegramNotificationRequest) {
+    return this.reqWrapper<TelegramNotification>(() =>
+        this.client.post('/notifications', req)
+    );
   }
 }

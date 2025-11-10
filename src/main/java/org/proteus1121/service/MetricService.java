@@ -1,6 +1,7 @@
 package org.proteus1121.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize;
 import org.proteus1121.model.dto.device.Device;
@@ -12,16 +13,20 @@ import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.repository.PredictedSensorDataRepository;
 import org.proteus1121.repository.SensorDataRepository;
 import org.proteus1121.service.network.NeuralNetwork;
+import org.proteus1121.service.notifications.TelegramNotificationService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static org.proteus1121.model.enums.Period.LIVE;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MetricService {
@@ -31,6 +36,7 @@ public class MetricService {
     private final DeviceService deviceService;
     private final SensorDataMapper sensorDataMapper;
     private final NeuralNetwork network;
+    private final TelegramNotificationService telegramNotificationService;
 
     public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
         Device device = deviceService.checkDevice(deviceId);
@@ -44,6 +50,32 @@ public class MetricService {
         return downsampled.stream()
                 .map(sensorDataMapper::toSensorData)
                 .toList();
+    }
+
+    public void processMetrics(Long deviceId, Double value) {
+        sensorDataRepository.save(sensorDataMapper.toSensorDataEntity(value, deviceId));
+
+        checkValue(deviceId, value);
+    }
+
+    @Transactional(readOnly = true)
+    public void checkValue(Long deviceId, Double value) {
+        Optional<Device> deviceOpt = deviceService.getDeviceById(deviceId);
+        if (deviceOpt.isEmpty()) {
+            log.warn("Device {} not found for value check", deviceId);
+            return;
+        }
+        Device device = deviceOpt.get();
+        Double criticalValue = device.getCriticalValue();
+        Double lowerValue = device.getLowerValue();
+
+        if (criticalValue != null && value >= criticalValue) {
+            log.warn("Critical alert triggered for device {}: value = {}", deviceId, value);
+            telegramNotificationService.sendCriticalNotifications(device, value);
+        } else if (lowerValue != null && value <= lowerValue) {
+            log.warn("Lower alert triggered for device {}: value = {}", deviceId, value);
+            telegramNotificationService.sendCriticalNotifications(device, value);
+        }
     }
 
     public List<SensorData> getMetricsPredicted(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
