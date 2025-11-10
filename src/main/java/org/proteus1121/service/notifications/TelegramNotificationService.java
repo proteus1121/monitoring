@@ -66,6 +66,7 @@ public class TelegramNotificationService {
         SendMessageRequest messageRequest = SendMessageRequest.builder()
                 .chatId(telegramChatId)
                 .text(message)
+                .parseMode("Markdown")
                 .build();
         telegramClient.sendMessage(messageRequest);
     }
