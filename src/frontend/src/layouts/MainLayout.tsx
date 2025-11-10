@@ -58,7 +58,17 @@ export const MainLayout = () => {
               icon="material-symbols:settings-outline-rounded"
               className="size-8"
             />
-            Devices
+            Sensors
+          </Link>
+          <Link
+              to="/notifications"
+              className="flex w-full items-center gap-1.5 rounded-lg p-2 font-bold text-blue-500 transition-all hover:bg-blue-500/10 hover:text-blue-700"
+          >
+            <Icon
+                icon="material-symbols:notification-add-outline"
+                className="size-8"
+            />
+            Alerts
           </Link>
           <button
             className="mt-auto flex w-full items-center gap-1.5 rounded-lg p-2 font-bold text-red-500 transition-all hover:bg-red-500/10 hover:text-red-700"

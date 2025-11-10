@@ -61,6 +61,16 @@ create table persistent_logins (username varchar(64) not null,
                                 token varchar(64) not null,
                                 last_used timestamp not null);
 
+CREATE TABLE notifications (id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                            user_id BIGINT NOT NULL,
+                            telegram_chat_id VARCHAR(64) NOT NULL,
+                            type ENUM('INFO', 'WARNING', 'CRITICAL') NOT NULL,
+                            template TEXT NOT NULL,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+
+ALTER TABLE notifications ADD INDEX idx_notifications_user_id (user_id);
+
+ALTER TABLE devices ADD INDEX idx_devices_user_id (user_id);
 
 -- Insert sample data with bcrypt-hashed passwords
 INSERT INTO users (name, password) VALUES ('Artem', '$2a$12$VcngKA3zL9DUcBJD7vBoautPX3fO84xm0JIucatVr3MA1XZI9rdn.');
@@ -72,3 +82,5 @@ INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'CH4', 10
 INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Smoke', 100.0, 'OK');
 INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Flame', 100.0, 'OK');
 INSERT INTO devices (user_id, name, critical_value, status) VALUES (1, 'Light', 100.0, 'OK');
+
+INSERT INTO `notifications` (`id`, `user_id`, `telegram_chat_id`, `template`, `type`) VALUES (NULL, '1', '392872938', '🚨 Critical Incident Notification\r\n\r\nDear %{username}, \r\nYour sensor **{{device_name}}** has reported a critical value:\r\n\r\n- **Current Value:** {{current_value}}\r\n- **Min Threshold:** {{lower_value}}\r\n- **Max Threshold:** {{critical_value}}\r\n- **Status:** CRITICAL\r\n\r\n📍 **Device Location:** {{device_location}}  \r\n🕒 **Timestamp:** {{timestamp}}\r\n', 'CRITICAL');
