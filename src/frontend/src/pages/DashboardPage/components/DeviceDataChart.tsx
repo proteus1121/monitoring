@@ -181,7 +181,7 @@ const DeviceDataChart = ({ devices }: { devices?: Device[] }) => {
         </div>
       </div>
 
-      {chartData ? (
+      {chartData && choosenDevicesIds.length > 0 ? (
         <Line data={chartData} options={{ responsive: true }} />
       ) : isLoading ? (
         <>Loading...</>
