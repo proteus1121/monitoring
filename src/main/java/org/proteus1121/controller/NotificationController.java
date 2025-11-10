@@ -3,6 +3,8 @@ package org.proteus1121.controller;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.notification.TelegramNotification;
 import org.proteus1121.model.dto.user.User;
+import org.proteus1121.model.mapper.NotificationMapper;
+import org.proteus1121.model.request.TelegramNotificationRequest;
 import org.proteus1121.service.notifications.TelegramNotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,7 @@ import static org.proteus1121.util.SessionUtils.getCurrentUser;
 public class NotificationController {
 
     private final TelegramNotificationService telegramService;
+    private final NotificationMapper mapper;
 
     @GetMapping
     public ResponseEntity<List<TelegramNotification>> getNotifications() {
@@ -31,9 +34,9 @@ public class NotificationController {
     }
 
     @PostMapping
-    public ResponseEntity<TelegramNotification> createNotification(@RequestBody TelegramNotification notification) {
+    public ResponseEntity<TelegramNotification> createNotification(@RequestBody TelegramNotificationRequest notification) {
         Long userId = getCurrentUser().getId();
-        TelegramNotification created = telegramService.create(notification, userId);
+        TelegramNotification created = telegramService.create(mapper.toTelegramNotification(notification), userId);
         return ResponseEntity.ok(created);
     }
 
