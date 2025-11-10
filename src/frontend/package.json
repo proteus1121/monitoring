@@ -5,7 +5,7 @@
   "scripts": {
     "dev:local": "cross-env NODE_ENV=development BASE_URL=http://localhost:8080 webpack serve --config webpack.config.mjs",
     "proxy": "node proxy/proxy-server.js",
-    "webpack": "cross-env NODE_ENV=development BASE_URL=http://localhost:4000 webpack serve --config webpack.config.mjs",
+    "webpack": "cross-env NODE_ENV=development BASE_URL=https://localhost:4000 webpack serve --config webpack.config.mjs",
     "dev:staging": "npm-run-all --parallel proxy webpack",
     "build": "cross-env NODE_ENV=production webpack --config webpack.config.mjs"
   },
