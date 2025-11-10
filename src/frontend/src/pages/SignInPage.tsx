@@ -1,3 +1,4 @@
+import Spinner from '@assets/Spinner';
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
@@ -12,6 +13,7 @@ const SignInPage = () => {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const api = useApi();
 
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ const SignInPage = () => {
   return (
     <Form.Root
       onSubmit={async e => {
+        setIsLoading(true);
         e.preventDefault();
 
         const res = await api.login(username, password);
@@ -27,9 +30,11 @@ const SignInPage = () => {
             message: 'Failed to login',
             description: res.message,
           });
+          setIsLoading(false);
           return;
         }
 
+        setIsLoading(false);
         navigate('/dashboard');
       }}
       className="flex w-full max-w-[320px] flex-col gap-3"
@@ -88,7 +93,8 @@ const SignInPage = () => {
         )}
       </Form.Field>
 
-      <Button type="submit" className="mt-2 w-full">
+      <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
+        {isLoading && <Spinner />}
         Submit
       </Button>
 
