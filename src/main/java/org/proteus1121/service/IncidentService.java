@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,11 +26,26 @@ public class IncidentService {
     private final DeviceMapper deviceMapper;
 
     public List<Incident> getAllIncidents(Long userId) {
-        List<Device> allDevices = deviceService.getAllDevices(userId);
+        List<Long> allDevices = deviceService.getAllDevices(userId).stream()
+                .map(Device::getId)
+                .toList();
         List<IncidentEntity> incidents = incidentRepository.findAllByDevices(allDevices);
         return incidents.stream()
                 .map(incidentMapper::toIncident)
                 .toList();
+    }
+
+    public Optional<Incident> getIncident(Long id, Long userId) {
+        return incidentRepository.findById(id).map(incidentEntity -> {
+            boolean isDeviceBelongToUser = incidentEntity.getDevices().stream()
+                    .anyMatch(deviceEntity -> Objects.equals(deviceEntity.getUser().getId(), userId));
+
+            if (!isDeviceBelongToUser) {
+                throw new IllegalArgumentException("User does not have permission to resolve this incident.");
+            }
+            
+            return incidentMapper.toIncident(incidentEntity);
+        });
     }
 
     public void resolveIncident(Long id, Long userId) {

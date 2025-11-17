@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
@@ -25,6 +26,12 @@ public class IncidentController {
     public List<Incident> getAllIncidents() {
         User principal = getCurrentUser();
         return incidentService.getAllIncidents(principal.getId());
+    }
+
+    @GetMapping("/{id}")
+    public Optional<Incident> getIncident(@PathVariable Long id) {
+        User principal = getCurrentUser();
+        return incidentService.getIncident(id, principal.getId());
     }
     
     @PostMapping("/{id}/resolve")
