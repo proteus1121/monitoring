@@ -4,6 +4,7 @@ import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
@@ -14,6 +15,7 @@ import org.proteus1121.model.request.DeviceRequest;
 @Mapper(componentModel = "spring", uses = { UserMapper.class })
 public interface DeviceMapper {
 
+    @Named("toPlainDevice")
     @Mapping(target = "user", source = "user", qualifiedByName = "toPlainUser")
     Device toDevice(DeviceEntity deviceEntity);
 
