@@ -18,14 +18,18 @@ import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
-import NotificationsPage from "@src/pages/NotificationsPage/NotificationsPage";
+import NotificationsPage from '@src/pages/NotificationsPage/NotificationsPage';
+import { Provider } from 'react-redux';
+import { store } from './redux/store';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
   return (
-    <SelectProvider>
-      <RouterProvider router={router} />
-    </SelectProvider>
+    <Provider store={store}>
+      <SelectProvider>
+        <RouterProvider router={router} />
+      </SelectProvider>
+    </Provider>
   );
 };
 
@@ -33,30 +37,36 @@ createRoot(document.getElementById('root')!).render(<App />);
 
 export const router = createBrowserRouter(
   createRoutesFromElements(
-    <>
-      <Route
-        // INFO: because we are using useNavigate() inside this provider
-        element={
-          <ApiProvider>
-            <Outlet />
-          </ApiProvider>
-        }
-      >
-        <Route path="auth" element={<AuthLayout />}>
-          <Route path="login" element={<SignInPage />} />
-          <Route path="register" element={<SignUpPage />} />
-        </Route>
+    <Route
+      // INFO: because we are using useNavigate() inside this provider
+      element={
+        <ApiProvider>
+          <Outlet />
+        </ApiProvider>
+      }
+    >
+      <Route path="auth" element={<AuthLayout />}>
+        <Route path="login" element={<SignInPage />} />
+        <Route path="register" element={<SignUpPage />} />
+      </Route>
+      <Route path="/" element={<AuthGuard />}>
         <Route element={<MainLayout />}>
-          <Route path="/" element={<AuthGuard />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/devices" element={<DevicesPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            {/* <Route path="/users" element={<UsersPage />} /> */}
-            <Route path="/" element={<Navigate to="/dashboard" />} />
+          <Route path="dashboard">
+            <Route index element={<Navigate to="/dashboard/overview" />} />
+
+            <Route path="overview" element={<DashboardPage />} />
+            <Route element={<>dashboard index page</>} />
+          </Route>
+          <Route path="settings">
+            <Route index element={<Navigate to="/settings/devices" />} />
+            <Route path="devices" element={<DevicesPage />} />
+            <Route path="configurations" element={<>configurations</>} />
+            <Route path="users" element={<>users</>} />
+            <Route path="alerts" element={<>alerts</>} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Route>
       </Route>
-    </>
+    </Route>
   )
 );

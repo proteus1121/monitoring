@@ -5,6 +5,7 @@ import DeviceDataChart from './components/DeviceDataChart';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { Device } from '@src/lib/api/api.types';
 import { notification } from 'antd';
+import { Header } from '@src/components/Header';
 
 const DashboardPage = () => {
   const api = useApi();
@@ -27,6 +28,10 @@ const DashboardPage = () => {
 
   return (
     <>
+      <Header>
+        <div>Dashboard</div>
+      </Header>
+
       <Card>
         <GeneralDataChart />
       </Card>
@@ -41,7 +46,7 @@ const DashboardPage = () => {
 export default DashboardPage;
 
 const Card = (props: {
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
   onClick?: () => void;
 }) => {

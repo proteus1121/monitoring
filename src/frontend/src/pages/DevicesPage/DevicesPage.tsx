@@ -2,12 +2,12 @@ import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
 import { ReactNode, useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Button, Form, Input, InputNumber, notification } from 'antd';
+import { Button, Form, Input, InputNumber, notification, Switch } from 'antd';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
 import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
-import { DeviceCard } from './components/DeviceCard';
 import Spinner from '@assets/Spinner';
+import { Header } from '@src/components/Header';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -92,67 +92,34 @@ const DevicesPage = () => {
 
   return (
     <>
-      {isLoading && !devices ? (
-        <div className="flex h-full w-full items-center justify-center">
-          <Spinner />
+      <Header>Devices</Header>
+      <div className="p-6">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+          {devices &&
+            devices.map((device, id) => (
+              <NewCard
+                key={device.id ?? id}
+                device={device}
+                // onSave={handleUpdate}
+                // onDelete={() => {
+                //   if (!device.id) {
+                //     notification.error({
+                //       message: 'Failed to delete device',
+                //       description: 'Device should have id',
+                //     });
+                //     return;
+                //   }
+                //   handleDelete(device.id, device.name ?? '');
+                // }}
+              />
+            ))}
         </div>
-      ) : isCreationVisible ? (
-        <DeviceCreationForm
-          onCreate={handleCreate} // TODO: loader for creation
-          setIsCreationVisible={setIsCreationVisible}
-        />
-      ) : (
-        <Card
-          onClick={() => {
-            setIsCreationVisible(true);
-          }}
-          className="flex items-center justify-center gap-2 border-2 border-dashed border-green-400 !bg-green-100 text-xl text-green-400 !shadow-none"
-        >
-          <Icon icon="ic:round-add-circle-outline" className="size-8" />
-          Add device
-        </Card>
-      )}
-      {devices &&
-        devices.map((device, id) => (
-          <DeviceCard
-            key={device.id ?? id}
-            device={device}
-            onSave={handleUpdate}
-            onDelete={() => {
-              if (!device.id) {
-                notification.error({
-                  message: 'Failed to delete device',
-                  description: 'Device should have id',
-                });
-                return;
-              }
-              handleDelete(device.id, device.name ?? '');
-            }}
-          />
-        ))}
+      </div>
     </>
   );
 };
 
 export default DevicesPage;
-
-export const Card = (props: {
-  children: ReactNode;
-  className?: string;
-  onClick?: () => void;
-}) => {
-  return (
-    <div
-      className={clsx(
-        'mx-auto mt-6 w-[350px] max-w-[36rem] rounded-xl bg-white p-4 shadow-xl last:mb-6 sm:w-full',
-        props.className
-      )}
-      onClick={props.onClick}
-    >
-      {props.children}
-    </div>
-  );
-};
 
 const DeviceCreationForm = ({
   onCreate,
@@ -172,83 +139,110 @@ const DeviceCreationForm = ({
   };
 
   return (
-    <Card>
-      <Form className="contents" layout="vertical" onFinish={handleCreate}>
-        <Form.Item label="Name" required>
-          <Input
-            required
-            value={device?.name}
-            onChange={e => {
-              setDevice({ ...device, name: e.currentTarget.value });
-            }}
-          />
-        </Form.Item>
-        <Form.Item label="Description">
-          <Input.TextArea
-            autoSize={{
-              minRows: 3,
-              maxRows: 6,
-            }}
-            value={device?.description}
-            onChange={e => {
-              setDevice({ ...device, description: e.currentTarget.value });
-            }}
-          />
-        </Form.Item>
+    // <Card>
+    <Form className="contents" layout="vertical" onFinish={handleCreate}>
+      <Form.Item label="Name" required>
+        <Input
+          required
+          value={device?.name}
+          onChange={e => {
+            setDevice({ ...device, name: e.currentTarget.value });
+          }}
+        />
+      </Form.Item>
+      <Form.Item label="Description">
+        <Input.TextArea
+          autoSize={{
+            minRows: 3,
+            maxRows: 6,
+          }}
+          value={device?.description}
+          onChange={e => {
+            setDevice({ ...device, description: e.currentTarget.value });
+          }}
+        />
+      </Form.Item>
 
-        <Form.Item label="Critical value">
-          <InputNumber
-            className="!block !w-full"
-            value={device.criticalValue}
-            onChange={val => {
-              setDevice(prev => ({
-                ...prev,
-                criticalValue: val ?? undefined,
-              }));
-            }}
-          />
-        </Form.Item>
+      <Form.Item label="Critical value">
+        <InputNumber
+          className="!block !w-full"
+          value={device.criticalValue}
+          onChange={val => {
+            setDevice(prev => ({
+              ...prev,
+              criticalValue: val ?? undefined,
+            }));
+          }}
+        />
+      </Form.Item>
 
-        <Form.Item label="Lower value">
-          <InputNumber
-            className="!block !w-full"
-            value={device.lowerValue}
-            onChange={val => {
-              setDevice(prev => ({
-                ...prev,
-                lowerValue: val ?? undefined,
-              }));
-            }}
-          />
-        </Form.Item>
+      <Form.Item label="Lower value">
+        <InputNumber
+          className="!block !w-full"
+          value={device.lowerValue}
+          onChange={val => {
+            setDevice(prev => ({
+              ...prev,
+              lowerValue: val ?? undefined,
+            }));
+          }}
+        />
+      </Form.Item>
 
-        <Form.Item label="Delay (ms)">
-          <InputNumber
-            className="!block !w-full"
-            value={device.delay}
-            onChange={val => {
-              setDevice(prev => ({
-                ...prev,
-                delay: val ?? undefined,
-              }));
-            }}
-          />
-        </Form.Item>
+      <Form.Item label="Delay (ms)">
+        <InputNumber
+          className="!block !w-full"
+          value={device.delay}
+          onChange={val => {
+            setDevice(prev => ({
+              ...prev,
+              delay: val ?? undefined,
+            }));
+          }}
+        />
+      </Form.Item>
 
-        <div className="ml-auto flex gap-2">
-          <Button
-            onClick={() => {
-              setIsCreationVisible(false);
-            }}
-          >
-            Cancel
-          </Button>
+      <div className="ml-auto flex gap-2">
+        <Button
+          onClick={() => {
+            setIsCreationVisible(false);
+          }}
+        >
+          Cancel
+        </Button>
 
-          <Button type="primary" htmlType="submit">
-            Create
-          </Button>
-        </div>
-      </Form>
-    </Card>
+        <Button type="primary" htmlType="submit">
+          Create
+        </Button>
+      </div>
+    </Form>
+    // </Card>
   );
 };
+
+function NewCard(props: { device: Device }) {
+  return (
+    <div className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-black/10 p-4 transition-shadow hover:shadow-lg">
+      <div className="mb-3 flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
+            <div className="grid aspect-square place-items-center text-xs">
+              icon
+            </div>
+          </div>
+          <div>
+            <h3 className="font-semibold">{props.device.name}</h3>
+            <p className="text-sm text-gray-500">{props.device.description}</p>
+          </div>
+        </div>
+        <span className="rounded-full bg-green-500 px-2 text-xs text-white">
+          {props.device.status}
+        </span>
+      </div>
+      <div className="flex items-center justify-between border-t border-black/10 pt-3">
+        <span className="text-sm text-gray-600">Power</span>
+        <Switch />
+      </div>
+    </div>
+  );
+}

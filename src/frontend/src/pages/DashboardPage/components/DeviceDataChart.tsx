@@ -167,6 +167,8 @@ const DeviceDataChart = ({ devices }: { devices?: Device[] }) => {
               start: 'startInput',
               end: 'endInput',
             }}
+            aria-disabled={isLoading}
+            disabled={isLoading}
             defaultValue={[startDate, endDate]}
             onChange={dates => {
               if (dates?.[0]) {
