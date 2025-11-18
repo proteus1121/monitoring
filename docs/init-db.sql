@@ -33,6 +33,20 @@ CREATE TABLE sensor_data (
                              CONSTRAINT fk_device FOREIGN KEY (device_id) REFERENCES devices(id)
 );
 
+CREATE TABLE incidents (
+                           id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                           timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                           message VARCHAR(255) NOT NULL,
+                           severity ENUM('LOW', 'MEDIUM', 'HIGH', 'CRITICAL') NOT NULL
+);
+
+CREATE TABLE incident_devices (
+                                  inc_id BIGINT NOT NULL,
+                                  dev_id BIGINT NOT NULL,
+                                  CONSTRAINT fk_inc_dev_device FOREIGN KEY (dev_id) REFERENCES devices(id),
+                                  CONSTRAINT fk_inc_dev_incidents FOREIGN KEY (inc_id) REFERENCES incidents(id)
+);
+
 CREATE TABLE SESSION (
                          PRIMARY_ID CHAR(36) NOT NULL,
                          SESSION_ID CHAR(36) NOT NULL,

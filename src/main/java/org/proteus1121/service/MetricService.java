@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static org.proteus1121.model.enums.Period.LIVE;
+import static org.proteus1121.model.enums.Severity.CRITICAL;
 
 @Slf4j
 @Service
@@ -37,6 +38,7 @@ public class MetricService {
     private final SensorDataMapper sensorDataMapper;
     private final NeuralNetwork network;
     private final TelegramNotificationService telegramNotificationService;
+    private final IncidentService incidentService;
 
     public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
         Device device = deviceService.checkDevice(deviceId);
@@ -71,10 +73,16 @@ public class MetricService {
 
         if (criticalValue != null && value >= criticalValue) {
             log.warn("Critical alert triggered for device {}: value = {}", deviceId, value);
+            incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
+                    CRITICAL,
+                    List.of(device));
             telegramNotificationService.sendCriticalNotifications(device, value);
         } else if (lowerValue != null && value <= lowerValue) {
             log.warn("Lower alert triggered for device {}: value = {}", deviceId, value);
             telegramNotificationService.sendCriticalNotifications(device, value);
+            incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
+                    CRITICAL,
+                    List.of(device));
         }
     }
 
