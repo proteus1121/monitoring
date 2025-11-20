@@ -18,9 +18,9 @@ import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
-import NotificationsPage from '@src/pages/NotificationsPage/NotificationsPage';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
+import { ModalsProvider } from './redux/modals/ModalsProvider';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
@@ -42,6 +42,8 @@ export const router = createBrowserRouter(
       element={
         <ApiProvider>
           <Outlet />
+
+          <ModalsProvider />
         </ApiProvider>
       }
     >

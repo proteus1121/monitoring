@@ -13,7 +13,8 @@ import {
 } from 'chart.js';
 import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs, { Dayjs } from 'dayjs';
-import Spinner from '@assets/Spinner';
+import { Icon } from '@iconify/react';
+import { Spinner } from '@src/components/Spinner';
 
 const { RangePicker } = DatePicker;
 

@@ -1,7 +1,7 @@
-import Spinner from '@assets/Spinner';
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
+import { Spinner } from '@src/components/Spinner';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { notification } from 'antd';
 import { Form } from 'radix-ui';
@@ -104,8 +104,13 @@ const SignUpPage = () => {
         )}
       </Form.Field>
 
-      <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
-        {isLoading && <Spinner />}
+      <Button
+        type="submit"
+        variant="primary"
+        className="mt-2 w-full"
+        disabled={isLoading}
+      >
+        {isLoading && <Spinner className="mr-2" />}
         Submit
       </Button>
 

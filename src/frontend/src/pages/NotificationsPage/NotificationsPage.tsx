@@ -9,7 +9,7 @@ import {
   UpdateTelegramNotificationRequest,
 } from '@src/lib/api/api.types';
 import { NotificationCard } from './components/NotificationCard';
-import Spinner from '@assets/Spinner';
+import { Spinner } from '@src/components/Spinner';
 
 export const Card = (props: {
   children: ReactNode;
@@ -247,4 +247,3 @@ const NotificationCreationForm = ({
     </Card>
   );
 };
-

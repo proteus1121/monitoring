@@ -2,24 +2,43 @@ import { Icon } from '@iconify/react';
 import Logo from '@src/components/logo/Logo';
 import { removeCookie } from '@src/lib/cookieUtils';
 import { useOutsideClickDetector } from '@src/lib/useOutsideClickDetector';
+import { useUi } from '@src/redux/ui/ui.hook';
 import clsx from 'clsx';
 import { Accordion, Collapsible } from 'radix-ui';
 import { ReactNode, useRef, useState } from 'react';
 import { NavLink, Outlet, To, useNavigate } from 'react-router-dom';
 
 export const MainLayout = () => {
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const navigate = useNavigate();
-  const navRef = useRef(null);
-  useOutsideClickDetector(navRef, () => {
-    setIsVisible(false);
-  });
+  const { state, setState } = useUi();
+
+  const [isSettingsCollapsed, setIsSettingsCollapsed] = useState<boolean>(true);
+
+  const [isDashboardCollapsed, setIsDashboardCollapsed] =
+    useState<boolean>(true);
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Фиксированная шапка */}
+      <div
+        className={clsx(
+          'absolute z-20 h-full w-full bg-black/10 transition lg:pointer-events-none lg:opacity-0',
+          [
+            state.isSidebarCollapsed
+              ? 'pointer-events-none opacity-0'
+              : 'opacity-100',
+          ]
+        )}
+        onClick={() =>
+          setState({ ...state, isSidebarCollapsed: !state.isSidebarCollapsed })
+        }
+      />
 
-      <aside className="fixed top-0 left-0 z-50 h-full w-64 -translate-x-full transform border-r border-black/10 bg-white transition-transform duration-300 lg:translate-x-0">
+      <aside
+        className={clsx(
+          'lg:translate-x-0 lg:opacity-100',
+          [state.isSidebarCollapsed ? '-translate-x-full' : 'bg-red-500'],
+          'fixed top-0 left-0 z-50 h-full w-64 transform border-r border-black/10 bg-white transition-transform duration-300'
+        )}
+      >
         <div className="h-header flex items-center justify-between border-b border-black/10 p-4">
           <div className="flex items-center gap-2">
             <div className="rounded-lg bg-blue-600 p-2 text-white">
@@ -31,70 +50,90 @@ export const MainLayout = () => {
           </div>
         </div>
         <nav className="space-y-2 p-4">
-          <NavLink
-            to={'/dashboard'}
-            className={({ isActive }) =>
-              clsx(
-                [
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 hover:bg-gray-100',
-                ],
-                'group flex w-full items-center gap-3 rounded-lg px-4 py-3 font-medium transition-colors'
-              )
-            }
-          >
-            <Icon icon={'lucide:home'} className="size-5" />
-            Dashboard
-            <Icon
-              icon={'lucide:chevron-down'}
-              className="group-radix-state-open:rotate-180 ml-auto size-5 transition"
-            />
-          </NavLink>
-          <div>
-            <Collapsible.Root defaultOpen>
-              <Collapsible.Trigger className="contents">
-                <NavLink
-                  to={'/settings'}
-                  className={({ isActive }) =>
-                    clsx(
-                      [
-                        isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-600 hover:bg-gray-100',
-                      ],
-                      'group flex w-full items-center gap-3 rounded-lg px-4 py-3 font-medium transition-colors'
-                    )
-                  }
-                >
-                  <Icon icon={'lucide:settings'} className="size-5" />
-                  Settings
-                  <Icon
-                    icon={'lucide:chevron-down'}
-                    className="group-radix-state-open:rotate-180 ml-auto size-5 transition"
-                  />
-                </NavLink>
-              </Collapsible.Trigger>
-              <Collapsible.Content className="radix-state-open:animate-collapsible-slide-down radix-state-closed:animate-collapsible-slide-up mt-2 ml-4 space-y-2 overflow-hidden">
-                <Link to={'/settings/devices'}>
-                  <Icon icon={'lucide:wrench'} className="size-5" />
-                  Devices
-                </Link>
-                <Link to={'/settings/configurations'}>
-                  <Icon icon={'lucide:wrench'} className="size-5" />
-                  Configurations
-                </Link>
-                <Link to={'/settings/users'}>
-                  <Icon icon={'lucide:users'} className="size-5" />
-                  Users
-                </Link>
-                <Link to={'/settings/alerts'}>
-                  <Icon icon={'lucide:bell'} className="size-5" />
-                  Alerts
-                </Link>
-              </Collapsible.Content>
-            </Collapsible.Root>
-          </div>
+          <Collapsible.Root open={isDashboardCollapsed} className="group">
+            <Collapsible.Trigger className="contents">
+              <NavLink
+                to={'/dashboard'}
+                onClick={e => {
+                  e.preventDefault();
+                  setIsDashboardCollapsed(prev => !prev);
+                }}
+                className={({ isActive }) =>
+                  clsx(
+                    [
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-100',
+                    ],
+                    'flex w-full items-center gap-3 rounded-lg px-4 py-3 font-medium transition-colors'
+                  )
+                }
+              >
+                <Icon icon={'lucide:home'} className="size-5" />
+                Dashboard
+                <Icon
+                  icon={'lucide:chevron-down'}
+                  className="group-radix-state-open:rotate-180 ml-auto size-5 transition"
+                />
+              </NavLink>
+            </Collapsible.Trigger>
+            <Collapsible.Content className="radix-state-open:animate-collapsible-slide-down radix-state-closed:animate-collapsible-slide-up mt-2 ml-4 space-y-2 overflow-hidden">
+              <Link to={'/dashboard/overview'}>
+                <Icon icon={'lucide:home'} className="size-5" />
+                Overview
+              </Link>
+              <Link to={'/dashboard/map'}>
+                <Icon icon={'lucide:map'} className="size-5" />
+                Map
+              </Link>
+            </Collapsible.Content>
+          </Collapsible.Root>
+          <Collapsible.Root open={isSettingsCollapsed} className="group">
+            <Collapsible.Trigger className="contents">
+              <NavLink
+                to={'/settings'}
+                onClick={e => {
+                  e.preventDefault();
+                  setIsSettingsCollapsed(prev => !prev);
+                }}
+                className={({ isActive }) =>
+                  clsx(
+                    [
+                      isActive
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-100',
+                    ],
+                    'flex w-full items-center gap-3 rounded-lg px-4 py-3 font-medium transition-colors'
+                  )
+                }
+              >
+                <Icon icon={'lucide:settings'} className="size-5" />
+                Settings
+                <Icon
+                  icon={'lucide:chevron-down'}
+                  className="group-radix-state-open:rotate-180 ml-auto size-5 transition"
+                />
+              </NavLink>
+            </Collapsible.Trigger>
+            <Collapsible.Content className="radix-state-open:animate-collapsible-slide-down radix-state-closed:animate-collapsible-slide-up mt-2 ml-4 space-y-2 overflow-hidden">
+              <Link to={'/settings/devices'}>
+                <Icon icon={'lucide:microchip'} className="size-5" />
+                Devices
+              </Link>
+              <Link to={'/settings/configurations'}>
+                <Icon icon={'lucide:wrench'} className="size-5" />
+                Configurations
+              </Link>
+              <Link to={'/settings/users'}>
+                <Icon icon={'lucide:users'} className="size-5" />
+                Users
+              </Link>
+              <Link to={'/settings/alerts'}>
+                <Icon icon={'lucide:bell'} className="size-5" />
+                Alerts
+              </Link>
+            </Collapsible.Content>
+          </Collapsible.Root>
         </nav>
 
         <div className="absolute right-0 bottom-0 left-0 border-t border-black/10 bg-gray-50 p-4">

@@ -2,12 +2,13 @@ import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
 import { ReactNode, useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Button, Form, Input, InputNumber, notification, Switch } from 'antd';
-import { Icon } from '@iconify/react';
-import clsx from 'clsx';
+import { Form, Input, InputNumber, notification, Switch } from 'antd';
 import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
-import Spinner from '@assets/Spinner';
 import { Header } from '@src/components/Header';
+import { deviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
+import { useModal } from '@src/redux/modals/modals.hook';
+import { Button } from '@src/components/Button';
+import { Icon } from '@iconify/react';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -90,11 +91,16 @@ const DevicesPage = () => {
     await fetchDevices();
   };
 
+  const { setState } = useModal(deviceCreationModalId);
   return (
     <>
       <Header>Devices</Header>
-      <div className="p-6">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4">
+      <div className="space-y-4 p-6">
+        <Button variant="primary" onClick={() => setState(true)}>
+          <Icon icon="lucide:plus" className="mr-2 size-4" />
+          Add Device
+        </Button>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
           {devices &&
             devices.map((device, id) => (
               <NewCard
@@ -120,105 +126,6 @@ const DevicesPage = () => {
 };
 
 export default DevicesPage;
-
-const DeviceCreationForm = ({
-  onCreate,
-  setIsCreationVisible,
-}: {
-  onCreate: (device: CreateDeviceRequest) => void;
-  setIsCreationVisible: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
-  const [device, setDevice] = useState<CreateDeviceRequest>({
-    name: '',
-  });
-
-  const handleCreate = () => {
-    if (device && device.name) {
-      onCreate(device);
-    }
-  };
-
-  return (
-    // <Card>
-    <Form className="contents" layout="vertical" onFinish={handleCreate}>
-      <Form.Item label="Name" required>
-        <Input
-          required
-          value={device?.name}
-          onChange={e => {
-            setDevice({ ...device, name: e.currentTarget.value });
-          }}
-        />
-      </Form.Item>
-      <Form.Item label="Description">
-        <Input.TextArea
-          autoSize={{
-            minRows: 3,
-            maxRows: 6,
-          }}
-          value={device?.description}
-          onChange={e => {
-            setDevice({ ...device, description: e.currentTarget.value });
-          }}
-        />
-      </Form.Item>
-
-      <Form.Item label="Critical value">
-        <InputNumber
-          className="!block !w-full"
-          value={device.criticalValue}
-          onChange={val => {
-            setDevice(prev => ({
-              ...prev,
-              criticalValue: val ?? undefined,
-            }));
-          }}
-        />
-      </Form.Item>
-
-      <Form.Item label="Lower value">
-        <InputNumber
-          className="!block !w-full"
-          value={device.lowerValue}
-          onChange={val => {
-            setDevice(prev => ({
-              ...prev,
-              lowerValue: val ?? undefined,
-            }));
-          }}
-        />
-      </Form.Item>
-
-      <Form.Item label="Delay (ms)">
-        <InputNumber
-          className="!block !w-full"
-          value={device.delay}
-          onChange={val => {
-            setDevice(prev => ({
-              ...prev,
-              delay: val ?? undefined,
-            }));
-          }}
-        />
-      </Form.Item>
-
-      <div className="ml-auto flex gap-2">
-        <Button
-          onClick={() => {
-            setIsCreationVisible(false);
-          }}
-        >
-          Cancel
-        </Button>
-
-        <Button type="primary" htmlType="submit">
-          Create
-        </Button>
-      </div>
-    </Form>
-    // </Card>
-  );
-};
 
 function NewCard(props: { device: Device }) {
   return (
