@@ -9,6 +9,7 @@ import { createDeviceModalId } from '@src/redux/modals/DeviceCreationModal';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
+import { Card } from '@src/components/Card';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -89,7 +90,7 @@ const DevicesPage = () => {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
           {devices &&
             devices.map((device, id) => (
-              <NewCard
+              <DeviceCard
                 key={device.id ?? id}
                 device={device}
                 // onSave={handleUpdate}
@@ -113,9 +114,9 @@ const DevicesPage = () => {
 
 export default DevicesPage;
 
-function NewCard(props: { device: Device }) {
+function DeviceCard(props: { device: Device }) {
   return (
-    <div className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-black/10 p-4 transition-shadow hover:shadow-lg">
+    <Card className="flex flex-col gap-6 transition-shadow hover:shadow-lg">
       <div className="mb-3 flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
@@ -136,6 +137,6 @@ function NewCard(props: { device: Device }) {
         <span className="text-sm text-gray-600">Power</span>
         <Switch />
       </div>
-    </div>
+    </Card>
   );
 }
