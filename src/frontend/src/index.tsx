@@ -15,7 +15,6 @@ import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import AuthLayout from './layouts/AuthLayout';
 import DevicesPage from './pages/DevicesPage/DevicesPage';
-import { SelectProvider } from './components/Select';
 import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
 import { Provider } from 'react-redux';
@@ -26,9 +25,7 @@ const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
   return (
     <Provider store={store}>
-      <SelectProvider>
-        <RouterProvider router={router} />
-      </SelectProvider>
+      <RouterProvider router={router} />
     </Provider>
   );
 };

@@ -1,9 +1,9 @@
-import { DeviceCreationModal } from './DeviceCreationModal';
+import { CreateDeviceModal } from './DeviceCreationModal';
 
 export function ModalsProvider() {
   return (
     <>
-      <DeviceCreationModal />
+      <CreateDeviceModal />
     </>
   );
 }

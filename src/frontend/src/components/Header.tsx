@@ -6,7 +6,7 @@ import { Button } from './Button';
 export function Header(props: { children?: ReactNode }) {
   const { state, setState } = useUi();
   return (
-    <header className="z-raised h-header sticky top-0 border-b border-black/10 bg-white">
+    <header className="h-header sticky top-0 border-b border-black/10 bg-white">
       <div className="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <Button
           className="mr-2 lg:hidden"

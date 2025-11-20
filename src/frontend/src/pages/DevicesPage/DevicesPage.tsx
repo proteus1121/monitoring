@@ -5,7 +5,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { Form, Input, InputNumber, notification, Switch } from 'antd';
 import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
 import { Header } from '@src/components/Header';
-import { deviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
+import { createDeviceModalId } from '@src/redux/modals/DeviceCreationModal';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
@@ -76,22 +76,8 @@ const DevicesPage = () => {
   };
 
   const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
-  const handleCreate = async (device: CreateDeviceRequest) => {
-    const res = await api.createDevice(device);
-    if (res.ok) {
-      notification.success({ message: `${device.name} created succesfully` });
-    } else {
-      notification.error({
-        message: 'Failed to create device',
-        description: res.message,
-      });
-    }
 
-    setIsCreationVisible(false);
-    await fetchDevices();
-  };
-
-  const { setState } = useModal(deviceCreationModalId);
+  const { setState } = useModal(createDeviceModalId);
   return (
     <>
       <Header>Devices</Header>

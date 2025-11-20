@@ -1,34 +1,57 @@
-import { clsx } from 'clsx';
 import { useModal } from './modals.hook';
 import { SimpleModalState } from './modals.types';
-import { ReactNode, useEffect, useState } from 'react';
-import { CreateDeviceRequest } from '@src/lib/api/api.types';
-import { Form, Input, InputNumber, notification } from 'antd';
+import { DeviceType } from '@src/lib/api/api.types';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
-export const deviceCreationModalId = 'device-creation-modal-id';
-export type DeviceCreationModal = SimpleModalState<
-  typeof deviceCreationModalId
->;
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@src/components/Dialog';
+import z from 'zod';
+import { useAppForm } from '@src/components/Form';
+import { FieldGroup } from '@src/components/Field';
+import { notification } from 'antd';
 
-export function DeviceCreationModal() {
-  const { state, setState } = useModal(deviceCreationModalId);
-  const [device, setDevice] = useState<CreateDeviceRequest>({
-    name: '',
-  });
+export const createDeviceModalId = 'create-device-modal-id';
+export type CreateDeviceModal = SimpleModalState<typeof createDeviceModalId>;
 
-  const [isLoading, setIsLoading] = useState(false);
+export const CreateDeviceSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
+  criticalValue: z.coerce.number<string>().or(z.undefined()),
+  lowerValue: z.coerce.number<string>().or(z.undefined()),
+  delayMs: z.coerce.number<string>().or(z.undefined()),
+  deviceType: z.enum(DeviceType).optional(),
+});
+type CreateDevice = z.infer<typeof CreateDeviceSchema>;
+
+export function CreateDeviceModal() {
+  const { state, setState } = useModal(createDeviceModalId);
   const api = useApi();
 
-  const handleCreate = async () => {
-    setIsLoading(true);
+  const form = useAppForm({
+    defaultValues: {
+      name: '',
+    } as CreateDevice,
+    validators: {
+      onSubmit: CreateDeviceSchema as any,
+    },
+    onSubmit: async ({ value }) => {
+      const parsed = CreateDeviceSchema.safeParse(value);
 
-    if (device && device.name) {
-      const res = await api.createDevice(device);
+      if (!parsed.success) {
+        return;
+      }
+
+      const res = await api.createDevice(value);
       if (res.ok) {
         notification.success({
-          message: `${device.name} created succesfully`,
+          message: `${value.name} created succesfully`,
         });
       } else {
         notification.error({
@@ -36,116 +59,90 @@ export function DeviceCreationModal() {
           description: res.message,
         });
       }
-    }
 
-    setIsLoading(false);
-  };
+      form.reset();
+      setState(false);
 
-  return (
-    <ModalRoot open={state} onClose={() => setState(!state)} dismissable>
-      <h3 className="mb-2 text-xl">Create device</h3>
-      <Form className="contents" layout="vertical" onFinish={handleCreate}>
-        <Form.Item label="Name" required>
-          <Input
-            required
-            value={device?.name}
-            onChange={e =>
-              setDevice(prev => ({ ...prev, name: e.currentTarget.value }))
-            }
-          />
-        </Form.Item>
-        <Form.Item label="Description">
-          <Input.TextArea
-            autoSize={{
-              minRows: 3,
-              maxRows: 6,
-            }}
-            value={device?.description}
-            onChange={e =>
-              setDevice(prev => ({
-                ...prev,
-                description: e.currentTarget.value,
-              }))
-            }
-          />
-        </Form.Item>
-
-        <Form.Item label="Critical value">
-          <InputNumber
-            className="!block !w-full"
-            value={device.criticalValue}
-            onChange={val =>
-              setDevice(prev => ({ ...prev, criticalValue: val ?? undefined }))
-            }
-          />
-        </Form.Item>
-
-        <Form.Item label="Lower value">
-          <InputNumber
-            className="!block !w-full"
-            value={device.lowerValue}
-            onChange={val =>
-              setDevice(prev => ({ ...prev, lowerValue: val ?? undefined }))
-            }
-          />
-        </Form.Item>
-
-        <Form.Item label="Delay (ms)">
-          <InputNumber
-            className="!block !w-full"
-            value={device.delay}
-            onChange={val =>
-              setDevice(prev => ({ ...prev, delay: val ?? undefined }))
-            }
-          />
-        </Form.Item>
-
-        <div className="flex justify-end gap-2">
-          <Button
-            onClick={() => {
-              setState(false);
-            }}
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-
-          <Button variant="primary" type="submit" disabled={isLoading}>
-            {isLoading && <Spinner className="mr-1" />}
-            Create
-          </Button>
-        </div>
-      </Form>
-    </ModalRoot>
-  );
-}
-
-function ModalRoot({
-  dismissable = false,
-  ...props
-}: {
-  children?: ReactNode;
-  open: boolean;
-  onClose?: () => void;
-
-  dismissable?: boolean;
-}) {
-  if (!props.open) return null;
+      //HACK : workaround because we do not have query caching yet, so devices wouldn't be refetched
+      // TODO: remove when react-query will be used
+      window.location.reload();
+    },
+  });
 
   return (
-    <div className="z-modal absolute top-0 left-0 flex h-full w-full items-center justify-center">
-      <div
-        className="absolute h-full w-full bg-black/15 backdrop-blur-xs"
-        onClick={dismissable ? props.onClose : undefined}
-      />
-      <dialog
-        open={props.open}
-        className={clsx(
-          'relative min-h-96 min-w-80 rounded-xl border border-black/10 bg-white p-4 md:min-w-[640px]'
-        )}
-      >
-        {props.children}
-      </dialog>
-    </div>
+    <Dialog open={state} onOpenChange={setState}>
+      <DialogContent>
+        <form
+          className="contents"
+          id={createDeviceModalId}
+          onSubmit={e => {
+            e.preventDefault();
+            form.handleSubmit();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Create Device</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <FieldGroup>
+              <form.AppField
+                name="name"
+                children={field => (
+                  <field.TextField
+                    label="Device name"
+                    placeholder="my device"
+                  />
+                )}
+              />
+
+              <form.AppField
+                name="description"
+                children={field => (
+                  <field.TextareaField
+                    label="Description"
+                    placeholder="Does something interesting"
+                  />
+                )}
+              />
+
+              <form.AppField
+                name="criticalValue"
+                children={field => (
+                  <field.TextField label="Critical value" placeholder="0" />
+                )}
+              />
+
+              <form.AppField
+                name="lowerValue"
+                children={field => (
+                  <field.TextField label="Lower value" placeholder="0" />
+                )}
+              />
+
+              <form.AppField
+                name="delayMs"
+                children={field => (
+                  <field.TextField label="Delay (ms)" placeholder="1000" />
+                )}
+              />
+            </FieldGroup>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button>Cancel</Button>
+            </DialogClose>
+            <form.Subscribe
+              selector={state => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => (
+                <Button variant="primary" type="submit" disabled={!canSubmit}>
+                  {isSubmitting && <Spinner />}
+                  Submit
+                </Button>
+              )}
+            />
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

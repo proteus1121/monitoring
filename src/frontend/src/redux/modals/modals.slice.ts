@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ModalId, ModalsList } from './modals.types';
-import { deviceCreationModalId } from './DeviceCreationModal';
+import { createDeviceModalId } from './DeviceCreationModal';
 
-const initialState: ModalsList = { [deviceCreationModalId]: false };
+const initialState: ModalsList = { [createDeviceModalId]: false };
 
 export const modalsSlice = createSlice({
   name: 'modals',
