@@ -1,9 +1,11 @@
-import { CreateDeviceModal } from './DeviceCreationModal';
+import { DeviceCreationModal } from './DeviceCreationModal';
+import { AlertTemplateCreationModal } from './AlertTemplateCreationModal';
 
 export function ModalsProvider() {
   return (
     <>
-      <CreateDeviceModal />
+      <DeviceCreationModal />
+      <AlertTemplateCreationModal />
     </>
   );
 }

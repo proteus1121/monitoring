@@ -1,13 +1,11 @@
 import { useApi } from '@src/lib/api/ApiProvider';
-import { ReactNode, useEffect, useState } from 'react';
-import clsx from 'clsx';
+import { useEffect, useState } from 'react';
 import {
   TelegramNotification,
   CreateTelegramNotificationRequest,
   UpdateTelegramNotificationRequest,
 } from '@src/lib/api/api.types';
 import { NotificationCard } from './components/NotificationCard';
-import { Spinner } from '@src/components/Spinner';
 import { Loader } from '@src/components/Loader';
 import {
   PageHeader,
@@ -28,6 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/components/Select';
+import { useModal } from '@src/redux/modals/modals.hook';
+import { AlertTemplateCreationModalId } from '@src/redux/modals/AlertTemplateCreationModal';
 
 const TYPE_OPTIONS = ['INFO', 'WARNING', 'CRITICAL'];
 
@@ -105,7 +105,7 @@ const NotificationsPage = () => {
 
   const handleCreate = async (req: CreateTelegramNotificationRequest) => {
     //TODO: loader for creation
-    const res = await api.createNotification(req);
+    const res = await api.createAlertTemplate(req);
     if (res.ok) {
       notification.success({ message: 'Notification created successfully' });
     } else {
@@ -117,6 +117,8 @@ const NotificationsPage = () => {
     setIsCreationVisible(false);
     await fetchNotifications();
   };
+
+  const { setState } = useModal(AlertTemplateCreationModalId);
 
   if (isLoading && !items) {
     return <Loader />;
@@ -135,10 +137,9 @@ const NotificationsPage = () => {
 
           <Button
             variant="primary"
-            onClick={() => alert('adding template')}
+            onClick={() => setState(true)}
             className="ml-2 shrink-0"
           >
-            {/* TODO: add modals for templates creation/update */}
             <Icon icon="lucide:plus" className="mr-2 size-4" />
             Add Template
           </Button>
@@ -190,85 +191,3 @@ const NotificationsPage = () => {
 };
 
 export default NotificationsPage;
-
-// const NotificationCreationForm = ({
-//   onCreate,
-//   setIsCreationVisible,
-// }: {
-//   onCreate: (req: CreateTelegramNotificationRequest) => void;
-//   setIsCreationVisible: React.Dispatch<React.SetStateAction<boolean>>;
-// }) => {
-//   const [formState, setFormState] = useState<CreateTelegramNotificationRequest>(
-//     {
-//       telegramChatId: '',
-//       type: TYPE_OPTIONS[0],
-//       template: '',
-//     }
-//   );
-//
-//   const handleCreate = () => {
-//     const { telegramChatId, type, template } = formState;
-//     if (!telegramChatId || !type || !template) {
-//       notification.error({
-//         message: 'Missing fields',
-//         description: 'telegramChatId, type, and template are required',
-//       });
-//       return;
-//     }
-//     onCreate(formState);
-//   };
-//
-//   return (
-//     <Card>
-//       <Form className="contents" layout="vertical" onFinish={handleCreate}>
-//         <Form.Item label="Telegram Chat ID" required>
-//           <Input
-//             required
-//             value={formState.telegramChatId}
-//             onChange={e =>
-//               setFormState(prev => ({
-//                 ...prev,
-//                 telegramChatId: e.currentTarget.value,
-//               }))
-//             }
-//           />
-//         </Form.Item>
-//
-//         <Form.Item label="Type" required>
-//           <Select
-//             value={formState.type}
-//             onChange={val => setFormState(prev => ({ ...prev, type: val }))}
-//             options={TYPE_OPTIONS.map(t => ({ label: t, value: t }))}
-//           />
-//         </Form.Item>
-//
-//         <Form.Item label="Template" required>
-//           <Input.TextArea
-//             required
-//             autoSize={{ minRows: 3, maxRows: 8 }}
-//             value={formState.template}
-//             onChange={e =>
-//               setFormState(prev => ({
-//                 ...prev,
-//                 template: e.currentTarget.value,
-//               }))
-//             }
-//           />
-//         </Form.Item>
-//
-//         <div className="ml-auto flex gap-2">
-//           <Button
-//             onClick={() => {
-//               setIsCreationVisible(false);
-//             }}
-//           >
-//             Cancel
-//           </Button>
-//           <Button type="primary" htmlType="submit">
-//             Create
-//           </Button>
-//         </div>
-//       </Form>
-//     </Card>
-//   );
-// };

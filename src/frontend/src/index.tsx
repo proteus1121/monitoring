@@ -40,7 +40,6 @@ export const router = createBrowserRouter(
       element={
         <ApiProvider>
           <Outlet />
-
           <ModalsProvider />
         </ApiProvider>
       }
@@ -49,22 +48,24 @@ export const router = createBrowserRouter(
         <Route path="login" element={<SignInPage />} />
         <Route path="register" element={<SignUpPage />} />
       </Route>
+
       <Route path="/" element={<AuthGuard />}>
         <Route element={<MainLayout />}>
-          <Route path="dashboard">
-            <Route index element={<Navigate to="/dashboard/overview" />} />
-            <Route path="overview" element={<DashboardPage />} />
-          </Route>
-          <Route path="settings">
-            <Route index element={<Navigate to="/settings/devices" />} />
-            <Route path="devices" element={<DevicesPage />} />
-            <Route path="configurations" element={<>Configurations</>} />
-            <Route path="users" element={<>Users</>} />
-            <Route path="alerts" element={<NotificationsPage />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route
+            path="dashboard"
+            element={<Navigate to="/dashboard/overview" />}
+          />
+          <Route path="dashboard/overview" element={<DashboardPage />} />
+          <Route path="dashboard/map" element={<>map</>} />
+          <Route path="settings/devices" element={<DevicesPage />} />
+          <Route path="settings/configurations" element={<>configurations</>} />
+          <Route path="settings/users" element={<>Users</>} />
+          <Route path="settings/alerts" element={<NotificationsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard/overview" />} />
         </Route>
       </Route>
+
+      <Route path="*" element={<Navigate to="/dashboard/overview" />} />
     </Route>
   )
 );

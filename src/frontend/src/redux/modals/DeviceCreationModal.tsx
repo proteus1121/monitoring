@@ -17,8 +17,10 @@ import { useAppForm } from '@src/components/Form';
 import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
 
-export const createDeviceModalId = 'create-device-modal-id';
-export type CreateDeviceModal = SimpleModalState<typeof createDeviceModalId>;
+export const DeviceCreationModalId = 'device-creation-modal-id';
+export type DeviceCreationModal = SimpleModalState<
+  typeof DeviceCreationModalId
+>;
 
 export const CreateDeviceSchema = z.object({
   name: z.string().min(1),
@@ -30,8 +32,8 @@ export const CreateDeviceSchema = z.object({
 });
 type CreateDevice = z.infer<typeof CreateDeviceSchema>;
 
-export function CreateDeviceModal() {
-  const { state, setState } = useModal(createDeviceModalId);
+export function DeviceCreationModal() {
+  const { state, setState } = useModal(DeviceCreationModalId);
   const api = useApi();
 
   const form = useAppForm({
@@ -74,7 +76,7 @@ export function CreateDeviceModal() {
       <DialogContent>
         <form
           className="contents"
-          id={createDeviceModalId}
+          id={DeviceCreationModalId}
           onSubmit={e => {
             e.preventDefault();
             form.handleSubmit();

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { notification } from 'antd';
 import { Device, DeviceStatus } from '@src/lib/api/api.types';
-import { createDeviceModalId } from '@src/redux/modals/DeviceCreationModal';
+import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
@@ -85,7 +85,7 @@ const DevicesPage = () => {
 
   const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
 
-  const { setState } = useModal(createDeviceModalId);
+  const { setState } = useModal(DeviceCreationModalId);
 
   if (isLoading && !devices) {
     return <Loader />;
