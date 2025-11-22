@@ -15,25 +15,30 @@ import {
   SelectValue,
 } from '@src/components/Select';
 import dayjs, { Dayjs } from 'dayjs';
+import { Loader } from '@src/components/Loader';
 
 const { RangePicker } = DatePicker;
 
 export const DashboardPage = () => {
   const api = useApi();
   const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   useEffect(() => {
     const onLoad = async () => {
+      setIsLoading(true);
       const res = await api.getDevices();
       if (!res.ok) {
         notification.error({
           message: 'Failed to get devices',
           description: res.message,
         });
+        setIsLoading(false);
         return;
       }
 
       setDevices(res.data);
       if (res.data[0].id) setChoosenDevicesIds([res.data[0].id]);
+      setIsLoading(false);
     };
     onLoad();
   }, [api, setDevices]);
@@ -44,6 +49,10 @@ export const DashboardPage = () => {
     dayjs(new Date()).subtract(5, 'days')
   );
   const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
+
+  if (!devices || isLoading) {
+    return <Loader />;
+  }
 
   return (
     <>
