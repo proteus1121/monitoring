@@ -9,14 +9,11 @@ import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
-import {
-  PageHeader,
-  PageHeaderDescription,
-  PageHeaderTitle,
-} from '@src/components/PageHeader';
+import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
 import { Switch } from '@src/components/Switch';
 import { PageLayout } from '@src/layouts/PageLayout';
+import { H1, H3 } from '@src/components/Text';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -95,10 +92,10 @@ const DevicesPage = () => {
     <PageLayout>
       <PageHeader>
         <div>
-          <PageHeaderTitle>Device Configurations</PageHeaderTitle>
-          <PageHeaderDescription>
-            Manage and configure your smart devices
-          </PageHeaderDescription>
+          <PageHeaderTitle>
+            <H1>Device Configurations</H1>
+          </PageHeaderTitle>
+          <H3>Manage and configure your smart devices</H3>
         </div>
 
         <Button

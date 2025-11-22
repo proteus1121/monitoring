@@ -15,12 +15,12 @@ import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import AuthLayout from './layouts/AuthLayout';
 import DevicesPage from './pages/DevicesPage/DevicesPage';
-import DashboardPage from './pages/DashboardPage/DashboardPage';
 import { ApiProvider } from './lib/api/ApiProvider';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import { ModalsProvider } from './redux/modals/ModalsProvider';
 import NotificationsPage from './pages/NotificationsPage/AlertsPage';
+import { DashboardPage } from './pages/DashboardPage/DashboardPage';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);

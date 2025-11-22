@@ -7,11 +7,7 @@ import {
 } from '@src/lib/api/api.types';
 import { NotificationCard } from './components/NotificationCard';
 import { Loader } from '@src/components/Loader';
-import {
-  PageHeader,
-  PageHeaderDescription,
-  PageHeaderTitle,
-} from '@src/components/PageHeader';
+import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { notification } from 'antd';
 import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
@@ -28,6 +24,7 @@ import {
 } from '@src/components/Select';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AlertTemplateCreationModalId } from '@src/redux/modals/AlertTemplateCreationModal';
+import { H1, H3 } from '@src/components/Text';
 
 const TYPE_OPTIONS = ['INFO', 'WARNING', 'CRITICAL'];
 
@@ -129,10 +126,10 @@ const NotificationsPage = () => {
       <PageLayout>
         <PageHeader>
           <div>
-            <PageHeaderTitle>Alert Settings</PageHeaderTitle>
-            <PageHeaderDescription>
-              Configure alert templates and notification channels
-            </PageHeaderDescription>
+            <PageHeaderTitle>
+              <H1>Alert Settings</H1>
+            </PageHeaderTitle>
+            <H3>Configure alert templates and notification channels</H3>
           </div>
 
           <Button
