@@ -28,10 +28,6 @@ const DashboardPage = () => {
 
   return (
     <>
-      <Header>
-        <div>Dashboard</div>
-      </Header>
-
       <Card>
         <GeneralDataChart />
       </Card>

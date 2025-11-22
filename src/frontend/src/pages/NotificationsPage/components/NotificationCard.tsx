@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button, Form, Input, Popconfirm, Select, Tooltip } from 'antd';
-import { Card } from '../NotificationsPage';
 import {
   NOTIFICATION_TYPES,
   TelegramNotification,
 } from '@src/lib/api/api.types';
+import { Card } from '@src/components/Card';
 
 export const NotificationCard = ({
   notification,
@@ -168,4 +168,3 @@ const EditableNotificationCard = ({
     </Card>
   );
 };
-

@@ -1,15 +1,22 @@
 import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Form, Input, InputNumber, notification, Switch } from 'antd';
-import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
-import { Header } from '@src/components/Header';
+import { notification } from 'antd';
+import { Device, DeviceStatus } from '@src/lib/api/api.types';
 import { createDeviceModalId } from '@src/redux/modals/DeviceCreationModal';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
+import {
+  PageHeader,
+  PageHeaderDescription,
+  PageHeaderTitle,
+} from '@src/components/PageHeader';
+import { Loader } from '@src/components/Loader';
+import { Switch } from '@src/components/Switch';
+import { PageLayout } from '@src/layouts/PageLayout';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -79,36 +86,51 @@ const DevicesPage = () => {
   const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
 
   const { setState } = useModal(createDeviceModalId);
+
+  if (isLoading && !devices) {
+    return <Loader />;
+  }
+
   return (
-    <>
-      <Header>Devices</Header>
-      <div className="space-y-4 p-6">
-        <Button variant="primary" onClick={() => setState(true)}>
+    <PageLayout>
+      <PageHeader>
+        <div>
+          <PageHeaderTitle>Device Configurations</PageHeaderTitle>
+          <PageHeaderDescription>
+            Manage and configure your smart devices
+          </PageHeaderDescription>
+        </div>
+
+        <Button
+          variant="primary"
+          onClick={() => setState(true)}
+          className="ml-2 shrink-0"
+        >
           <Icon icon="lucide:plus" className="mr-2 size-4" />
           Add Device
         </Button>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
-          {devices &&
-            devices.map((device, id) => (
-              <DeviceCard
-                key={device.id ?? id}
-                device={device}
-                // onSave={handleUpdate}
-                // onDelete={() => {
-                //   if (!device.id) {
-                //     notification.error({
-                //       message: 'Failed to delete device',
-                //       description: 'Device should have id',
-                //     });
-                //     return;
-                //   }
-                //   handleDelete(device.id, device.name ?? '');
-                // }}
-              />
-            ))}
-        </div>
+      </PageHeader>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
+        {devices &&
+          devices.map((device, id) => (
+            <DeviceCard
+              key={device.id ?? id}
+              device={device}
+              // onSave={handleUpdate}
+              // onDelete={() => {
+              //   if (!device.id) {
+              //     notification.error({
+              //       message: 'Failed to delete device',
+              //       description: 'Device should have id',
+              //     });
+              //     return;
+              //   }
+              //   handleDelete(device.id, device.name ?? '');
+              // }}
+            />
+          ))}
       </div>
-    </>
+    </PageLayout>
   );
 };
 
@@ -129,7 +151,10 @@ function DeviceCard(props: { device: Device }) {
             <p className="text-sm text-gray-500">{props.device.description}</p>
           </div>
         </div>
-        <span className="rounded-full bg-green-500 px-2 text-xs text-white">
+
+        <span
+          className={`rounded-full px-2 text-xs text-white ${getColorByStatus(props.device.status)}`}
+        >
           {props.device.status}
         </span>
       </div>
@@ -139,4 +164,20 @@ function DeviceCard(props: { device: Device }) {
       </div>
     </Card>
   );
+}
+
+function getColorByStatus(status?: DeviceStatus) {
+  if (status === DeviceStatus.OK) {
+    return 'bg-green-500';
+  }
+
+  if (status === DeviceStatus.WARNING) {
+    return 'bg-orange-500';
+  }
+
+  if (status === DeviceStatus.CRITICAL) {
+    return 'bg-red-500';
+  }
+
+  return 'bg-gray-700';
 }

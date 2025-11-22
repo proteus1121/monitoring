@@ -1,4 +1,5 @@
 import { Icon } from '@iconify/react';
+import { Header } from '@src/components/Header';
 import Logo from '@src/components/logo/Logo';
 import { removeCookie } from '@src/lib/cookieUtils';
 import { useOutsideClickDetector } from '@src/lib/useOutsideClickDetector';
@@ -17,7 +18,7 @@ export const MainLayout = () => {
     useState<boolean>(true);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="h-dvh min-h-dvh bg-gray-50">
       <div
         className={clsx(
           'absolute z-20 h-full w-full bg-black/10 transition lg:pointer-events-none lg:opacity-0',
@@ -31,6 +32,11 @@ export const MainLayout = () => {
           setState({ ...state, isSidebarCollapsed: !state.isSidebarCollapsed })
         }
       />
+
+      <div className="h-full min-h-full lg:pl-64">
+        <Header />
+        <Outlet />
+      </div>
 
       <aside
         className={clsx(
@@ -146,45 +152,6 @@ export const MainLayout = () => {
           </div>
         </div>
       </aside>
-
-      {/*<aside
-        className={clsx(
-          // { '-translate-x-full opacity-0': !isVisible },
-          'fixed top-0 left-0 z-50 h-full w-64 border-r bg-white transition-transform duration-300'
-        )}
-      >
-        <Link
-          to="/dashboard"
-          className="flex w-full items-center gap-1.5 rounded-lg p-2 font-bold text-blue-500 transition-all hover:bg-blue-500/10 hover:text-blue-700"
-        >
-          <Icon icon="mdi:home" className="size-8" />
-          Dashboard
-        </Link>
-        <Link
-          to="/devices"
-          className="flex w-full items-center gap-1.5 rounded-lg p-2 font-bold text-blue-500 transition-all hover:bg-blue-500/10 hover:text-blue-700"
-        >
-          <Icon
-            icon="material-symbols:settings-outline-rounded"
-            className="size-8"
-          />
-          Sensors
-        </Link>
-        <Link
-          to="/notifications"
-          className="flex w-full items-center gap-1.5 rounded-lg p-2 font-bold text-blue-500 transition-all hover:bg-blue-500/10 hover:text-blue-700"
-        >
-          <Icon
-            icon="material-symbols:notification-add-outline"
-            className="size-8"
-          />
-          Alerts
-        </Link>
-      </aside>*/}
-
-      <div className="lg:pl-64">
-        <Outlet />
-      </div>
     </main>
   );
 };

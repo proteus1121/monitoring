@@ -20,6 +20,7 @@ import { ApiProvider } from './lib/api/ApiProvider';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
 import { ModalsProvider } from './redux/modals/ModalsProvider';
+import NotificationsPage from './pages/NotificationsPage/AlertsPage';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
@@ -52,16 +53,14 @@ export const router = createBrowserRouter(
         <Route element={<MainLayout />}>
           <Route path="dashboard">
             <Route index element={<Navigate to="/dashboard/overview" />} />
-
             <Route path="overview" element={<DashboardPage />} />
-            <Route element={<>dashboard index page</>} />
           </Route>
           <Route path="settings">
             <Route index element={<Navigate to="/settings/devices" />} />
             <Route path="devices" element={<DevicesPage />} />
-            <Route path="configurations" element={<>configurations</>} />
-            <Route path="users" element={<>users</>} />
-            <Route path="alerts" element={<>alerts</>} />
+            <Route path="configurations" element={<>Configurations</>} />
+            <Route path="users" element={<>Users</>} />
+            <Route path="alerts" element={<NotificationsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Route>
