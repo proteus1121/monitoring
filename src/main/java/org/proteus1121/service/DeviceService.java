@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
@@ -35,17 +36,21 @@ public class DeviceService {
                 new RuntimeException("User " + userId + " not found"));//TODO: exception handling
         DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device, userEntity));
         Device createdDevice = deviceMapper.toDevice(deviceEntity);
-        configurationPublisher.publish(createdDevice.getUserId(), deviceEntity.getId(), 
+        configurationPublisher.publish(userId, deviceEntity.getId(),
                 deviceMapper.toDeviceConfiguration(createdDevice));
-        
+
         return createdDevice;
     }
     
     public Device updateDevice(Long id, Device device) {
-        DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(id, device));
+        Set<UserEntity> users = userRepository.findAllByIdIn(device.getUserIds());
+        DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(id, device, users));
         Device updatedDevice = deviceMapper.toDevice(deviceEntity);
-        configurationPublisher.publish(updatedDevice.getUserId(), deviceEntity.getId(),
-                deviceMapper.toDeviceConfiguration(updatedDevice));
+        for (Long userId : updatedDevice.getUserIds()) {
+            configurationPublisher.publish(userId, deviceEntity.getId(),
+                    deviceMapper.toDeviceConfiguration(updatedDevice));
+        }
+        
         return updatedDevice;
     }
     
@@ -65,7 +70,7 @@ public class DeviceService {
             throw new RuntimeException("Device " + id + " not found");
         }
         Device device = deviceOpt.get();
-        if (!Objects.equals(device.getUserId(), getCurrentUser().getId())) {
+        if (!Objects.equals(device.getUserIds(), getCurrentUser().getId())) {
             //TODO: exception handling
             throw new RuntimeException("Device " + id + " belong to another user");
         }

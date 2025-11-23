@@ -12,27 +12,29 @@ import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.model.request.DeviceRequest;
 
+import java.util.Set;
+
 @Mapper(componentModel = "spring", uses = { UserMapper.class })
 public interface DeviceMapper {
 
     @Named("toPlainDevice")
-    @Mapping(target = "user", source = "user", qualifiedByName = "toPlainUser")
+    @Mapping(target = "users", source = "users", qualifiedByName = "toPlainUser")
     Device toDevice(DeviceEntity deviceEntity);
 
-    @Mapping(target = "user", ignore = true) // User will be set separately in the service
+    @Mapping(target = "users", ignore = true) // User will be set separately in the service
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
     @Mapping(target = "lastChecked", expression = "java(java.time.LocalDateTime.now())")
     @Mapping(target = "status", constant = "OFFLINE")
     Device toDevice(DeviceRequest deviceRequest);
 
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
-    @Mapping(target = "user", source = "user")
+    @Mapping(target = "users", expression = "java(java.util.Set.of(user))")
     @Mapping(target = "name", source = "device.name")
     DeviceEntity toDeviceEntity(Device device, UserEntity user);
 
-    @Mapping(target = "user.id", source = "device.user.id")
+    @Mapping(target = "users", source = "users")
     @Mapping(target = "id", source = "id") // ID will be auto-generated
-    DeviceEntity toDeviceEntity(Long id, Device device);
+    DeviceEntity toDeviceEntity(Long id, Device device, Set<UserEntity> users);
     
     DeviceConfiguration toDeviceConfiguration(Device device);
 

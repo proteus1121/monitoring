@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
@@ -72,11 +73,13 @@ public class TelegramNotificationService {
     }
 
     public void sendCriticalNotifications(Device device, Double value) {
-        User user = device.getUser();
-        
-        getNotifications(user.getId()).stream()
-                .filter(n -> n.getType() == NotificationType.CRITICAL)
-                .forEach(n -> sendNotification(n.getTelegramChatId(), getMessage(n.getTemplate(), user, device, value)));
+        List<User> users = device.getUsers();
+
+        for (User user : users) {
+            getNotifications(user.getId()).stream()
+                    .filter(n -> n.getType() == NotificationType.CRITICAL)
+                    .forEach(n -> sendNotification(n.getTelegramChatId(), getMessage(n.getTemplate(), user, device, value)));
+        }
     }
 
     /**

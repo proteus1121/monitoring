@@ -8,13 +8,16 @@ import org.proteus1121.model.enums.DeviceStatus;
 import org.proteus1121.model.enums.DeviceType;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Data
 public class Device {
 
     private Long id;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private User user;
+    private List<User> users;
     private String name;
     private String description;
     private Double criticalValue;
@@ -25,7 +28,9 @@ public class Device {
     private LocalDateTime lastChecked;
     private DeviceType type;
 
-    public Long getUserId() {
-        return getUser().getId();
+    public Set<Long> getUserIds() {
+        return getUsers().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
     }
 }
