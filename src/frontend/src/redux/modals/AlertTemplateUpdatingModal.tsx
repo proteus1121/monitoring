@@ -1,6 +1,10 @@
-import { NOTIFICATION_TYPES, NotificationType } from '@src/lib/api/api.types';
+import {
+  NOTIFICATION_TYPES,
+  NotificationType,
+  TelegramNotification,
+} from '@src/lib/api/api.types';
 import z from 'zod';
-import { SimpleModalState } from './modals.types';
+import { ModalState } from './modals.types';
 import { useModal } from './modals.hook';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { useAppForm } from '@src/components/Form';
@@ -17,40 +21,47 @@ import { FieldGroup } from '@src/components/Field';
 import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
 
-export const AlertTemplateCreationModalId = 'alert-template-creation-modal-id';
-export type AlertTemplateCreationModal = SimpleModalState<
-  typeof AlertTemplateCreationModalId
+export const AlertTemplateUpdatingModalId = 'alert-template-updating-modal-id';
+export type AlertTemplateUpdatingModal = ModalState<
+  typeof AlertTemplateUpdatingModalId,
+  TelegramNotification
 >;
 
-export const CreateAlertTemplateSchema = z.object({
+export const UpdateAlertTemplateSchema = z.object({
   telegramChatId: z.string(),
   type: z.enum(NotificationType),
   template: z.string(),
 });
 
-type CreateAlert = z.infer<typeof CreateAlertTemplateSchema>;
+type CreateAlert = z.infer<typeof UpdateAlertTemplateSchema>;
 
-export function AlertTemplateCreationModal() {
-  const { state, setState } = useModal(AlertTemplateCreationModalId);
+export function AlertTemplateUpdatingModal() {
+  const { state, setState } = useModal(AlertTemplateUpdatingModalId);
   const api = useApi();
 
   const form = useAppForm({
     defaultValues: {
-      telegramChatId: '',
-      template: '',
-      type: NotificationType.INFO,
+      telegramChatId: state?.telegramChatId,
+      template: state?.template,
+      type: state?.type,
     } as CreateAlert,
     validators: {
-      onSubmit: CreateAlertTemplateSchema as any,
+      onSubmit: UpdateAlertTemplateSchema as any,
     },
     onSubmit: async ({ value }) => {
-      const parsed = CreateAlertTemplateSchema.safeParse(value);
+      const parsed = UpdateAlertTemplateSchema.safeParse(value);
 
       if (!parsed.success) {
         return;
       }
+      if (!state) {
+        return;
+      }
 
-      const res = await api.createAlertTemplate(value);
+      const res = await api.updateNotification({
+        ...parsed.data,
+        id: state.id,
+      });
       if (res.ok) {
         notification.success({
           message: `alert template for chatId:${value.telegramChatId} created succesfully`,
@@ -63,7 +74,7 @@ export function AlertTemplateCreationModal() {
       }
 
       form.reset();
-      setState(false);
+      setState(null);
 
       //HACK : workaround because we do not have query caching yet, so alerts wouldn't be refetched
       // TODO: remove when react-query will be used
@@ -72,18 +83,23 @@ export function AlertTemplateCreationModal() {
   });
 
   return (
-    <Dialog open={state} onOpenChange={setState}>
+    <Dialog
+      open={Boolean(state)}
+      onOpenChange={open => {
+        if (!open) setState(null);
+      }}
+    >
       <DialogContent>
         <form
           className="contents"
-          id={AlertTemplateCreationModalId}
+          id={AlertTemplateUpdatingModalId}
           onSubmit={e => {
             e.preventDefault();
             form.handleSubmit();
           }}
         >
           <DialogHeader>
-            <DialogTitle>Create Alert Template</DialogTitle>
+            <DialogTitle>Update Alert Template</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <FieldGroup>
