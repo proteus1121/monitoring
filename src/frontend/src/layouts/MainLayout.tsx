@@ -1,13 +1,11 @@
 import { Icon } from '@iconify/react';
 import { Header } from '@src/components/Header';
 import Logo from '@src/components/logo/Logo';
-import { removeCookie } from '@src/lib/cookieUtils';
-import { useOutsideClickDetector } from '@src/lib/useOutsideClickDetector';
 import { useUi } from '@src/redux/ui/ui.hook';
 import clsx from 'clsx';
-import { Accordion, Collapsible } from 'radix-ui';
-import { ReactNode, useRef, useState } from 'react';
-import { NavLink, Outlet, To, useNavigate } from 'react-router-dom';
+import { Collapsible } from 'radix-ui';
+import { ReactNode, useState } from 'react';
+import { NavLink, Outlet, To } from 'react-router-dom';
 
 export const MainLayout = () => {
   const { state, setState } = useUi();

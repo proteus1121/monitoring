@@ -8,6 +8,11 @@ export const store = configureStore({
     modals: modalsSlice.reducer,
     ui: uiSlice.reducer,
   },
+
+  middleware: getDefaultMiddleware =>
+    getDefaultMiddleware({
+      serializableCheck: false,
+    }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

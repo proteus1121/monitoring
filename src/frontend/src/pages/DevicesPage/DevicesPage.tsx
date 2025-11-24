@@ -14,6 +14,11 @@ import { Loader } from '@src/components/Loader';
 import { Switch } from '@src/components/Switch';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
+import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import {
+  DeviceUpdatingModal,
+  DeviceUpdatingModalId,
+} from '@src/redux/modals/DeviceUpdatingModal';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
@@ -41,10 +46,10 @@ const DevicesPage = () => {
     fetchDevices();
   }, [api, setDevices]);
 
-  const handleDelete = async (deviceId: number, deviceName: string) => {
+  const handleDelete = async (deviceId: number, deviceName?: string) => {
     const res = await api.deleteDevice(deviceId);
     if (res.ok) {
-      notification.success({ message: `Deleted ${deviceName}` });
+      notification.success({ message: `Deleted ${deviceName ?? 'device'}` });
     }
 
     await fetchDevices();
@@ -80,9 +85,10 @@ const DevicesPage = () => {
     await fetchDevices();
   };
 
-  const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
-
   const { setState } = useModal(DeviceCreationModalId);
+
+  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: updationModal } = useModal(DeviceUpdatingModalId);
 
   if (isLoading && !devices) {
     return <Loader />;
@@ -109,6 +115,13 @@ const DevicesPage = () => {
             <DeviceCard
               key={device.id ?? id}
               device={device}
+              onDelete={() =>
+                deletionModal({
+                  callback: async () =>
+                    await handleDelete(device?.id ?? -1, device.name),
+                })
+              }
+              onUpdate={() => updationModal(device)}
               // onSave={handleUpdate}
               // onDelete={() => {
               //   if (!device.id) {
@@ -129,10 +142,14 @@ const DevicesPage = () => {
 
 export default DevicesPage;
 
-function DeviceCard(props: { device: Device }) {
+function DeviceCard(props: {
+  device: Device;
+  onDelete: () => void;
+  onUpdate: () => void;
+}) {
   return (
     <Card className="flex flex-col gap-6 transition-shadow hover:shadow-lg">
-      <div className="mb-3 flex items-start justify-between">
+      <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
             <div className="grid aspect-square place-items-center text-xs">
@@ -151,9 +168,14 @@ function DeviceCard(props: { device: Device }) {
           {props.device.status}
         </span>
       </div>
-      <div className="flex items-center justify-between border-t border-black/10 pt-3">
-        <span className="text-sm text-gray-600">Power</span>
-        <Switch />
+      <div className="flex items-center justify-between">
+        <Button size="icon" variant="ghost" onClick={props.onUpdate}>
+          <Icon icon="lucide:edit" />
+        </Button>
+
+        <Button size="icon" variant="ghost" onClick={props.onDelete}>
+          <Icon icon="lucide:trash-2" />
+        </Button>
       </div>
     </Card>
   );

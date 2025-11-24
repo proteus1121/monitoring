@@ -95,35 +95,6 @@ const NotificationsPage = () => {
     await fetchAlertTemplates();
   };
 
-  const handleUpdate = async (n: TelegramNotification) => {
-    if (!n.id || !n.telegramChatId || !n.type || !n.template) {
-      notification.error({
-        message: 'Failed to update notification',
-        description:
-          'Notification must include id, telegramChatId, type, and template',
-      });
-      return;
-    }
-    const payload: UpdateTelegramNotificationRequest = {
-      id: n.id,
-      telegramChatId: n.telegramChatId,
-      type: n.type,
-      template: n.template,
-    };
-    const res = await api.updateNotification(payload);
-    if (res.ok) {
-      notification.success({
-        message: `Notification #${n.id} updated successfully`,
-      });
-    } else {
-      notification.error({
-        message: 'Failed to update notification',
-        description: res.message,
-      });
-    }
-    await fetchAlertTemplates();
-  };
-
   const { setState } = useModal(AlertTemplateCreationModalId);
   const { setState: deletionModal } = useModal(AlertDialogModalId);
   const { setState: editModal } = useModal(AlertTemplateUpdatingModalId);

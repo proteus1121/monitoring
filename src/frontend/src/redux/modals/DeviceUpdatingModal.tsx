@@ -1,6 +1,6 @@
 import { useModal } from './modals.hook';
-import { SimpleModalState } from './modals.types';
-import { DeviceType } from '@src/lib/api/api.types';
+import { ModalState } from './modals.types';
+import { Device, DeviceType } from '@src/lib/api/api.types';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
@@ -17,12 +17,13 @@ import { useAppForm } from '@src/components/Form';
 import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
 
-export const DeviceCreationModalId = 'device-creation-modal-id';
-export type DeviceCreationModal = SimpleModalState<
-  typeof DeviceCreationModalId
+export const DeviceUpdatingModalId = 'device-updating-modal-id';
+export type DeviceUpdatingModal = ModalState<
+  typeof DeviceUpdatingModalId,
+  Device
 >;
 
-export const CreateDeviceSchema = z.object({
+export const UpdateDeviceSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   criticalValue: z.coerce.number<string>().or(z.undefined()),
@@ -30,24 +31,27 @@ export const CreateDeviceSchema = z.object({
   delayMs: z.coerce.number<string>().or(z.undefined()),
   deviceType: z.enum(DeviceType).optional(),
 });
-type CreateDevice = z.infer<typeof CreateDeviceSchema>;
 
-export function DeviceCreationModal() {
-  const { state, setState } = useModal(DeviceCreationModalId);
+export function DeviceUpdatingModal() {
+  const { state, setState } = useModal(DeviceUpdatingModalId);
   const api = useApi();
 
   const form = useAppForm({
+    defaultValues: state,
     validators: {
-      onSubmit: CreateDeviceSchema as any,
+      onSubmit: UpdateDeviceSchema as any,
     },
     onSubmit: async ({ value }) => {
-      const parsed = CreateDeviceSchema.safeParse(value);
+      const parsed = UpdateDeviceSchema.safeParse(value);
 
       if (!parsed.success) {
         return;
       }
+      if (!state || !state.id) {
+        return;
+      }
 
-      const res = await api.createDevice(parsed.data);
+      const res = await api.updateDevice({ ...parsed.data, id: state.id });
       if (res.ok) {
         notification.success({
           message: `${parsed.data.name} created succesfully`,
@@ -60,7 +64,7 @@ export function DeviceCreationModal() {
       }
 
       form.reset();
-      setState(false);
+      setState(null);
 
       //HACK : workaround because we do not have query caching yet, so devices wouldn't be refetched
       // TODO: remove when react-query will be used
@@ -69,11 +73,16 @@ export function DeviceCreationModal() {
   });
 
   return (
-    <Dialog open={state} onOpenChange={setState}>
+    <Dialog
+      open={Boolean(state)}
+      onOpenChange={open => {
+        if (!open) setState(null);
+      }}
+    >
       <DialogContent>
         <form
           className="contents"
-          id={DeviceCreationModalId}
+          id={DeviceUpdatingModalId}
           onSubmit={e => {
             e.preventDefault();
             form.handleSubmit();

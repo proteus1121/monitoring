@@ -51,10 +51,7 @@ export const router = createBrowserRouter(
 
       <Route path="/" element={<AuthGuard />}>
         <Route element={<MainLayout />}>
-          <Route
-            path="dashboard"
-            element={<Navigate to="/dashboard/overview" />}
-          />
+          <Route index element={<Navigate to="/dashboard/overview" />} />
           <Route path="dashboard/overview" element={<DashboardPage />} />
           <Route path="dashboard/map" element={<>map</>} />
           <Route path="settings/devices" element={<DevicesPage />} />

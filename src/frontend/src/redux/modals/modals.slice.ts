@@ -4,12 +4,14 @@ import { DeviceCreationModalId } from './DeviceCreationModal';
 import { AlertTemplateCreationModalId } from './AlertTemplateCreationModal';
 import { AlertDialogModalId } from './AlertDialog';
 import { AlertTemplateUpdatingModalId } from './AlertTemplateUpdatingModal';
+import { DeviceUpdatingModalId } from './DeviceUpdatingModal';
 
 const initialState: ModalsList = {
   [DeviceCreationModalId]: false,
   [AlertTemplateCreationModalId]: false,
   [AlertDialogModalId]: null,
   [AlertTemplateUpdatingModalId]: null,
+  [DeviceUpdatingModalId]: null,
 };
 
 export const modalsSlice = createSlice({
