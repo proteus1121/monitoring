@@ -10,7 +10,7 @@ export function Header(props: { children?: ReactNode }) {
       <div className="flex h-full items-center justify-between px-4 sm:px-6 lg:px-8">
         <Button
           className="mr-2 lg:hidden"
-          variant="flat"
+          variant="ghost"
           onClick={() => {
             setState({
               ...state,

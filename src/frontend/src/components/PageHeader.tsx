@@ -19,7 +19,7 @@ export const PageHeaderTitle = forwardRef<
   React.ButtonHTMLAttributes<HTMLDivElement>
 >(function PageHeaderText({ className, ...props }, ref) {
   return (
-    <h2
+    <span
       className={cn('mb-2 font-semibold sm:text-xl lg:text-2xl', className)}
       {...props}
       ref={ref}

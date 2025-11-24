@@ -1,9 +1,10 @@
 import { useApi } from '@src/lib/api/ApiProvider';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   TelegramNotification,
   CreateTelegramNotificationRequest,
   UpdateTelegramNotificationRequest,
+  NotificationType,
 } from '@src/lib/api/api.types';
 import { NotificationCard } from './components/NotificationCard';
 import { Loader } from '@src/components/Loader';
@@ -25,20 +26,58 @@ import {
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AlertTemplateCreationModalId } from '@src/redux/modals/AlertTemplateCreationModal';
 import { H1, H3 } from '@src/components/Text';
+import { cn } from '@src/lib/classnameUtils';
+import { Switch } from '@src/components/Switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@src/components/AlertDialog';
+import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
 
-const TYPE_OPTIONS = ['INFO', 'WARNING', 'CRITICAL'];
+const alertTemplateDropdownOptions = [
+  {
+    value: 'all',
+    label: 'All Templates',
+  } as const,
+  {
+    value: NotificationType.INFO,
+    label: 'Info',
+  },
+  {
+    value: NotificationType.WARNING,
+    label: 'Warning',
+  },
+  {
+    value: NotificationType.CRITICAL,
+    label: 'Critical',
+  },
+];
 
 const NotificationsPage = () => {
   const api = useApi();
-  const [items, setItems] = useState<Array<TelegramNotification> | undefined>(
-    undefined
-  );
+  const [items, setItems] = useState<Array<TelegramNotification>>([]);
+  const [templateType, setTemplateType] = useState<{
+    label: string;
+    value: NotificationType | 'all';
+  }>(alertTemplateDropdownOptions[0]);
+
+  const filteredItems = useMemo(() => {
+    if (templateType.value === 'all') return items;
+
+    return items.filter(i => i.type === templateType.value);
+  }, [items, templateType]);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const fetchNotifications = async () => {
+  const fetchAlertTemplates = async () => {
     setIsLoading(true);
-    const res = await api.getNotifications();
+    const res = await api.getAlertTemplates();
     if (!res.ok) {
       notification.error({
         message: 'Failed to fetch notifications',
@@ -53,20 +92,20 @@ const NotificationsPage = () => {
   };
 
   useEffect(() => {
-    fetchNotifications();
+    fetchAlertTemplates();
   }, [api]);
 
-  const handleDelete = async (id: number, label?: string) => {
+  const handleDelete = async (id: number) => {
     const res = await api.deleteNotification(id);
     if (res.ok) {
-      notification.success({ message: `Deleted${label ? ` ${label}` : ''}` });
+      notification.success({ message: `Deleted` });
     } else {
       notification.error({
         message: 'Failed to delete notification',
         description: res.message,
       });
     }
-    await fetchNotifications();
+    await fetchAlertTemplates();
   };
 
   const handleUpdate = async (n: TelegramNotification) => {
@@ -95,27 +134,11 @@ const NotificationsPage = () => {
         description: res.message,
       });
     }
-    await fetchNotifications();
-  };
-
-  const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
-
-  const handleCreate = async (req: CreateTelegramNotificationRequest) => {
-    //TODO: loader for creation
-    const res = await api.createAlertTemplate(req);
-    if (res.ok) {
-      notification.success({ message: 'Notification created successfully' });
-    } else {
-      notification.error({
-        message: 'Failed to create notification',
-        description: res.message,
-      });
-    }
-    setIsCreationVisible(false);
-    await fetchNotifications();
+    await fetchAlertTemplates();
   };
 
   const { setState } = useModal(AlertTemplateCreationModalId);
+  const { setState: deletionModal } = useModal(AlertDialogModalId);
 
   if (isLoading && !items) {
     return <Loader />;
@@ -132,12 +155,8 @@ const NotificationsPage = () => {
             <H3>Configure alert templates and notification channels</H3>
           </div>
 
-          <Button
-            variant="primary"
-            onClick={() => setState(true)}
-            className="ml-2 shrink-0"
-          >
-            <Icon icon="lucide:plus" className="mr-2 size-4" />
+          <Button onClick={() => setState(true)} className="ml-2 shrink-0">
+            <Icon icon="lucide:plus" className="size-4" />
             Add Template
           </Button>
         </PageHeader>
@@ -145,13 +164,24 @@ const NotificationsPage = () => {
         <Card>
           <div className="flex items-center justify-between pb-6 text-xl font-semibold">
             Alert Templates
-            <Select defaultValue="aboba">
+            <Select
+              defaultValue="all"
+              onValueChange={val => {
+                const templateType = alertTemplateDropdownOptions.find(
+                  i => i.value === val
+                );
+
+                setTemplateType(
+                  templateType ?? alertTemplateDropdownOptions[0]
+                );
+              }}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {[{ label: 'Aboba', value: 'aboba' }].map((option, index) => (
+                  {alertTemplateDropdownOptions.map((option, index) => (
                     <SelectItem key={index} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -160,27 +190,86 @@ const NotificationsPage = () => {
               </SelectContent>
             </Select>
           </div>
-          {items &&
-            items.map((n, idx) => (
-              <NotificationCard
-                key={n.id ?? idx}
-                notification={n}
-                onSave={handleUpdate}
-                onDelete={() => {
-                  if (!n.id) {
-                    notification.error({
-                      message: 'Failed to delete notification',
-                      description: 'Notification should have id',
+          {filteredItems.map(i => (
+            <Card className="flex" key={i.id}>
+              <div className="flex flex-1 items-center gap-4">
+                <div
+                  className={cn('rounded-lg bg-current/20 p-3', {
+                    'text-red-500': i.type === NotificationType.CRITICAL,
+                    'text-blue-500': i.type === NotificationType.INFO,
+                    'text-yellow-500': i.type === NotificationType.WARNING,
+                  })}
+                >
+                  <Icon icon="lucide:bell" className="size-5" />
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <h4 className="font-medium">Alert Template Title</h4>{' '}
+                    {/* // TODO: ADD ACTUAL TITLES */}
+                    <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/40 bg-current/20 px-2 py-0.5 text-xs text-red-700">
+                      <Icon icon="lucide:triangle-alert" className="size-3" />
+                      Critical
+                    </span>
+                    <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/40 bg-current/20 px-2 py-0.5 text-xs text-green-700">
+                      Enabled
+                    </span>
+                  </div>
+                  <div className="mr-10 mb-2 line-clamp-1 text-sm text-gray-600">
+                    {i.template}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/5 bg-current/5 px-2 py-0.5 text-xs">
+                      <Icon icon="lucide:mail" />
+                      Email
+                    </span>
+                    <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/5 bg-current/5 px-2 py-0.5 text-xs">
+                      <Icon icon="lucide:message-square" />
+                      Telegram
+                    </span>
+                    <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/5 bg-current/5 px-2 py-0.5 text-xs">
+                      <Icon icon="lucide:smartphone" />
+                      Sms
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch />
+                <Button variant="ghost" size="icon">
+                  <Icon icon="lucide:edit" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    deletionModal({
+                      callback: () => handleDelete(i.id),
                     });
-                    return;
-                  }
-                  const label = n.telegramChatId
-                    ? ` chat ${n.telegramChatId}`
-                    : '';
-                  handleDelete(n.id, label);
-                }}
-              />
-            ))}
+                  }}
+                >
+                  <Icon icon="lucide:trash-2" />
+                </Button>
+              </div>
+            </Card>
+            // <NotificationCard
+            //   key={n.id ?? idx}
+            //   notification={n}
+            //   onSave={handleUpdate}
+            //   onDelete={() => {
+            //     if (!n.id) {
+            //       notification.error({
+            //         message: 'Failed to delete notification',
+            //         description: 'Notification should have id',
+            //       });
+            //       return;
+            //     }
+            //     const label = n.telegramChatId
+            //       ? ` chat ${n.telegramChatId}`
+            //       : '';
+            //     handleDelete(n.id, label);
+            //   }}
+            // />
+          ))}
         </Card>
       </PageLayout>
     </>

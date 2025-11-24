@@ -217,7 +217,7 @@ Your sensor **{{device_name}}** has reported a critical value`}
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
-                <Button variant="primary" type="submit" disabled={!canSubmit}>
+                <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting && <Spinner />}
                   Submit
                 </Button>

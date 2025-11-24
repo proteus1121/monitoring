@@ -98,12 +98,8 @@ const DevicesPage = () => {
           <H3>Manage and configure your smart devices</H3>
         </div>
 
-        <Button
-          variant="primary"
-          onClick={() => setState(true)}
-          className="ml-2 shrink-0"
-        >
-          <Icon icon="lucide:plus" className="mr-2 size-4" />
+        <Button onClick={() => setState(true)} className="ml-2 shrink-0">
+          <Icon icon="lucide:plus" className="size-4" />
           Add Device
         </Button>
       </PageHeader>

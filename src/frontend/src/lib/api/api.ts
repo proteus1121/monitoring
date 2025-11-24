@@ -95,7 +95,7 @@ export class Api {
     return this.reqWrapper<Device>(() => this.client.post('/devices', device));
   }
 
-  async getNotifications() {
+  async getAlertTemplates() {
     return this.reqWrapper<TelegramNotificationResponse>(() =>
       this.client.get('/notifications')
     );

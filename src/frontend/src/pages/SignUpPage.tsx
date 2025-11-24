@@ -105,7 +105,7 @@ const SignUpPage = () => {
       </Form.Field>
 
       <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
-        {isLoading && <Spinner className="mr-2" />}
+        {isLoading && <Spinner />}
         Submit
       </Button>
 

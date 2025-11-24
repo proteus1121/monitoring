@@ -2,10 +2,12 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ModalId, ModalsList } from './modals.types';
 import { DeviceCreationModalId } from './DeviceCreationModal';
 import { AlertTemplateCreationModalId } from './AlertTemplateCreationModal';
+import { AlertDialogModalId } from './AlertDialog';
 
 const initialState: ModalsList = {
   [DeviceCreationModalId]: false,
   [AlertTemplateCreationModalId]: false,
+  [AlertDialogModalId]: null,
 };
 
 export const modalsSlice = createSlice({

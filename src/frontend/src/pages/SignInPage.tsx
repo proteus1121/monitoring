@@ -93,13 +93,8 @@ const SignInPage = () => {
         )}
       </Form.Field>
 
-      <Button
-        type="submit"
-        variant="primary"
-        className="mt-2 w-full"
-        disabled={isLoading}
-      >
-        {isLoading && <Spinner className="mr-2" />}
+      <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
+        {isLoading && <Spinner />}
         Submit
       </Button>
 
