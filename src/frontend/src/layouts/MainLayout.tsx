@@ -18,10 +18,10 @@ export const MainLayout = () => {
     useState<boolean>(true);
 
   return (
-    <main className="h-dvh min-h-dvh bg-gray-50">
+    <main className="min-h-dvh bg-gray-50">
       <div
         className={clsx(
-          'absolute z-20 h-full w-full bg-black/10 transition lg:pointer-events-none lg:opacity-0',
+          'fixed z-20 h-full w-full bg-black/10 transition lg:pointer-events-none lg:opacity-0',
           [
             state.isSidebarCollapsed
               ? 'pointer-events-none opacity-0'
