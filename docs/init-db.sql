@@ -28,6 +28,7 @@ CREATE TABLE devices (
 CREATE TABLE user_devices (
                               user_id   BIGINT NOT NULL,
                               device_id BIGINT NOT NULL,
+                              role ENUM('OWNER', 'EDITOR', 'VIEWER') NOT NULL DEFAULT 'VIEWER'
                               PRIMARY KEY (user_id, device_id),
                               CONSTRAINT fk_ud_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
                               CONSTRAINT fk_ud_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE

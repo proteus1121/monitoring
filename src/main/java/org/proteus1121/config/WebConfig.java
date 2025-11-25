@@ -39,6 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
             "/actuator/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
+            "/v3/api-docs/**",
             "/swagger-resources/**",
             "/users/register",
             "/users/login"

@@ -76,10 +76,10 @@ public class MetricService {
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
                     CRITICAL,
                     List.of(device));
-            telegramNotificationService.sendCriticalNotifications(device, value);
+            telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(deviceId), device, value);
         } else if (lowerValue != null && value <= lowerValue) {
             log.warn("Lower alert triggered for device {}: value = {}", deviceId, value);
-            telegramNotificationService.sendCriticalNotifications(device, value);
+            telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(deviceId), device, value);
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
                     CRITICAL,
                     List.of(device));

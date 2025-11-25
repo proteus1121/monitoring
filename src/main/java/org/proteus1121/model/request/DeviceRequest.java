@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.proteus1121.model.enums.DeviceType;
 
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 public class DeviceRequest {
@@ -25,5 +27,7 @@ public class DeviceRequest {
     private Long delay; // in ms
     
     private DeviceType type;
+    
+    private Set<Long> userIds;
 
 }

@@ -3,11 +3,13 @@ package org.proteus1121.model.dto.device;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.enums.DeviceStatus;
 import org.proteus1121.model.enums.DeviceType;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,7 +19,6 @@ public class Device {
 
     private Long id;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<User> users;
     private String name;
     private String description;
     private Double criticalValue;
@@ -28,9 +29,4 @@ public class Device {
     private LocalDateTime lastChecked;
     private DeviceType type;
 
-    public Set<Long> getUserIds() {
-        return getUsers().stream()
-                .map(User::getId)
-                .collect(Collectors.toSet());
-    }
 }

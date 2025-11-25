@@ -1,10 +1,11 @@
 package org.proteus1121.model.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,8 +25,8 @@ public class UserEntity {
     private String name;
     private String password;
 
-    @ManyToMany(mappedBy = "users")
-    private Set<DeviceEntity> devices = new HashSet<>();
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserDeviceEntity> userDevices = new HashSet<>();
 
     public UserEntity(String username, String encodedPassword) {
         this.name = username;

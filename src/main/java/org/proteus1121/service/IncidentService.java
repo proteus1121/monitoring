@@ -3,14 +3,17 @@ package org.proteus1121.service;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.incident.Incident;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.entity.IncidentEntity;
+import org.proteus1121.model.entity.UserDeviceEntity;
 import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.model.enums.Resolution;
 import org.proteus1121.model.enums.Severity;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.mapper.IncidentMapper;
 import org.proteus1121.repository.IncidentRepository;
+import org.proteus1121.repository.UserDeviceRepository;
 import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +29,6 @@ public class IncidentService {
     private final DeviceService deviceService;
     private final IncidentMapper incidentMapper;
     private final DeviceMapper deviceMapper;
-    private final UserRepository userRepository;
 
     public List<Incident> getAllIncidents(Long userId) {
         List<Long> allDevices = deviceService.getAllDevices(userId).stream()
@@ -40,10 +42,7 @@ public class IncidentService {
 
     public Optional<Incident> getIncident(Long id, Long userId) {
         return incidentRepository.findById(id).map(incidentEntity -> {
-            boolean isDeviceBelongToUser = incidentEntity.getDevices().stream()
-                    .flatMap(d-> d.getUsers().stream())
-                    .map(UserEntity::getId)
-                    .anyMatch(deviceUserId -> Objects.equals(deviceUserId, userId));
+            boolean isDeviceBelongToUser = isDeviceBelongToUser(userId, incidentEntity);
 
             if (!isDeviceBelongToUser) {
                 throw new IllegalArgumentException("User does not have permission to resolve this incident.");
@@ -55,10 +54,7 @@ public class IncidentService {
 
     public void resolveIncident(Long id, Long userId) {
         incidentRepository.findById(id).ifPresent(incidentEntity -> {
-            boolean isDeviceBelongToUser = incidentEntity.getDevices().stream()
-                    .flatMap(d-> d.getUsers().stream())
-                    .map(UserEntity::getId)
-                    .anyMatch(deviceUserId -> Objects.equals(deviceUserId, userId));
+            boolean isDeviceBelongToUser = isDeviceBelongToUser(userId, incidentEntity);
             
             if (!isDeviceBelongToUser) {
                 throw new IllegalArgumentException("User does not have permission to resolve this incident.");
@@ -68,10 +64,17 @@ public class IncidentService {
             incidentRepository.save(incidentEntity);
         });
     }
-    
+
+    private boolean isDeviceBelongToUser(Long userId, IncidentEntity incidentEntity) {
+        return incidentEntity.getDevices().stream()
+                .flatMap(d -> d.getUserDevices().stream())
+                .map(UserDeviceEntity::getUserId)
+                .anyMatch(deviceUserId -> Objects.equals(deviceUserId, userId));
+    }
+
     public void createIncident(String message, Severity severity, List<Device> devices) {
         List<DeviceEntity> deviceEntities = devices.stream()
-                .map(device -> deviceMapper.toDeviceEntity(device.getId(), device, userRepository.findAllByIdIn(device.getUserIds())))
+                .map(device -> deviceMapper.toDeviceEntity(device.getId(), device))
                 .toList();
         IncidentEntity incidentEntity = new IncidentEntity(message, severity, deviceEntities);
         incidentRepository.save(incidentEntity);
