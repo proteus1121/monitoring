@@ -44,6 +44,7 @@ public class MetricController {
     }
 
     @PostMapping("/predict")
+    @Operation(summary = "Predict metrics", description = "Trigger prediction for future metrics based on historical data")
     public void predictMetrics(@RequestParam("deviceId") Long deviceId,
                                @RequestParam("start") LocalDateTime startTimestamp) {
         metricService.predictMetrics(deviceId, startTimestamp);

@@ -1,5 +1,6 @@
 package org.proteus1121.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.user.UserDevices;
 import org.proteus1121.model.dto.user.User;
@@ -36,13 +37,8 @@ public class UserDeviceService {
     public void unshareDevice(Long deviceId, Long userId) {
         userDeviceRepository.deleteByUserIdAndDeviceId(userId, deviceId);
     }
-    
-    public Set<UserDevices> getDeviceUsers(Long deviceId) {
-        return userDeviceRepository.findByDeviceId(deviceId).stream()
-                .map(userDeviceMapper::toDeviceUser)
-                        .collect(Collectors.toSet());
-    }
 
+    @Transactional
     public Set<User> getUsers(Long deviceId) {
         return userDeviceRepository.findByDeviceId(deviceId).stream()
                 .map(UserDeviceEntity::getUser)
