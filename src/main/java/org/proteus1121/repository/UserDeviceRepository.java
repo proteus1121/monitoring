@@ -20,4 +20,6 @@ public interface UserDeviceRepository extends JpaRepository<UserDeviceEntity, Us
     List<UserDeviceEntity> findByUserIdAndRole(Long userId, DeviceRole role);
 
     Set<UserDeviceEntity> findAllByUserIdIn(Set<Long> ids);
+
+    void deleteByUserIdAndDeviceId(Long userId, Long deviceId);
 }

@@ -31,7 +31,7 @@ public class DeviceEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToMany(mappedBy = "device", cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @OneToMany(mappedBy = "device", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserDeviceEntity> userDevices = new HashSet<>();
 
     private String name;

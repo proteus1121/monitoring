@@ -3,18 +3,14 @@ package org.proteus1121.service;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.incident.Incident;
-import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.entity.IncidentEntity;
 import org.proteus1121.model.entity.UserDeviceEntity;
-import org.proteus1121.model.entity.UserEntity;
 import org.proteus1121.model.enums.Resolution;
 import org.proteus1121.model.enums.Severity;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.mapper.IncidentMapper;
 import org.proteus1121.repository.IncidentRepository;
-import org.proteus1121.repository.UserDeviceRepository;
-import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

@@ -26,7 +26,6 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
-    private final DeviceMapper deviceMapper;
 
     @Override
     public User loadUserByUsername(String username) throws UsernameNotFoundException {

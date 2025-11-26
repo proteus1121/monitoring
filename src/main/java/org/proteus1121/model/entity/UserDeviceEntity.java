@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.proteus1121.model.enums.DeviceRole;
 
 import java.io.Serializable;
@@ -14,6 +15,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @IdClass(UserDeviceId.class)
 @EqualsAndHashCode(exclude = {"user", "device"})
+@ToString(exclude = {"user", "device"})
 public class UserDeviceEntity implements Serializable {
 
     @Id
