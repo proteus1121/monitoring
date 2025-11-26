@@ -1,6 +1,7 @@
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Input, Label } from '@src/components/Inputs';
+import { Spinner } from '@src/components/Spinner';
 import { useApi } from '@src/lib/api/ApiProvider';
 import { notification } from 'antd';
 import { Form } from 'radix-ui';
@@ -12,6 +13,7 @@ const SignUpPage = () => {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const api = useApi();
 
   const navigate = useNavigate();
@@ -19,6 +21,7 @@ const SignUpPage = () => {
   return (
     <Form.Root
       onSubmit={async e => {
+        setIsLoading(true);
         e.preventDefault();
 
         const registerRes = await api.register(username, password);
@@ -27,6 +30,7 @@ const SignUpPage = () => {
             message: 'Failed to register',
             description: registerRes.message,
           });
+          setIsLoading(false);
           return;
         }
 
@@ -37,9 +41,11 @@ const SignUpPage = () => {
             message: 'Failed to log in',
             description: loginRes.message,
           });
+          setIsLoading(false);
           return;
         }
 
+        setIsLoading(false);
         navigate('/dashboard');
       }}
       className="m-auto flex w-[360px] flex-col gap-3"
@@ -98,7 +104,8 @@ const SignUpPage = () => {
         )}
       </Form.Field>
 
-      <Button type="submit" className="mt-2 w-full">
+      <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
+        {isLoading && <Spinner />}
         Submit
       </Button>
 

@@ -1,3 +1,6 @@
 node_modules
 .webpack_cache
 build
+csr.pem
+certificate.pem
+private-key.pem

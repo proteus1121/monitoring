@@ -13,6 +13,8 @@ import {
 } from 'chart.js';
 import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs, { Dayjs } from 'dayjs';
+import { Icon } from '@iconify/react';
+import { Spinner } from '@src/components/Spinner';
 
 const { RangePicker } = DatePicker;
 
@@ -162,7 +164,9 @@ const GeneralDataChart = () => {
       {chartData ? (
         <Line data={chartData} options={{ responsive: true }} />
       ) : isLoading ? (
-        <>Loading...</>
+        <div className="flex h-80 w-full items-center justify-center">
+          <Spinner />
+        </div>
       ) : (
         <>{error}</>
       )}

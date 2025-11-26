@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
-import { DatePicker, Select } from 'antd';
 import {
   Chart as ChartJS,
   LineElement,
@@ -11,11 +10,9 @@ import {
   Legend,
   Title,
 } from 'chart.js';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import { Device } from '@src/lib/api/api.types';
 import { useApi } from '@src/lib/api/ApiProvider';
-
-const { RangePicker } = DatePicker;
 
 ChartJS.register(
   LineElement,
@@ -41,17 +38,21 @@ interface ChartData {
   datasets: DatasetConfig[];
 }
 
-const DeviceDataChart = ({ devices }: { devices?: Device[] }) => {
-  const [choosenDevicesIds, setChoosenDevicesIds] = useState<number[]>([]);
-
+const DeviceDataChart = ({
+  devices,
+  choosenDevicesIds,
+  startDate,
+  endDate,
+}: {
+  devices?: Device[];
+  choosenDevicesIds: number[];
+  startDate: Dayjs;
+  endDate: Dayjs;
+}) => {
   const api = useApi();
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [startDate, setStartDate] = useState<Dayjs>(
-    dayjs(new Date()).subtract(5, 'days')
-  );
-  const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
 
   useEffect(() => {
     const fetchData = async () => {
@@ -138,57 +139,15 @@ const DeviceDataChart = ({ devices }: { devices?: Device[] }) => {
   }, [startDate, endDate, devices, choosenDevicesIds]);
 
   return (
-    <div>
-      <div className="mb-2">
-        <h2 className="mb-2 text-lg">Sensor Data for specific devices</h2>
-        <div className="flex w-full items-center">
-          {devices && devices.length > 0 && (
-            <>
-              <Select
-                placeholder="Select devices"
-                className="w-60"
-                maxTagCount={'responsive'}
-                popupMatchSelectWidth={false}
-                mode="multiple"
-                onChange={devicesId => {
-                  setChoosenDevicesIds(devicesId);
-                }}
-                options={devices.map(device => ({
-                  value: device.id,
-                  label: <span>{device.name}</span>,
-                }))}
-              />
-            </>
-          )}
-
-          <RangePicker
-            className="!ml-auto"
-            id={{
-              start: 'startInput',
-              end: 'endInput',
-            }}
-            defaultValue={[startDate, endDate]}
-            onChange={dates => {
-              if (dates?.[0]) {
-                setStartDate(dates[0]);
-              }
-
-              if (dates?.[1]) {
-                setEndDate(dates[1]);
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      {chartData ? (
+    <>
+      {chartData && choosenDevicesIds.length > 0 ? (
         <Line data={chartData} options={{ responsive: true }} />
       ) : isLoading ? (
         <>Loading...</>
       ) : (
         <>{error}</>
       )}
-    </div>
+    </>
   );
 };
 

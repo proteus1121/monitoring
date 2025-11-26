@@ -1,8 +1,14 @@
+import { clsx } from 'clsx';
 import './Logo.css';
 
-const Logo = () => {
+const Logo = (props: { className?: string }) => {
   return (
-    <div className="relative h-8 w-8 animate-[spin_10s_linear_infinite] overflow-hidden rounded-full bg-transparent">
+    <div
+      className={clsx(
+        'relative animate-[spin_10s_linear_infinite] overflow-hidden rounded-full bg-transparent',
+        props.className
+      )}
+    >
       {[...Array(6)].map((_, i) => (
         <div
           key={i}

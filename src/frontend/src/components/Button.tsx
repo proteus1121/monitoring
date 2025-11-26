@@ -1,73 +1,59 @@
-import { clsx } from 'clsx';
-import { forwardRef } from 'react';
-import './Button.css';
+import * as React from 'react';
+import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@src/lib/classnameUtils';
 
-type Variant = 'primary' | 'outlined' | 'danger' | 'flat' | 'danger-outlined';
-type Size = 'small' | 'normal' | 'large';
-
-export const Button = forwardRef<
-  HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: Variant;
-    disabled?: boolean;
-    rounded?: boolean;
-    size?: Size;
-  }
->(function Button(
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
-    className,
-    children,
-    variant = 'primary',
-    rounded = false,
-    disabled = false,
-    size = 'normal',
-    ...props
-  },
-  ref
-) {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        destructive:
+          'bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
+        outline:
+          'border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
+        secondary:
+          'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        ghost:
+          'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
+        sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
+        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
+        icon: 'size-9',
+        'icon-sm': 'size-8',
+        'icon-lg': 'size-10',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
+function Button({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}: React.ComponentProps<'button'> &
+  VariantProps<typeof buttonVariants> & {
+    asChild?: boolean;
+  }) {
+  const Comp = asChild ? Slot : 'button';
+
   return (
-    <button
+    <Comp
+      data-slot="button"
+      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-      ref={ref}
-      disabled={disabled}
-      className={clsx(
-        'inline-flex h-fit w-fit cursor-pointer items-center justify-center gap-1.5 border border-transparent text-sm font-semibold transition-all focus-visible:outline-none',
-        [
-          disabled
-            ? 'pointer-events-none cursor-auto border-transparent bg-[#f8fafb] text-[#A4ACB9] shadow-none'
-            : {
-                'bg-blue-500 text-white': variant === 'primary',
-
-                'outlined-btn text-[#DF1C41] hover:text-[#96132C] active:text-[#96132C]':
-                  variant === 'danger-outlined',
-
-                'outlined-btn text-[#36394A] hover:text-[#0D0D12] active:text-[#0D0D12]':
-                  variant === 'outlined',
-
-                'danger-btn text-white': variant === 'danger',
-
-                'flat-btn text-[#36394A] hover:text-[#0D0D12] active:text-[#0D0D12]':
-                  variant === 'flat',
-              },
-
-          rounded ? 'rounded-full' : 'rounded-md',
-
-          rounded
-            ? {
-                'p-1': size === 'small',
-                'p-1.5': size === 'normal',
-                'p-2': size === 'large',
-              }
-            : {
-                'px-2 py-1': size === 'small',
-                'px-2 py-1.5': size === 'normal',
-                'px-2.5 py-2': size === 'large',
-              },
-        ],
-        className
-      )}
-    >
-      {children}
-    </button>
+    />
   );
-});
+}
+
+export { Button, buttonVariants };

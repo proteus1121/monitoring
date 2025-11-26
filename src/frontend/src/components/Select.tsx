@@ -1,163 +1,184 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useMemo,
-  useId,
-} from 'react';
-import { Select as RadixSelect } from 'radix-ui';
-import './Select.css';
-import clsx from 'clsx';
+import * as React from 'react';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { cn } from '@src/lib/classnameUtils';
 import { Icon } from '@iconify/react';
 
-// INFO: There is a known bug where you can't unselect a field, even if the select is not required
-
-type SelectContextType = {
-  openSelectId: string | null;
-  setOpenSelectId: (id: string | null) => void;
-};
-
-const SelectContext = createContext<SelectContextType | undefined>(undefined);
-
-export const SelectProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [openSelectId, setOpenSelectId] = useState<string | null>(null);
-
-  return (
-    <SelectContext.Provider value={{ openSelectId, setOpenSelectId }}>
-      {children}
-    </SelectContext.Provider>
-  );
-};
-
-function useSelectContext() {
-  const context = useContext(SelectContext);
-  if (!context)
-    throw new Error('Select components must be used within SelectProvider');
-  return context;
+function Select({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Root>) {
+  return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
 
-// ----------- Select Components -----------
+function SelectGroup({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Group>) {
+  return <SelectPrimitive.Group data-slot="select-group" {...props} />;
+}
 
-type SelectRootProps = React.ComponentPropsWithoutRef<typeof RadixSelect.Root>;
+function SelectValue({
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Value>) {
+  return <SelectPrimitive.Value data-slot="select-value" {...props} />;
+}
 
-export const SelectRoot: React.FC<SelectRootProps> = props => {
-  const { openSelectId, setOpenSelectId } = useSelectContext();
-
-  const generatedId = useId();
-  const selectId = useMemo(
-    () => props.name || generatedId,
-    [props.name, generatedId]
-  );
-  const isOpen = openSelectId === selectId;
-
-  const handleOpenChange = (open: boolean) => {
-    setOpenSelectId(open ? selectId : null);
-    props.onOpenChange?.(open);
-  };
-
+function SelectTrigger({
+  className,
+  size = 'default',
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  size?: 'sm' | 'default';
+}) {
   return (
-    <RadixSelect.Root
+    <SelectPrimitive.Trigger
+      data-slot="select-trigger"
+      data-size={size}
+      className={cn(
+        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-fit items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-2 text-sm whitespace-nowrap shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
       {...props}
-      open={isOpen}
-      onOpenChange={handleOpenChange}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        <Icon className="size-4" icon="lucide:chevron-down" />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  );
+}
+
+function SelectContent({
+  className,
+  children,
+  position = 'popper',
+  align = 'center',
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Content>) {
+  return (
+    <SelectPrimitive.Portal>
+      <SelectPrimitive.Content
+        data-slot="select-content"
+        className={cn(
+          'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md',
+          position === 'popper' &&
+            'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+          className
+        )}
+        position={position}
+        align={align}
+        {...props}
+      >
+        <SelectScrollUpButton />
+        <SelectPrimitive.Viewport
+          className={cn(
+            'p-1',
+            position === 'popper' &&
+              'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1'
+          )}
+        >
+          {children}
+        </SelectPrimitive.Viewport>
+        <SelectScrollDownButton />
+      </SelectPrimitive.Content>
+    </SelectPrimitive.Portal>
+  );
+}
+
+function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+  return (
+    <SelectPrimitive.Label
+      data-slot="select-label"
+      className={cn('text-muted-foreground px-2 py-1.5 text-xs', className)}
+      {...props}
     />
   );
+}
+
+function SelectItem({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+  return (
+    <SelectPrimitive.Item
+      data-slot="select-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        className
+      )}
+      {...props}
+    >
+      <span className="absolute right-2 flex size-3.5 items-center justify-center">
+        <SelectPrimitive.ItemIndicator>
+          <Icon className="size-4" icon="lucide:check" />
+        </SelectPrimitive.ItemIndicator>
+      </span>
+      <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+    </SelectPrimitive.Item>
+  );
+}
+
+function SelectSeparator({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Separator>) {
+  return (
+    <SelectPrimitive.Separator
+      data-slot="select-separator"
+      className={cn('bg-border pointer-events-none -mx-1 my-1 h-px', className)}
+      {...props}
+    />
+  );
+}
+
+function SelectScrollUpButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  return (
+    <SelectPrimitive.ScrollUpButton
+      data-slot="select-scroll-up-button"
+      className={cn(
+        'flex cursor-default items-center justify-center py-1',
+        className
+      )}
+      {...props}
+    >
+      <Icon className="size-4" icon="lucide:chevron-up" />
+    </SelectPrimitive.ScrollUpButton>
+  );
+}
+
+function SelectScrollDownButton({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  return (
+    <SelectPrimitive.ScrollDownButton
+      data-slot="select-scroll-down-button"
+      className={cn(
+        'flex cursor-default items-center justify-center py-1',
+        className
+      )}
+      {...props}
+    >
+      <Icon className="size-4" icon="lucide:chevron-down" />
+    </SelectPrimitive.ScrollDownButton>
+  );
+}
+
+export {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectScrollDownButton,
+  SelectScrollUpButton,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
 };
-
-// ----------- Triggers, Values, Portal etc -----------
-
-export const SelectTrigger = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Trigger>
->((props, ref) => <RadixSelect.Trigger ref={ref} {...props} />);
-
-export const SelectValue = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Value>
->((props, ref) => <RadixSelect.Value ref={ref} {...props} />);
-
-export const SelectPortal: React.FC<
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Portal>
-> = props => <RadixSelect.Portal {...props} />;
-
-export const SelectContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Content>
->(({ position = 'popper', align = 'end', className, ...props }, ref) => (
-  <RadixSelect.Content
-    ref={ref}
-    position={position}
-    align={align}
-    className={clsx('z-select select-presence', className)}
-    {...props}
-  />
-));
-
-export const SelectViewport = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Viewport> & {
-    minWidthByTrigger?: boolean;
-  }
->(({ className, minWidthByTrigger = false, ...props }, ref) => (
-  <RadixSelect.Viewport
-    ref={ref}
-    className={clsx(
-      { 'min-w-[var(--radix-popper-anchor-width)]': minWidthByTrigger },
-      'select-bg select-anim mt-1.5 flex flex-col rounded-[10px] py-1 focus-visible:outline-none',
-      className
-    )}
-    {...props}
-  />
-));
-
-export const SelectItem = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Item>
->(({ className, ...props }, ref) => (
-  <RadixSelect.Item
-    ref={ref}
-    className={clsx(
-      'mx-1 flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-[#36394A] transition-all hover:bg-[#1D4F810A] hover:text-[#0D0D12] focus-visible:outline-none',
-      className
-    )}
-    {...props}
-  />
-));
-
-export const SelectItemText = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.ItemText>
->((props, ref) => <RadixSelect.ItemText ref={ref} {...props} />);
-
-export const SelectItemIndicator = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.ItemIndicator>
->((props, ref) => (
-  <RadixSelect.ItemIndicator ref={ref} {...props}>
-    <Icon icon="material-symbols:check-rounded" className="size-5" />
-  </RadixSelect.ItemIndicator>
-));
-
-export const SelectLabel = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Label>
->(({ className, ...props }, ref) => (
-  <RadixSelect.Label
-    ref={ref}
-    className={clsx('px-4 py-3 text-xs font-medium opacity-50', className)}
-    {...props}
-  />
-));
-
-export const SelectSeparator = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof RadixSelect.Separator>
->(({ className, ...props }, ref) => (
-  <RadixSelect.Separator
-    ref={ref}
-    className={clsx('my-1 h-0.5 bg-[#12376914]', className)}
-    {...props}
-  />
-));

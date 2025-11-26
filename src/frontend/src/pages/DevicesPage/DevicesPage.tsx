@@ -1,28 +1,44 @@
 import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
-import { ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Button, Form, Input, InputNumber, notification } from 'antd';
+import { notification } from 'antd';
+import { Device, DeviceStatus } from '@src/lib/api/api.types';
+import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
+import { useModal } from '@src/redux/modals/modals.hook';
+import { Button } from '@src/components/Button';
 import { Icon } from '@iconify/react';
-import clsx from 'clsx';
-import { CreateDeviceRequest, Device } from '@src/lib/api/api.types';
-import { DeviceCard } from './components/DeviceCard';
+import { Card } from '@src/components/Card';
+import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
+import { Loader } from '@src/components/Loader';
+import { Switch } from '@src/components/Switch';
+import { PageLayout } from '@src/layouts/PageLayout';
+import { H1, H3 } from '@src/components/Text';
+import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import {
+  DeviceUpdatingModal,
+  DeviceUpdatingModalId,
+} from '@src/redux/modals/DeviceUpdatingModal';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
   const api = useApi();
   const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchDevices = async () => {
+    setIsLoading(true);
     const res = await api.getDevices();
     if (!res.ok) {
       notification.error({
         message: 'Failed to fetch devices',
         description: res.message,
       });
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(false);
     setDevices(res.data);
   };
 
@@ -30,10 +46,10 @@ const DevicesPage = () => {
     fetchDevices();
   }, [api, setDevices]);
 
-  const handleDelete = async (deviceId: number, deviceName: string) => {
+  const handleDelete = async (deviceId: number, deviceName?: string) => {
     const res = await api.deleteDevice(deviceId);
     if (res.ok) {
-      notification.success({ message: `Deleted ${deviceName}` });
+      notification.success({ message: `Deleted ${deviceName ?? 'device'}` });
     }
 
     await fetchDevices();
@@ -55,7 +71,7 @@ const DevicesPage = () => {
       delay: device.delay,
       description: device.description,
       criticalValue: device.criticalValue,
-      lowerValue: device.lowerValue
+      lowerValue: device.lowerValue,
     });
     if (res.ok) {
       notification.success({ message: `${device.name} updated succesfully` });
@@ -69,177 +85,114 @@ const DevicesPage = () => {
     await fetchDevices();
   };
 
-  const [isCreationVisible, setIsCreationVisible] = useState<boolean>(false);
-  const handleCreate = async (device: CreateDeviceRequest) => {
-    const res = await api.createDevice(device);
-    if (res.ok) {
-      notification.success({ message: `${device.name} created succesfully` });
-    } else {
-      notification.error({
-        message: 'Failed to create device',
-        description: res.message,
-      });
-    }
+  const { setState } = useModal(DeviceCreationModalId);
 
-    setIsCreationVisible(false);
-    await fetchDevices();
-  };
+  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: updationModal } = useModal(DeviceUpdatingModalId);
+
+  if (isLoading && !devices) {
+    return <Loader />;
+  }
 
   return (
-    <>
-      {isCreationVisible ? (
-        <DeviceCreationForm
-          onCreate={handleCreate}
-          setIsCreationVisible={setIsCreationVisible}
-        />
-      ) : (
-        <Card
-          onClick={() => {
-            setIsCreationVisible(true);
-          }}
-          className="flex items-center justify-center gap-2 border-2 border-dashed border-green-400 !bg-green-100 text-xl text-green-400 !shadow-none"
-        >
-          <Icon icon="ic:round-add-circle-outline" className="size-8" />
-          Add device
-        </Card>
-      )}
-      {devices &&
-        devices.map((device, id) => (
-          <DeviceCard
-            key={device.id ?? id}
-            device={device}
-            onSave={handleUpdate}
-            onDelete={() => {
-              if (!device.id) {
-                notification.error({
-                  message: 'Failed to delete device',
-                  description: 'Device should have id',
-                });
-                return;
+    <PageLayout>
+      <PageHeader>
+        <div>
+          <PageHeaderTitle>
+            <H1>Device Configurations</H1>
+          </PageHeaderTitle>
+          <H3>Manage and configure your smart devices</H3>
+        </div>
+
+        <Button onClick={() => setState(true)} className="ml-2 shrink-0">
+          <Icon icon="lucide:plus" className="size-4" />
+          Add Device
+        </Button>
+      </PageHeader>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-4">
+        {devices &&
+          devices.map((device, id) => (
+            <DeviceCard
+              key={device.id ?? id}
+              device={device}
+              onDelete={() =>
+                deletionModal({
+                  callback: async () =>
+                    await handleDelete(device?.id ?? -1, device.name),
+                })
               }
-              handleDelete(device.id, device.name ?? '');
-            }}
-          />
-        ))}
-    </>
+              onUpdate={() => updationModal(device)}
+              // onSave={handleUpdate}
+              // onDelete={() => {
+              //   if (!device.id) {
+              //     notification.error({
+              //       message: 'Failed to delete device',
+              //       description: 'Device should have id',
+              //     });
+              //     return;
+              //   }
+              //   handleDelete(device.id, device.name ?? '');
+              // }}
+            />
+          ))}
+      </div>
+    </PageLayout>
   );
 };
 
 export default DevicesPage;
 
-export const Card = (props: {
-  children: ReactNode;
-  className?: string;
-  onClick?: () => void;
-}) => {
+function DeviceCard(props: {
+  device: Device;
+  onDelete: () => void;
+  onUpdate: () => void;
+}) {
   return (
-    <div
-      className={clsx(
-        'mx-auto mt-6 w-[350px] max-w-[36rem] rounded-xl bg-white p-4 shadow-xl last:mb-6 sm:w-full',
-        props.className
-      )}
-      onClick={props.onClick}
-    >
-      {props.children}
-    </div>
-  );
-};
-
-const DeviceCreationForm = ({
-  onCreate,
-  setIsCreationVisible,
-}: {
-  onCreate: (device: CreateDeviceRequest) => void;
-  setIsCreationVisible: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
-  const [device, setDevice] = useState<CreateDeviceRequest>({
-    name: '',
-  });
-
-  const handleCreate = () => {
-    if (device && device.name) {
-      onCreate(device);
-    }
-  };
-
-  return (
-    <Card>
-      <Form className="contents" layout="vertical" onFinish={handleCreate}>
-        <Form.Item label="Name" required>
-          <Input
-            required
-            value={device?.name}
-            onChange={e => {
-              setDevice({ ...device, name: e.currentTarget.value });
-            }}
-          />
-        </Form.Item>
-        <Form.Item label="Description">
-          <Input.TextArea
-            autoSize={{
-              minRows: 3,
-              maxRows: 6,
-            }}
-            value={device?.description}
-            onChange={e => {
-              setDevice({ ...device, description: e.currentTarget.value });
-            }}
-          />
-        </Form.Item>
-
-        <Form.Item label="Critical value">
-          <InputNumber
-            className="!block !w-full"
-            value={device.criticalValue}
-            onChange={val => {
-              setDevice(prev => ({
-                ...prev,
-                criticalValue: val ?? undefined,
-              }));
-            }}
-          />
-        </Form.Item>
-
-        <Form.Item label="Lower value">
-          <InputNumber
-            className="!block !w-full"
-            value={device.lowerValue}
-            onChange={val => {
-              setDevice(prev => ({
-                ...prev,
-                lowerValue: val ?? undefined,
-              }));
-            }}
-          />
-        </Form.Item>
-
-        <Form.Item label="Delay (ms)">
-          <InputNumber
-            className="!block !w-full"
-            value={device.delay}
-            onChange={val => {
-              setDevice(prev => ({
-                ...prev,
-                delay: val ?? undefined,
-              }));
-            }}
-          />
-        </Form.Item>
-
-        <div className="ml-auto flex gap-2">
-          <Button
-            onClick={() => {
-              setIsCreationVisible(false);
-            }}
-          >
-            Cancel
-          </Button>
-
-          <Button type="primary" htmlType="submit">
-            Create
-          </Button>
+    <Card className="flex flex-col gap-6 transition-shadow hover:shadow-lg">
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
+            <div className="grid aspect-square place-items-center text-xs">
+              icon
+            </div>
+          </div>
+          <div>
+            <h3 className="font-semibold">{props.device.name}</h3>
+            <p className="text-sm text-gray-500">{props.device.description}</p>
+          </div>
         </div>
-      </Form>
+
+        <span
+          className={`rounded-full px-2 text-xs text-white ${getColorByStatus(props.device.status)}`}
+        >
+          {props.device.status}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <Button size="icon" variant="ghost" onClick={props.onUpdate}>
+          <Icon icon="lucide:edit" />
+        </Button>
+
+        <Button size="icon" variant="ghost" onClick={props.onDelete}>
+          <Icon icon="lucide:trash-2" />
+        </Button>
+      </div>
     </Card>
   );
-};
+}
+
+function getColorByStatus(status?: DeviceStatus) {
+  if (status === DeviceStatus.OK) {
+    return 'bg-green-500';
+  }
+
+  if (status === DeviceStatus.WARNING) {
+    return 'bg-orange-500';
+  }
+
+  if (status === DeviceStatus.CRITICAL) {
+    return 'bg-red-500';
+  }
+
+  return 'bg-gray-700';
+}
