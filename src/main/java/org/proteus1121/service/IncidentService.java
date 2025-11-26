@@ -5,6 +5,7 @@ import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.incident.Incident;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.entity.IncidentEntity;
+import org.proteus1121.model.entity.UserDeviceEntity;
 import org.proteus1121.model.enums.Resolution;
 import org.proteus1121.model.enums.Severity;
 import org.proteus1121.model.mapper.DeviceMapper;
@@ -37,8 +38,7 @@ public class IncidentService {
 
     public Optional<Incident> getIncident(Long id, Long userId) {
         return incidentRepository.findById(id).map(incidentEntity -> {
-            boolean isDeviceBelongToUser = incidentEntity.getDevices().stream()
-                    .anyMatch(deviceEntity -> Objects.equals(deviceEntity.getUser().getId(), userId));
+            boolean isDeviceBelongToUser = isDeviceBelongToUser(userId, incidentEntity);
 
             if (!isDeviceBelongToUser) {
                 throw new IllegalArgumentException("User does not have permission to resolve this incident.");
@@ -50,8 +50,7 @@ public class IncidentService {
 
     public void resolveIncident(Long id, Long userId) {
         incidentRepository.findById(id).ifPresent(incidentEntity -> {
-            boolean isDeviceBelongToUser = incidentEntity.getDevices().stream()
-                    .anyMatch(deviceEntity -> Objects.equals(deviceEntity.getUser().getId(), userId));
+            boolean isDeviceBelongToUser = isDeviceBelongToUser(userId, incidentEntity);
             
             if (!isDeviceBelongToUser) {
                 throw new IllegalArgumentException("User does not have permission to resolve this incident.");
@@ -61,7 +60,14 @@ public class IncidentService {
             incidentRepository.save(incidentEntity);
         });
     }
-    
+
+    private boolean isDeviceBelongToUser(Long userId, IncidentEntity incidentEntity) {
+        return incidentEntity.getDevices().stream()
+                .flatMap(d -> d.getUserDevices().stream())
+                .map(UserDeviceEntity::getUserId)
+                .anyMatch(deviceUserId -> Objects.equals(deviceUserId, userId));
+    }
+
     public void createIncident(String message, Severity severity, List<Device> devices) {
         List<DeviceEntity> deviceEntities = devices.stream()
                 .map(device -> deviceMapper.toDeviceEntity(device.getId(), device))

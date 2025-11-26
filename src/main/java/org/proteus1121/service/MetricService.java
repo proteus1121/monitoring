@@ -7,6 +7,7 @@ import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.PredictedSensorDataEntity;
 import org.proteus1121.model.entity.SensorDataEntity;
+import org.proteus1121.model.enums.DeviceRole;
 import org.proteus1121.model.enums.Period;
 import org.proteus1121.model.mapper.SensorDataMapper;
 import org.proteus1121.model.response.metric.SensorData;
@@ -41,7 +42,7 @@ public class MetricService {
     private final IncidentService incidentService;
 
     public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
-        Device device = deviceService.checkDevice(deviceId);
+        Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER);
 
         List<SensorDataEntity> rawData = sensorDataRepository
                 .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp).stream()
@@ -76,10 +77,10 @@ public class MetricService {
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
                     CRITICAL,
                     List.of(device));
-            telegramNotificationService.sendCriticalNotifications(device, value);
+            telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(deviceId), device, value);
         } else if (lowerValue != null && value <= lowerValue) {
             log.warn("Lower alert triggered for device {}: value = {}", deviceId, value);
-            telegramNotificationService.sendCriticalNotifications(device, value);
+            telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(deviceId), device, value);
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
                     CRITICAL,
                     List.of(device));
@@ -87,7 +88,7 @@ public class MetricService {
     }
 
     public List<SensorData> getMetricsPredicted(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
-        Device device = deviceService.checkDevice(deviceId);
+        Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER);
 
         List<PredictedSensorDataEntity> rawData = predictedSensorDataRepository
                 .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp).stream()

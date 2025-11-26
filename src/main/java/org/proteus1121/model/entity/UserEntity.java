@@ -10,7 +10,8 @@ import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -23,6 +24,9 @@ public class UserEntity {
     private Long id;
     private String name;
     private String password;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<UserDeviceEntity> userDevices = new HashSet<>();
 
     public UserEntity(String username, String encodedPassword) {
         this.name = username;

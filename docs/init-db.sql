@@ -16,13 +16,22 @@ CREATE TABLE users (
 
 CREATE TABLE devices (
                          id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                         user_id BIGINT NOT NULL,
                          name VARCHAR(255) NOT NULL,
                          description VARCHAR(255) NULL,
                          critical_value DOUBLE NULL,
+                         type VARCHAR(50) NULL,
+                         delay BIGINT NULL,
                          status ENUM('OK', 'WARNING', 'CRITICAL', 'OFFLINE') DEFAULT 'OFFLINE',
-                         last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                         last_checked TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE user_devices (
+                              user_id   BIGINT NOT NULL,
+                              device_id BIGINT NOT NULL,
+                              role ENUM('OWNER', 'EDITOR', 'VIEWER') NOT NULL DEFAULT 'VIEWER'
+                              PRIMARY KEY (user_id, device_id),
+                              CONSTRAINT fk_ud_user   FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
+                              CONSTRAINT fk_ud_device FOREIGN KEY (device_id) REFERENCES devices(id) ON DELETE CASCADE
 );
 
 CREATE TABLE sensor_data (
@@ -83,8 +92,6 @@ CREATE TABLE notifications (id BIGINT AUTO_INCREMENT PRIMARY KEY,
                             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
 
 ALTER TABLE notifications ADD INDEX idx_notifications_user_id (user_id);
-
-ALTER TABLE devices ADD INDEX idx_devices_user_id (user_id);
 
 -- Insert sample data with bcrypt-hashed passwords
 INSERT INTO users (name, password) VALUES ('Artem', '$2a$12$VcngKA3zL9DUcBJD7vBoautPX3fO84xm0JIucatVr3MA1XZI9rdn.');

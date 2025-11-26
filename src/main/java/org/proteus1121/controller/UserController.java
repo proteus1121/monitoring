@@ -1,5 +1,7 @@
 package org.proteus1121.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +31,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@Tag(name = "Users", description = "Operations related to user management")
 @RequiredArgsConstructor
 public class UserController {
     
@@ -38,21 +41,25 @@ public class UserController {
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
 
     @GetMapping
+    @Operation(summary = "Get all users", description = "Returns a list of all registered users")
     public List<User> getUsers() {
         return userService.getUsers();
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get user by ID", description = "Returns a user by their unique ID")
     public User getUser(@PathVariable("id") Long id) {
         return userService.getUser(id);
     }
     
     @PostMapping("/register")
+    @Operation(summary = "Register a new user", description = "Creates a new user with username and password")
     public void createUser(@RequestBody UserRequest userRequest) {
         userService.registerUser(userRequest.getUsername(), userRequest.getPassword());
     }
 
     @PostMapping(value = "/login")
+    @Operation(summary = "Login user", description = "Authenticates a user and returns session details")
     public LoginResponse login(@RequestBody LoginRequest loginRequest,
                                HttpServletRequest request,
                                HttpServletResponse response) {
