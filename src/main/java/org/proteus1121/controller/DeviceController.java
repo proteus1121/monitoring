@@ -1,5 +1,7 @@
 package org.proteus1121.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.enums.DeviceRole;
@@ -33,6 +35,7 @@ import static org.proteus1121.util.SessionUtils.getCurrentUser;
 @RestController
 @RequestMapping("/devices")
 @RequiredArgsConstructor
+@Tag(name = "Device Management", description = "Operations related to devices")
 public class DeviceController {
 
     private final DeviceService deviceService;
@@ -41,24 +44,28 @@ public class DeviceController {
     private final UserService userService;
 
     @GetMapping
+    @Operation(summary = "Get all devices for current user", description = "Returns a list of devices owned or shared with the current user")
     public ResponseEntity<List<Device>> getAllDevices() {
         User principal = getCurrentUser();
         return ResponseEntity.ok(deviceService.getAllDevices(principal.getId()));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get device by ID", description = "Retrieve a specific device by its ID")
     public ResponseEntity<Device> getDeviceById(@PathVariable Long id) {
         Device device = deviceService.checkDevice(id, DeviceRole.VIEWER);
         return ResponseEntity.ok(device);
     }
 
     @PostMapping
+    @Operation(summary = "Create a new device", description = "Creates a new device for the current user")
     public ResponseEntity<Device> createDevice(@RequestBody DeviceRequest deviceRequest) {
         Device createdDevice = deviceService.createDevice(deviceMapper.toDevice(deviceRequest), getCurrentUser().getId());
         return ResponseEntity.ok(createdDevice);
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Update an existing device", description = "Updates the details of an existing device")
     public ResponseEntity<Device> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest deviceRequest) {
         Device device = deviceService.checkDevice(id, DeviceRole.EDITOR);
 
@@ -69,6 +76,7 @@ public class DeviceController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a device", description = "Deletes a device owned by the current user")
     public ResponseEntity<Void> deleteDevice(@PathVariable Long id) {
         deviceService.checkDevice(id, DeviceRole.OWNER);
 
@@ -77,6 +85,7 @@ public class DeviceController {
     }
 
     @PutMapping("/share")
+    @Operation(summary = "Share devices with a user", description = "Shares one or more devices with another user and assigns a role")
     public ResponseEntity<Device> shareDevice(@RequestBody ShareDeviceRequest deviceRequest) {
         Set<Device> devices = deviceRequest.getDeviceIds().stream()
                 .map(id -> deviceService.checkDevice(id, DeviceRole.EDITOR))
@@ -93,6 +102,7 @@ public class DeviceController {
     }
 
     @PutMapping("/unshare")
+    @Operation(summary = "Unshare devices from a user", description = "Removes sharing of one or more devices from a user")
     public ResponseEntity<Device> unshareDevice(@RequestBody UnshareDeviceRequest request) {
         Set<Device> devices = request.getDeviceIds().stream()
                 .map(id -> deviceService.checkDevice(id, DeviceRole.EDITOR))
