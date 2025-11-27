@@ -49,7 +49,8 @@ export const router = createBrowserRouter(
         <Route path="register" element={<SignUpPage />} />
       </Route>
 
-      <Route path="/" element={<AuthGuard />}>
+      {/* <Route path="/" element={<AuthGuard />}> */}
+      <Route path="/" element={<Outlet />}>
         <Route element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard/overview" />} />
           <Route path="dashboard/overview" element={<DashboardPage />} />
