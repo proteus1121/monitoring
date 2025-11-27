@@ -1,15 +1,18 @@
 import { Icon } from '@iconify/react';
+import { Button } from '@src/components/Button';
 import { Header } from '@src/components/Header';
 import Logo from '@src/components/logo/Logo';
+import { removeCookie } from '@src/lib/cookieUtils';
 import { useUi } from '@src/redux/ui/ui.hook';
 import clsx from 'clsx';
 import { Collapsible } from 'radix-ui';
 import { ReactNode, useState } from 'react';
-import { NavLink, Outlet, To } from 'react-router-dom';
+import { NavLink, Outlet, To, useNavigate } from 'react-router-dom';
 
 export const MainLayout = () => {
   const { state, setState } = useUi();
 
+  const navigate = useNavigate();
   const [isSettingsCollapsed, setIsSettingsCollapsed] = useState<boolean>(true);
 
   const [isDashboardCollapsed, setIsDashboardCollapsed] =
@@ -53,7 +56,7 @@ export const MainLayout = () => {
             </div>
           </div>
         </div>
-        <nav className="space-y-2 p-4">
+        <nav className="h-screen-minus-header flex flex-col gap-2 p-4">
           <Collapsible.Root open={isDashboardCollapsed} className="group">
             <Collapsible.Trigger className="contents">
               <NavLink
@@ -138,17 +141,28 @@ export const MainLayout = () => {
               </Link>
             </Collapsible.Content>
           </Collapsible.Root>
-        </nav>
 
-        <div className="absolute right-0 bottom-0 left-0 border-t border-black/10 bg-gray-50 p-4">
-          <div className="text-xs text-gray-500">
-            <p className="mb-1 font-medium">System Status</p>
-            <p className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-green-500"></span>All
-              systems operational
-            </p>
-          </div>
-        </div>
+          {/* <div className="border-t border-black/10 bg-gray-50 p-4"> */}
+          {/*   <div className="text-xs text-gray-500"> */}
+          {/*     <p className="mb-1 font-medium">System Status</p> */}
+          {/*     <p className="flex items-center gap-2"> */}
+          {/*       <span className="h-2 w-2 rounded-full bg-green-500"></span>All */}
+          {/*       systems operational */}
+          {/*     </p> */}
+          {/*   </div> */}
+          {/* </div> */}
+
+          <Button
+            className="mt-auto w-full"
+            onClick={() => {
+              removeCookie('SESSION');
+              navigate('/auth/login');
+            }}
+            variant="destructive"
+          >
+            Logout
+          </Button>
+        </nav>
       </aside>
     </main>
   );
