@@ -11,8 +11,7 @@ import {
   Title,
 } from 'chart.js';
 import { Dayjs } from 'dayjs';
-import { Device } from '@src/lib/api/api.types';
-import { useApi } from '@src/lib/api/ApiProvider';
+import { Device, useLazyGetMetricsQuery } from '@src/redux/generatedApi';
 
 ChartJS.register(
   LineElement,
@@ -49,16 +48,17 @@ const DeviceDataChart = ({
   startDate: Dayjs;
   endDate: Dayjs;
 }) => {
-  const api = useApi();
-  const [chartData, setChartData] = useState<ChartData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [getMetricsByDevice] = useLazyGetMetricsQuery();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         setError(null);
+        setChartData(null);
 
         if (!devices) {
           return;
@@ -76,7 +76,11 @@ const DeviceDataChart = ({
 
         const responses = await Promise.all(
           choosenDevicesIds.map(id =>
-            api.getMetricsByDevice(id, startDate.toDate(), endDate.toDate())
+            getMetricsByDevice({
+              deviceId: id,
+              start: startDate.toISOString(),
+              end: endDate.toISOString(),
+            })
           )
         );
 
@@ -85,26 +89,29 @@ const DeviceDataChart = ({
 
         responses.forEach(res => {
           const dataMap: Record<string, number> = {};
-          if (res.ok) {
-            res.data.map(entry => {
-              const ts = new Date(entry.timestamp).toISOString();
-              allTimestampsSet.add(ts);
-              dataMap[ts] = entry.value;
+          if (res.data) {
+            res.data.forEach(entry => {
+              if (entry.timestamp) {
+                const ts = new Date(entry.timestamp).toISOString();
+                allTimestampsSet.add(ts);
+                if (entry.value) dataMap[ts] = entry.value;
+              }
             });
             deviceDataMaps.push(dataMap);
           }
         });
 
         const allTimestamps = Array.from(allTimestampsSet).sort();
-        const choosenDevices = devices.filter(
-          device => device.id && choosenDevicesIds.includes(device.id)
-        );
+        const choosenDevices = devices.filter(device => {
+          if (!device.id) return;
+          return choosenDevicesIds.includes(device.id);
+        });
 
         const datasets: DatasetConfig[] = deviceDataMaps.map(
           (dataMap, index) => {
             const color = colors[index % colors.length];
             return {
-              label: choosenDevices[index].name || `Device ${index + 1}`,
+              label: choosenDevices[index]?.name || `Device ${index + 1}`,
               data: allTimestamps.map(timestamp =>
                 dataMap[timestamp] !== undefined ? dataMap[timestamp] : null
               ),
@@ -136,16 +143,22 @@ const DeviceDataChart = ({
     };
 
     fetchData();
-  }, [startDate, endDate, devices, choosenDevicesIds]);
+  }, [devices, choosenDevicesIds, startDate, endDate, getMetricsByDevice]);
+
+  if (isLoading) {
+    return <>Loading...</>;
+  }
+
+  if (error) {
+    return <>{error}</>;
+  }
 
   return (
     <>
       {chartData && choosenDevicesIds.length > 0 ? (
         <Line data={chartData} options={{ responsive: true }} />
-      ) : isLoading ? (
-        <>Loading...</>
       ) : (
-        <>{error}</>
+        <>No data available</>
       )}
     </>
   );

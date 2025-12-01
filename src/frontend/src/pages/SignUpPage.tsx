@@ -1,125 +1,147 @@
-import { Icon } from '@iconify/react';
-import { Button } from '@src/components/Button';
-import { Input, Label } from '@src/components/Inputs';
 import { Spinner } from '@src/components/Spinner';
-import { useApi } from '@src/lib/api/ApiProvider';
-import { notification } from 'antd';
-import { Form } from 'radix-ui';
-import { useState } from 'react';
+import { Button } from '@src/components/Button';
+import { useAppForm } from '@src/components/Form';
+import { FieldGroup } from '@src/components/Field';
+import z from 'zod';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { Card } from '@src/components/Card';
+import {
+  useCreateUserMutation,
+  useLoginMutation,
+} from '@src/redux/generatedApi';
+import { notification } from 'antd';
 
-const SignUpPage = () => {
-  const [username, setUsername] = useState<string>('');
-  const [usernameError, setUsernameError] = useState<string | null>(null);
-  const [password, setPassword] = useState<string>('');
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const api = useApi();
+const SignUpSchema = z
+  .object({
+    username: z.string().min(3, 'Username must be at least 3 characters long'),
+    password: z.string().min(3, 'Password must be at least 3 characters long'),
+    passwordConfirmation: z.string(),
+  })
+  .superRefine((val, ctx) => {
+    if (
+      val.passwordConfirmation !== val.password ||
+      val.password.length === 0
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        origin: 'string',
+        message: 'Passwords must match',
+        path: ['passwordConfirmation'],
+      });
+    }
+  });
 
+export default function SignUpPage() {
+  const [register] = useCreateUserMutation();
+  const [login] = useLoginMutation();
   const navigate = useNavigate();
 
+  const form = useAppForm({
+    defaultValues: {
+      username: '',
+      password: '',
+      passwordConfirmation: '',
+    },
+    validators: {
+      onSubmit: SignUpSchema,
+    },
+    onSubmit: async ({ value }) => {
+      const parsed = SignUpSchema.safeParse(value);
+
+      if (!parsed.success) {
+        return;
+      }
+
+      const { username, password } = parsed.data;
+
+      const registerRes = await register({
+        userRequest: {
+          password,
+          username,
+        },
+      });
+      if (Boolean(registerRes.error)) {
+        notification.error({
+          message: 'Failed to register',
+          description: JSON.stringify(registerRes),
+        });
+        return;
+      }
+
+      const loginRes = await login({ loginRequest: { username, password } });
+      if (Boolean(loginRes.error)) {
+        notification.error({
+          message: 'Failed to log in',
+          description: JSON.stringify(loginRes.error),
+        });
+        return;
+      }
+
+      navigate('/dashboard');
+    },
+  });
+
   return (
-    <Form.Root
-      onSubmit={async e => {
-        setIsLoading(true);
-        e.preventDefault();
+    <Card className="m-auto flex w-[360px] flex-col gap-3">
+      <h1 className="mb-4 text-center text-2xl">Sign Up</h1>
 
-        const registerRes = await api.register(username, password);
-        if (registerRes.ok === false) {
-          notification.error({
-            message: 'Failed to register',
-            description: registerRes.message,
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        const loginRes = await api.login(username, password);
-
-        if (loginRes.ok === false) {
-          notification.error({
-            message: 'Failed to log in',
-            description: loginRes.message,
-          });
-          setIsLoading(false);
-          return;
-        }
-
-        setIsLoading(false);
-        navigate('/dashboard');
-      }}
-      className="m-auto flex w-[360px] flex-col gap-3"
-    >
-      <h1 className="mx-auto text-2xl">Sign Up</h1>
-      <Form.Field name="username">
-        <Label>Username</Label>
-        <Form.Control asChild>
-          <Input
-            minLength={3}
-            required
-            placeholder="username"
-            PrefixIcon={
-              <Icon
-                style={{ color: 'black' }}
-                icon="material-symbols:person"
-                className="size-full"
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={e => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
+        <FieldGroup>
+          <form.AppField
+            name="username"
+            children={field => (
+              <field.TextField
+                label="Username"
+                placeholder="Enter your username"
               />
-            }
-            onInvalidCapture={() => {
-              setUsernameError('Must be at least 3 characters long');
-            }}
-            value={username}
-            onChange={e => setUsername(e.target.value)}
+            )}
           />
-        </Form.Control>
-        {usernameError && (
-          <div className="mt-1 text-sm text-red-500">{usernameError}</div>
-        )}
-      </Form.Field>
-
-      <Form.Field name="password">
-        <Label>Password</Label>
-        <Form.Control asChild>
-          <Input
-            placeholder="********"
-            value={password}
-            type="password"
-            minLength={3}
-            required
-            onInvalidCapture={() => {
-              setPasswordError('Must be at least 3 characters long');
-            }}
-            PrefixIcon={
-              <Icon
-                style={{ color: 'black' }}
-                icon="material-symbols:lock-outline"
-                className="size-full"
+          <form.AppField
+            name="password"
+            children={field => (
+              <field.PasswordField
+                label="Password"
+                placeholder="Enter your password"
               />
-            }
-            onChange={e => setPassword(e.target.value)}
+            )}
           />
-        </Form.Control>
-        {passwordError && (
-          <div className="mt-1 text-sm text-red-500">{passwordError}</div>
-        )}
-      </Form.Field>
+          <form.AppField
+            name="passwordConfirmation"
+            children={field => (
+              <field.PasswordField
+                label="Confirm Password"
+                placeholder="Confirm your password"
+              />
+            )}
+          />
+        </FieldGroup>
 
-      <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
-        {isLoading && <Spinner />}
-        Submit
-      </Button>
+        <form.Subscribe
+          selector={state => [state.canSubmit, state.isSubmitting]}
+          children={([canSubmit, isSubmitting]) => (
+            <Button type="submit" disabled={!canSubmit}>
+              {isSubmitting && <Spinner />}
+              Submit
+            </Button>
+          )}
+        />
+      </form>
 
-      <div>
+      <div className="mt-4 text-center">
         Already have an account?
         <NavLink
           to={'/auth/login'}
-          className="underscore ml-2 text-blue-700 transition-all hover:opacity-70"
+          className="ml-2 text-blue-700 hover:opacity-70"
         >
           Login now
         </NavLink>
       </div>
-    </Form.Root>
+    </Card>
   );
-};
-
-export default SignUpPage;
+}

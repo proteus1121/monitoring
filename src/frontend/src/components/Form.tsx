@@ -18,7 +18,7 @@ export const { fieldContext, formContext, useFieldContext } =
 export const { useAppForm } = createFormHook({
   fieldContext,
   formContext,
-  fieldComponents: { TextField, SelectField, TextareaField },
+  fieldComponents: { TextField, SelectField, TextareaField, PasswordField },
   formComponents: {},
 });
 
@@ -31,6 +31,29 @@ function TextField(props: { label: string; placeholder?: string }) {
       <FieldLabel htmlFor={field.name}>{props.label}</FieldLabel>
       <Input
         type="string"
+        id={field.name}
+        name={field.name}
+        value={field.state.value}
+        onBlur={field.handleBlur}
+        onChange={e => field.handleChange(e.target.value)}
+        aria-invalid={isInvalid}
+        placeholder={props.placeholder}
+        autoComplete="off"
+      />
+      {isInvalid && <FieldError errors={field.state.meta.errors} />}
+    </Field>
+  );
+}
+
+function PasswordField(props: { label: string; placeholder?: string }) {
+  const field = useFieldContext<string>();
+  const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+
+  return (
+    <Field data-invalid={isInvalid}>
+      <FieldLabel htmlFor={field.name}>{props.label}</FieldLabel>
+      <Input
+        type="password"
         id={field.name}
         name={field.name}
         value={field.state.value}

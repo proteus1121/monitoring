@@ -1,9 +1,7 @@
-import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { notification } from 'antd';
-import { Device, DeviceStatus } from '@src/lib/api/api.types';
 import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
@@ -11,78 +9,38 @@ import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
-import { Switch } from '@src/components/Switch';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
 import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
 import {
-  DeviceUpdatingModal,
-  DeviceUpdatingModalId,
-} from '@src/redux/modals/DeviceUpdatingModal';
+  Device,
+  useDeleteDeviceMutation,
+  useGetAllDevicesQuery,
+} from '@src/redux/generatedApi';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
-  const api = useApi();
-  const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { data: devices, isLoading, error } = useGetAllDevicesQuery();
 
-  const fetchDevices = async () => {
-    setIsLoading(true);
-    const res = await api.getDevices();
-    if (!res.ok) {
-      notification.error({
-        message: 'Failed to fetch devices',
-        description: res.message,
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(false);
-    setDevices(res.data);
-  };
+  const [deleteDeviceMutation] = useDeleteDeviceMutation();
 
   useEffect(() => {
-    fetchDevices();
-  }, [api, setDevices]);
+    if (error) {
+      notification.error({
+        message: `Failed to load devices:${JSON.stringify(error)}`,
+      });
+    }
+  }, [error]);
 
   const handleDelete = async (deviceId: number, deviceName?: string) => {
-    const res = await api.deleteDevice(deviceId);
-    if (res.ok) {
+    const res = await deleteDeviceMutation({
+      id: deviceId,
+    });
+
+    if (res.data) {
       notification.success({ message: `Deleted ${deviceName ?? 'device'}` });
     }
-
-    await fetchDevices();
-  };
-
-  const handleUpdate = async (device: Device) => {
-    if (!device.id || !device.name) {
-      notification.error({
-        message: 'Failed to update device',
-        description: 'Device should have id and name',
-      });
-      return;
-    }
-
-    const res = await api.updateDevice({
-      id: device.id!,
-      deviceType: device.type,
-      name: device.name,
-      delay: device.delay,
-      description: device.description,
-      criticalValue: device.criticalValue,
-      lowerValue: device.lowerValue,
-    });
-    if (res.ok) {
-      notification.success({ message: `${device.name} updated succesfully` });
-    } else {
-      notification.error({
-        message: 'Failed to update device',
-        description: res.message,
-      });
-    }
-
-    await fetchDevices();
   };
 
   const { setState } = useModal(DeviceCreationModalId);
@@ -90,7 +48,7 @@ const DevicesPage = () => {
   const { setState: deletionModal } = useModal(AlertDialogModalId);
   const { setState: updationModal } = useModal(DeviceUpdatingModalId);
 
-  if (isLoading && !devices) {
+  if (isLoading) {
     return <Loader />;
   }
 
@@ -181,16 +139,16 @@ function DeviceCard(props: {
   );
 }
 
-function getColorByStatus(status?: DeviceStatus) {
-  if (status === DeviceStatus.OK) {
+function getColorByStatus(status?: Device['status']) {
+  if (status === 'OK') {
     return 'bg-green-500';
   }
 
-  if (status === DeviceStatus.WARNING) {
+  if (status === 'WARNING') {
     return 'bg-orange-500';
   }
 
-  if (status === DeviceStatus.CRITICAL) {
+  if (status === 'CRITICAL') {
     return 'bg-red-500';
   }
 
