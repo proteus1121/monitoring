@@ -24,7 +24,7 @@ export type DeviceCreationModal = SimpleModalState<
 
 export const CreateDeviceSchema = z.object({
   name: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().max(200).optional(),
   criticalValue: z.coerce.number<string>().or(z.undefined()),
   lowerValue: z.coerce.number<string>().or(z.undefined()),
   delayMs: z.coerce.number<string>().or(z.undefined()),

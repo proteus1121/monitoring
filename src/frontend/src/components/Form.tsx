@@ -114,6 +114,7 @@ function TextareaField(props: { label: string; placeholder?: string }) {
       <Textarea
         id={field.name}
         name={field.name}
+        className="max-h-24"
         value={field.state.value}
         onBlur={field.handleBlur}
         onChange={e => field.handleChange(e.target.value)}

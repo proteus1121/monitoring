@@ -151,6 +151,9 @@ function getColorByStatus(status?: Device['status']) {
   if (status === 'CRITICAL') {
     return 'bg-red-500';
   }
+  if (status === 'OFFLINE') {
+    return 'bg-gray-700';
+  }
 
-  return 'bg-gray-700';
+  return 'bg-black';
 }

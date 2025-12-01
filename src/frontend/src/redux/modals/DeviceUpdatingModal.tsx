@@ -24,8 +24,8 @@ export type DeviceUpdatingModal = ModalState<
 >;
 
 export const UpdateDeviceSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
+  name: z.string().min(1).max(30),
+  description: z.string().max(200).optional(),
   criticalValue: z.coerce.number<string>().or(z.undefined()),
   lowerValue: z.coerce.number<string>().or(z.undefined()),
   delay: z.coerce.number<string>(),
@@ -96,7 +96,7 @@ export function DeviceUpdatingModal() {
           <DialogHeader>
             <DialogTitle>Create Device</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4">
+          <div className="grid w-fit gap-4">
             <FieldGroup>
               <form.AppField
                 name="name"
