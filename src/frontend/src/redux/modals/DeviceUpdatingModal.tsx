@@ -98,7 +98,7 @@ export function DeviceUpdatingModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Create Device</DialogTitle>
+            <DialogTitle>Update Device</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <FieldGroup>

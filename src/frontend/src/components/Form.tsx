@@ -22,7 +22,11 @@ export const { useAppForm } = createFormHook({
   formComponents: {},
 });
 
-function TextField(props: { label: string; placeholder?: string }) {
+function TextField(props: {
+  label: string;
+  placeholder?: string;
+  defaultValue?: string | number;
+}) {
   const field = useFieldContext<string>();
   const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
 
@@ -30,6 +34,7 @@ function TextField(props: { label: string; placeholder?: string }) {
     <Field data-invalid={isInvalid}>
       <FieldLabel htmlFor={field.name}>{props.label}</FieldLabel>
       <Input
+        defaultValue={props.defaultValue}
         type="string"
         id={field.name}
         name={field.name}
