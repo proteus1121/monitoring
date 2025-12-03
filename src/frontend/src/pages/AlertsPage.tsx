@@ -1,10 +1,6 @@
 import { useApi } from '@src/lib/api/ApiProvider';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  TelegramNotification,
-  UpdateTelegramNotificationRequest,
-  NotificationType,
-} from '@src/lib/api/api.types';
+import { TelegramNotification, NotificationType } from '@src/lib/api/api.types';
 import { Loader } from '@src/components/Loader';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { notification } from 'antd';
@@ -46,7 +42,7 @@ const alertTemplateDropdownOptions = [
   },
 ];
 
-const NotificationsPage = () => {
+const AlertsPage = () => {
   const api = useApi();
   const [items, setItems] = useState<Array<TelegramNotification>>([]);
   const [templateType, setTemplateType] = useState<{
@@ -573,4 +569,4 @@ const NotificationsPage = () => {
   );
 };
 
-export default NotificationsPage;
+export default AlertsPage;
