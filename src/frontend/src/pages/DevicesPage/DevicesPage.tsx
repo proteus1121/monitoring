@@ -11,7 +11,7 @@ import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
-import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
 import {
   Device,
@@ -45,7 +45,7 @@ const DevicesPage = () => {
 
   const { setState } = useModal(DeviceCreationModalId);
 
-  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: deletionModal } = useModal(AppAlertDialogModalId);
   const { setState: updationModal } = useModal(DeviceUpdatingModalId);
 
   if (isLoading) {

@@ -9,9 +9,10 @@ import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
 import { useGetUsersQuery } from '@src/redux/generatedApi';
 import { useModal } from '@src/redux/modals/modals.hook';
-import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceIcon } from './DevicesPage/DevicesPage';
 import { capitalizeFirstLetter } from '@src/lib/capitalizeFirstLetter';
+import { DeviceSharingCreationModalId } from '@src/redux/modals/DeviceSharingCreationModal';
 
 const dropdownOptions = [
   {
@@ -35,11 +36,14 @@ const dropdownOptions = [
 export const UsersPage = () => {
   const { data: items, isLoading } = useGetUsersQuery();
   const [editModal, setEditModal] = useState<any>();
+  const { setState: deletionModal } = useModal(AppAlertDialogModalId);
 
-  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: showDeviceSharingCreationModal } = useModal(
+    DeviceSharingCreationModalId
+  );
+
   const filter = 'all';
-
-  const filteredItems = useMemo(() => {
+  const flatUsers = useMemo(() => {
     if (!items) return [];
 
     const arr = Object.entries(items);
@@ -47,6 +51,8 @@ export const UsersPage = () => {
 
     return flatArr;
   }, [items]);
+
+  const owner = useMemo(() => flatUsers[0], [flatUsers]); // HACK: at least i hope that he is owner
 
   if (isLoading && !items) {
     return <Loader />;
@@ -64,10 +70,7 @@ export const UsersPage = () => {
           </div>
 
           <Button
-            onClick={
-              () => alert('share device')
-              // setState(true)
-            }
+            onClick={() => showDeviceSharingCreationModal(true)}
             className="ml-2 shrink-0"
           >
             <Icon icon="lucide:user-plus" className="size-4" />
@@ -99,8 +102,11 @@ export const UsersPage = () => {
             {/*   </SelectContent> */}
             {/* </Select> */}
           </div>
-          {filteredItems.map((i, id) => (
-            <div className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-gray-50">
+          {flatUsers.map((i, id) => (
+            <div
+              className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-gray-50"
+              key={i.username}
+            >
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex flex-1 items-center gap-4">
                   <span

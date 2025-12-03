@@ -20,7 +20,7 @@ import { useModal } from '@src/redux/modals/modals.hook';
 import { AlertTemplateCreationModalId } from '@src/redux/modals/AlertTemplateCreationModal';
 import { H1, H3 } from '@src/components/Text';
 import { cn } from '@src/lib/classnameUtils';
-import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { AlertTemplateUpdatingModalId } from '@src/redux/modals/AlertTemplateUpdatingModal';
 
 const alertTemplateDropdownOptions = [
@@ -92,7 +92,7 @@ const AlertsPage = () => {
   };
 
   const { setState } = useModal(AlertTemplateCreationModalId);
-  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: deletionModal } = useModal(AppAlertDialogModalId);
   const { setState: editModal } = useModal(AlertTemplateUpdatingModalId);
 
   if (isLoading && !items) {

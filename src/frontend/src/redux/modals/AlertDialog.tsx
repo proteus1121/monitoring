@@ -13,14 +13,14 @@ import { useModal } from './modals.hook';
 import { useState } from 'react';
 import { Spinner } from '@src/components/Spinner';
 
-export const AlertDialogModalId = 'alert-dialog-modal-id';
-export type AlertDialogModal = ModalState<
-  typeof AlertDialogModalId,
+export const AppAlertDialogModalId = 'app-alert-dialog-modal-id';
+export type AppAlertDialogModal = ModalState<
+  typeof AppAlertDialogModalId,
   { description?: string; callback: () => Promise<void> | void }
 >;
 
 export const AppAlertDialog = () => {
-  const { state, setState } = useModal(AlertDialogModalId);
+  const { state, setState } = useModal(AppAlertDialogModalId);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const close = () => {
