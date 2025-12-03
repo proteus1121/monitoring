@@ -125,16 +125,14 @@ function DeviceCard(props: {
           >
             {props.device.status}
           </span>
-
-          <span
-            className={`inline-flex items-center justify-center gap-1 rounded-full bg-gray-600 px-2 text-xs text-white`}
-          >
-            <Icon icon="lucide:user" />
-            {props.device.userDevices?.length}
-          </span>
         </div>
 
         <div className="ml-auto flex justify-between">
+          <div className="flex w-9 items-center gap-1">
+            <Icon icon="lucide:user" />
+            {props.device.userDevices?.length}
+          </div>
+
           <Button size="icon" variant="ghost" onClick={props.onUpdate}>
             <Icon icon="lucide:edit" />
           </Button>
