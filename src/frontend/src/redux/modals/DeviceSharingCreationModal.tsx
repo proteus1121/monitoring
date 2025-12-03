@@ -14,8 +14,9 @@ import z from 'zod';
 import { useAppForm } from '@src/components/Form';
 import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
-import { useShareDeviceMutation } from '../generatedApi';
-import { useEffect } from 'react';
+import { useGetAllDevicesQuery, useShareDeviceMutation } from '../generatedApi';
+import { useEffect, useMemo, useState } from 'react';
+import { MultiSelect, Option } from '@src/components/MultiSelect';
 
 export const DeviceSharingCreationModalId = 'device-sharing-creation-modal-id';
 export type DeviceSharingCreationModal = SimpleModalState<
@@ -29,11 +30,12 @@ export const ShareDeviceSchema = z.object({
 export function DeviceSharingCreationModal() {
   const { state, setState } = useModal(DeviceSharingCreationModalId);
   const [shareDevice] = useShareDeviceMutation();
+  const { data: devices } = useGetAllDevicesQuery();
 
   const form = useAppForm({
     defaultValues: {
       username: '',
-    },
+    } as any,
     validators: {
       onSubmit: ShareDeviceSchema as any,
     },
@@ -68,6 +70,12 @@ export function DeviceSharingCreationModal() {
     },
   });
 
+  const ownedDevices = useMemo(() => {
+    if (!devices) return [];
+  }, [devices]);
+
+  const [deviceIds, setDeviceIds] = useState<Option[]>([]);
+
   useEffect(() => {
     form.reset();
   }, [state]);
@@ -98,6 +106,16 @@ export function DeviceSharingCreationModal() {
                 children={field => (
                   <field.TextField label="Username" placeholder="Petya" />
                 )}
+              />
+              <MultiSelect
+                options={[
+                  {
+                    label: 'a',
+                    value: 'b',
+                  },
+                ]}
+                currentValue={deviceIds}
+                setCurrentValue={setDeviceIds}
               />
             </FieldGroup>
           </div>

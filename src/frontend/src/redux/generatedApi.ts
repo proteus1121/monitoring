@@ -162,6 +162,10 @@ const injectedRtkApi = api
         query: () => ({ url: `/users` }),
         providesTags: ["Users"],
       }),
+      getUser: build.query<GetUserApiResponse, GetUserApiArg>({
+        query: () => ({ url: `/users/me` }),
+        providesTags: ["Users"],
+      }),
       getMetrics: build.query<GetMetricsApiResponse, GetMetricsApiArg>({
         query: (queryArg) => ({
           url: `/metrics`,
@@ -275,6 +279,8 @@ export type GetUsersApiResponse = /** status 200 OK */ {
   [key: string]: DeviceUser[];
 };
 export type GetUsersApiArg = void;
+export type GetUserApiResponse = /** status 200 OK */ LoginResponse;
+export type GetUserApiArg = void;
 export type GetMetricsApiResponse = /** status 200 OK */ SensorData[];
 export type GetMetricsApiArg = {
   deviceId: number;
@@ -441,6 +447,8 @@ export const {
   useCreateDeviceMutation,
   useGetUsersQuery,
   useLazyGetUsersQuery,
+  useGetUserQuery,
+  useLazyGetUserQuery,
   useGetMetricsQuery,
   useLazyGetMetricsQuery,
   useGetMetricsPredictedQuery,

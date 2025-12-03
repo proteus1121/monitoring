@@ -31,11 +31,16 @@ export const CreateDeviceSchema = z.object({
   deviceType: z.enum(DeviceType).optional(),
 });
 
+type CreateDevice = z.infer<typeof CreateDeviceSchema>;
+
 export function DeviceCreationModal() {
   const { state, setState } = useModal(DeviceCreationModalId);
   const [createDevice] = useCreateDeviceMutation();
 
   const form = useAppForm({
+    defaultValues: {
+      delay: 1000,
+    } as Partial<CreateDevice>,
     validators: {
       onSubmit: CreateDeviceSchema as any,
     },
@@ -60,8 +65,6 @@ export function DeviceCreationModal() {
 
       form.reset();
       setState(false);
-
-      window.location.reload();
     },
   });
 
@@ -120,11 +123,7 @@ export function DeviceCreationModal() {
               <form.AppField
                 name="delay"
                 children={field => (
-                  <field.TextField
-                    label="Delay (ms)"
-                    placeholder="1000"
-                    defaultValue={1000}
-                  />
+                  <field.TextField label="Delay (ms)" placeholder="1000" />
                 )}
               />
             </FieldGroup>
