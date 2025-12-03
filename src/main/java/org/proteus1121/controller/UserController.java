@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.request.LoginRequest;
 import org.proteus1121.model.request.UserRequest;
@@ -20,7 +21,6 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.List;
+import java.util.Map;
+
+import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
 @RestController
 @RequestMapping("/users")
@@ -42,14 +45,9 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Get all users", description = "Returns a list of all registered users")
-    public List<User> getUsers() {
-        return userService.getUsers();
-    }
-
-    @GetMapping("/{id}")
-    @Operation(summary = "Get user by ID", description = "Returns a user by their unique ID")
-    public User getUser(@PathVariable("id") Long id) {
-        return userService.getUser(id);
+    public Map<String, List<DeviceUser>> getUsers() {
+        User principal = getCurrentUser();
+        return userService.getSharedDevices(principal.getId());
     }
     
     @PostMapping("/register")
