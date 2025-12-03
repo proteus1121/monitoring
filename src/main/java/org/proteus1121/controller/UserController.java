@@ -80,4 +80,12 @@ public class UserController {
         return new LoginResponse(principal.getId(), principal.getUsername(),
                 RequestContextHolder.currentRequestAttributes().getSessionId());
     }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get the current user", description = "Returns the details of the currently authenticated user")
+    public LoginResponse getUser() {
+        User principal = getCurrentUser();
+        return new LoginResponse(principal.getId(), principal.getUsername(),
+                RequestContextHolder.currentRequestAttributes().getSessionId());
+    }
 }
