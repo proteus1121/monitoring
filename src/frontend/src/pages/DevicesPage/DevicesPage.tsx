@@ -108,7 +108,9 @@ function DeviceCard(props: {
   return (
     <Card className="bg-card text-card-foreground flex w-full flex-col gap-6 rounded-xl border">
       <div className="flex items-center gap-3">
-        <DeviceIcon type={props.device.type} />
+        <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
+          <DeviceIcon type={props.device.type} className="size-5" />
+        </div>
         <div>
           <h3 className="font-semibold">{props.device.name}</h3>
         </div>
@@ -146,7 +148,13 @@ function DeviceCard(props: {
   );
 }
 
-function DeviceIcon({ type }: { type: Device['type'] }) {
+export function DeviceIcon({
+  type,
+  className,
+}: {
+  type: Device['type'];
+  className?: string;
+}) {
   let icon = 'lucide:microchip';
 
   if (type === 'TEMPERATURE') icon = 'lucide:thermometer';
@@ -155,11 +163,7 @@ function DeviceIcon({ type }: { type: Device['type'] }) {
   if (type === 'LIGHT') icon = 'lucide:lightbulb';
   if (type === 'HUMIDITY') icon = 'lucide:droplet';
 
-  return (
-    <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
-      <Icon icon={icon} className="size-5" />
-    </div>
-  );
+  return <Icon icon={icon} className={className} />;
 }
 
 function getColorByStatus(status?: Device['status']) {

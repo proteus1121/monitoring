@@ -162,10 +162,6 @@ const injectedRtkApi = api
         query: () => ({ url: `/users` }),
         providesTags: ["Users"],
       }),
-      getUser: build.query<GetUserApiResponse, GetUserApiArg>({
-        query: (queryArg) => ({ url: `/users/${queryArg.id}` }),
-        providesTags: ["Users"],
-      }),
       getMetrics: build.query<GetMetricsApiResponse, GetMetricsApiArg>({
         query: (queryArg) => ({
           url: `/metrics`,
@@ -275,12 +271,10 @@ export type CreateDeviceApiResponse = /** status 200 OK */ Device;
 export type CreateDeviceApiArg = {
   deviceRequest: DeviceRequest;
 };
-export type GetUsersApiResponse = /** status 200 OK */ User[];
-export type GetUsersApiArg = void;
-export type GetUserApiResponse = /** status 200 OK */ User;
-export type GetUserApiArg = {
-  id: number;
+export type GetUsersApiResponse = /** status 200 OK */ {
+  [key: string]: DeviceUser[];
 };
+export type GetUsersApiArg = void;
 export type GetMetricsApiResponse = /** status 200 OK */ SensorData[];
 export type GetMetricsApiArg = {
   deviceId: number;
@@ -407,6 +401,11 @@ export type LoginRequest = {
   username: string;
   password: string;
 };
+export type DeviceUser = {
+  id?: number;
+  deviceName?: string;
+  role?: "OWNER" | "EDITOR" | "VIEWER";
+};
 export type SensorData = {
   timestamp?: string;
   value?: number;
@@ -442,8 +441,6 @@ export const {
   useCreateDeviceMutation,
   useGetUsersQuery,
   useLazyGetUsersQuery,
-  useGetUserQuery,
-  useLazyGetUserQuery,
   useGetMetricsQuery,
   useLazyGetMetricsQuery,
   useGetMetricsPredictedQuery,
