@@ -16,6 +16,7 @@ import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
 import { Device, useUpdateDeviceMutation } from '../generatedApi';
 import { DeviceType } from '@src/lib/api/api.types';
+import { useEffect } from 'react';
 
 export const DeviceUpdatingModalId = 'device-updating-modal-id';
 export type DeviceUpdatingModal = ModalState<
@@ -25,7 +26,7 @@ export type DeviceUpdatingModal = ModalState<
 
 export const UpdateDeviceSchema = z.object({
   name: z.string().min(1).max(30),
-  description: z.string().max(200).optional(),
+  description: z.string().max(100).optional(),
   criticalValue: z.coerce.number<string>().or(z.undefined()),
   lowerValue: z.coerce.number<string>().or(z.undefined()),
   delay: z.coerce.number<string>(),
@@ -76,11 +77,14 @@ export function DeviceUpdatingModal() {
     },
   });
 
+  useEffect(() => {
+    form.reset();
+  }, [state]);
+
   return (
     <Dialog
       open={Boolean(state)}
       onOpenChange={open => {
-        form.reset();
         if (!open) setState(null);
       }}
     >
@@ -96,7 +100,7 @@ export function DeviceUpdatingModal() {
           <DialogHeader>
             <DialogTitle>Create Device</DialogTitle>
           </DialogHeader>
-          <div className="grid w-fit gap-4">
+          <div className="grid gap-4">
             <FieldGroup>
               <form.AppField
                 name="name"
