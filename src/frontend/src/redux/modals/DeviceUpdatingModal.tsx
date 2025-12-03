@@ -122,19 +122,21 @@ export function DeviceUpdatingModal() {
                 )}
               />
 
-              <form.AppField
-                name="criticalValue"
-                children={field => (
-                  <field.TextField label="Critical value" placeholder="0" />
-                )}
-              />
+              <div className="flex gap-2">
+                <form.AppField
+                  name="criticalValue"
+                  children={field => (
+                    <field.TextField label="Critical value" placeholder="0" />
+                  )}
+                />
 
-              <form.AppField
-                name="lowerValue"
-                children={field => (
-                  <field.TextField label="Lower value" placeholder="0" />
-                )}
-              />
+                <form.AppField
+                  name="lowerValue"
+                  children={field => (
+                    <field.TextField label="Lower value" placeholder="0" />
+                  )}
+                />
+              </div>
 
               <form.AppField
                 name="delay"
@@ -146,7 +148,7 @@ export function DeviceUpdatingModal() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button>Cancel</Button>
+              <Button variant="secondary">Cancel</Button>
             </DialogClose>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}

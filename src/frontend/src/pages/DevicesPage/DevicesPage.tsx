@@ -106,36 +106,61 @@ function DeviceCard(props: {
   onUpdate: () => void;
 }) {
   return (
-    <Card className="flex flex-col gap-6 transition-shadow hover:shadow-lg">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
-            <div className="grid aspect-square place-items-center text-xs">
-              icon
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold">{props.device.name}</h3>
-            <p className="text-sm text-gray-500">{props.device.description}</p>
-          </div>
+    <Card className="bg-card text-card-foreground flex w-full flex-col gap-6 rounded-xl border">
+      <div className="flex items-center gap-3">
+        <DeviceIcon type={props.device.type} />
+        <div>
+          <h3 className="font-semibold">{props.device.name}</h3>
+        </div>
+      </div>
+      <div className="flex h-full gap-4">
+        <p className="text-sm leading-relaxed text-slate-600">
+          {props.device.description}
+        </p>
+      </div>
+      <div className="flex gap-2 border-t pt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-2 text-xs text-white ${getColorByStatus(props.device.status)}`}
+          >
+            {props.device.status}
+          </span>
+
+          <span
+            className={`inline-flex items-center justify-center gap-1 rounded-full bg-gray-600 px-2 text-xs text-white`}
+          >
+            <Icon icon="lucide:user" />
+            {props.device.userDevices?.length}
+          </span>
         </div>
 
-        <span
-          className={`rounded-full px-2 text-xs text-white ${getColorByStatus(props.device.status)}`}
-        >
-          {props.device.status}
-        </span>
-      </div>
-      <div className="flex items-center justify-between">
-        <Button size="icon" variant="ghost" onClick={props.onUpdate}>
-          <Icon icon="lucide:edit" />
-        </Button>
+        <div className="ml-auto flex justify-between">
+          <Button size="icon" variant="ghost" onClick={props.onUpdate}>
+            <Icon icon="lucide:edit" />
+          </Button>
 
-        <Button size="icon" variant="ghost" onClick={props.onDelete}>
-          <Icon icon="lucide:trash-2" />
-        </Button>
+          <Button size="icon" variant="ghost" onClick={props.onDelete}>
+            <Icon icon="lucide:trash-2" />
+          </Button>
+        </div>
       </div>
     </Card>
+  );
+}
+
+function DeviceIcon({ type }: { type: Device['type'] }) {
+  let icon = 'lucide:microchip';
+
+  if (type === 'TEMPERATURE') icon = 'lucide:thermometer';
+  if (type === 'SMOKE') icon = 'lucide:cloud';
+  if (type === 'FLAME') icon = 'lucide:flame';
+  if (type === 'LIGHT') icon = 'lucide:lightbulb';
+  if (type === 'HUMIDITY') icon = 'lucide:droplet';
+
+  return (
+    <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
+      <Icon icon={icon} className="size-5" />
+    </div>
   );
 }
 
