@@ -6,6 +6,7 @@ import { AppAlertDialogModalId } from './AlertDialog';
 import { AlertTemplateUpdatingModalId } from './AlertTemplateUpdatingModal';
 import { DeviceUpdatingModalId } from './DeviceUpdatingModal';
 import { DeviceSharingCreationModalId } from './DeviceSharingCreationModal';
+import { DeviceSharingUpdatingModalId } from './DeviceSharingUpdatingModal';
 
 const initialState: ModalsList = {
   [DeviceCreationModalId]: false,
@@ -14,6 +15,7 @@ const initialState: ModalsList = {
   [AlertTemplateUpdatingModalId]: null,
   [DeviceUpdatingModalId]: null,
   [DeviceSharingCreationModalId]: false,
+  [DeviceSharingUpdatingModalId]: null,
 };
 
 export const modalsSlice = createSlice({

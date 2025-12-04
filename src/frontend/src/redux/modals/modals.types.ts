@@ -4,6 +4,7 @@ import { AppAlertDialogModal } from './AlertDialog';
 import { AlertTemplateUpdatingModal } from './AlertTemplateUpdatingModal';
 import { DeviceUpdatingModal } from './DeviceUpdatingModal';
 import { DeviceSharingCreationModal } from './DeviceSharingCreationModal';
+import { DeviceSharingUpdatingModal } from './DeviceSharingUpdatingModal';
 
 export type SimpleModalState<T extends string> = {
   [K in T]: boolean;
@@ -18,6 +19,7 @@ export type ModalsList = DeviceCreationModal &
   AppAlertDialogModal &
   AlertTemplateUpdatingModal &
   DeviceUpdatingModal &
-  DeviceSharingCreationModal;
+  DeviceSharingCreationModal &
+  DeviceSharingUpdatingModal;
 
 export type ModalId = keyof ModalsList;

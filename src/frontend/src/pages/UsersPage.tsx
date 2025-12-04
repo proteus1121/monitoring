@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { NotificationType } from '@src/lib/api/api.types';
 import { Loader } from '@src/components/Loader';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Button } from '@src/components/Button';
@@ -8,6 +7,7 @@ import { Card } from '@src/components/Card';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
 import {
+  DeviceUser,
   GetUsersApiResponse,
   useGetUserQuery,
   useGetUsersQuery,
@@ -17,17 +17,18 @@ import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceIcon } from './DevicesPage/DevicesPage';
 import { capitalizeFirstLetter } from '@src/lib/capitalizeFirstLetter';
 import { DeviceSharingCreationModalId } from '@src/redux/modals/DeviceSharingCreationModal';
+import { DeviceSharingUpdatingModalId } from '@src/redux/modals/DeviceSharingUpdatingModal';
 
-export const UsersPage = () => {
-  const [editModal, setEditModal] = useState<any>();
-  const { setState: deletionModal } = useModal(AppAlertDialogModalId);
-  const { setState: showDeviceSharingCreationModal } = useModal(
-    DeviceSharingCreationModalId
-  );
-  const { data: items, isLoading } = useGetUsersQuery();
-  const { data: me } = useGetUserQuery();
+export type FlatUserWithDevices = {
+  username: string;
+  devices: GetUsersApiResponse[keyof GetUsersApiResponse];
+};
 
-  const flatUsersWithoutOwner = useMemo(() => {
+export const useUsersWithDevices = () => {
+  const { data: items, isLoading: isUsersLoading } = useGetUsersQuery();
+  const { data: me, isLoading: isMeLoading } = useGetUserQuery();
+
+  const users: FlatUserWithDevices[] = useMemo(() => {
     if (!items) return [];
 
     const arr = Object.entries(items);
@@ -38,13 +39,23 @@ export const UsersPage = () => {
     return flatArr;
   }, [items, me]);
 
-  const owner = useMemo(() => {
+  const owner: FlatUserWithDevices | undefined = useMemo(() => {
     if (!items) return undefined;
     if (!me || !me.name) return undefined;
     return { devices: items[me.name], username: me.name };
   }, [items, me]);
 
-  if (isLoading && !items) {
+  return { owner, users, isLoading: isUsersLoading || isMeLoading };
+};
+
+export const UsersPage = () => {
+  const { setState: showDeviceSharingCreationModal } = useModal(
+    DeviceSharingCreationModalId
+  );
+
+  const { users, owner, isLoading } = useUsersWithDevices();
+
+  if (isLoading) {
     return <Loader />;
   }
 
@@ -93,7 +104,7 @@ export const UsersPage = () => {
             {/* </Select> */}
           </div>
           {owner && <UserItem user={owner} isCurrentUser />}
-          {flatUsersWithoutOwner.map(i => (
+          {users.map(i => (
             <UserItem user={i} key={i.username} />
           ))}
         </Card>
@@ -210,12 +221,13 @@ const UserItem = ({
   user,
   isCurrentUser = false,
 }: {
-  user: {
-    username: string;
-    devices: GetUsersApiResponse[keyof GetUsersApiResponse];
-  };
+  user: FlatUserWithDevices;
   isCurrentUser?: boolean;
 }) => {
+  const { setState: showDeviceSharingUpdatingModal } = useModal(
+    DeviceSharingUpdatingModalId
+  );
+
   return (
     <div
       className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-gray-50"
@@ -250,7 +262,13 @@ const UserItem = ({
           )}
         </div>
         {!isCurrentUser && (
-          <Button size="icon-lg" variant="ghost">
+          <Button
+            size="icon-lg"
+            variant="ghost"
+            onClick={() => {
+              showDeviceSharingUpdatingModal(user);
+            }}
+          >
             <Icon icon="lucide:edit" className="size-5" />
           </Button>
         )}
@@ -262,6 +280,7 @@ const UserItem = ({
         <div className="flex flex-wrap gap-2">
           {user.devices.map(i => (
             <span
+              key={i.id}
               data-slot="badge"
               className="[&amp;&gt;svg]:size-3 [&amp;&gt;svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-foreground [a&amp;]:hover:bg-accent [a&amp;]:hover:text-accent-foreground inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border bg-gray-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px]"
             >

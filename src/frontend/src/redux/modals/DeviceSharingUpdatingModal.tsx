@@ -1,5 +1,5 @@
 import { useModal } from './modals.hook';
-import { SimpleModalState } from './modals.types';
+import { ModalState } from './modals.types';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
 import {
@@ -14,30 +14,77 @@ import z from 'zod';
 import { useAppForm } from '@src/components/Form';
 import { FieldGroup, FieldLabel } from '@src/components/Field';
 import { notification } from 'antd';
-import { useShareDeviceMutation } from '../generatedApi';
+import {
+  useShareDeviceMutation,
+  useUnshareDeviceMutation,
+} from '../generatedApi';
 import { useEffect, useMemo, useState } from 'react';
 import { MultiSelect, Option } from '@src/components/MultiSelect';
-import { useUsersWithDevices } from '@src/pages/UsersPage';
+import { FlatUserWithDevices, useUsersWithDevices } from '@src/pages/UsersPage';
+import { current } from '@reduxjs/toolkit';
 
-export const DeviceSharingCreationModalId = 'device-sharing-creation-modal-id';
-export type DeviceSharingCreationModal = SimpleModalState<
-  typeof DeviceSharingCreationModalId
+export const DeviceSharingUpdatingModalId = 'device-sharing-updating-modal-id';
+export type DeviceSharingUpdatingModal = ModalState<
+  typeof DeviceSharingUpdatingModalId,
+  FlatUserWithDevices
 >;
 
 export const ShareDeviceSchema = z.object({
   username: z.string().min(1),
   role: z.enum(['EDITOR', 'VIEWER']),
-  selectedDevices: z.number().array(),
 });
 
-export function DeviceSharingCreationModal() {
-  const { state, setState } = useModal(DeviceSharingCreationModalId);
+export function DeviceSharingUpdatingModal() {
+  const { state, setState } = useModal(DeviceSharingUpdatingModalId);
   const [shareDevice] = useShareDeviceMutation();
+  const [unshareDevice] = useUnshareDeviceMutation();
+
   const [deviceIds, setDeviceIds] = useState<Option[]>([]);
+
+  const { owner } = useUsersWithDevices();
+
+  const currentOwnedDevices = useMemo(() => {
+    return (owner?.devices ?? []).filter(i => i.role === 'OWNER');
+  }, [owner]);
+
+  const options = useMemo(() => {
+    return currentOwnedDevices
+      .map(i => {
+        return {
+          label: i.deviceName,
+          value: i.id,
+        } as any as Option;
+      })
+      .filter(i => !deviceIds.some(selected => selected.value == i.value));
+  }, [owner, deviceIds]);
+
+  const currentUpdatableUserDevices = useMemo(() => {
+    if (!owner) return [];
+    if (!owner.devices) return [];
+    if (!state) return [];
+    if (!state.devices) return [];
+
+    const currentUpdatableUserDevices = state.devices.filter(i =>
+      Boolean(options.find(option => Number(option.value) === i.id))
+    );
+    return currentUpdatableUserDevices;
+  }, [owner, state]);
+
+  useEffect(() => {
+    setDeviceIds(
+      currentUpdatableUserDevices.map(
+        i =>
+          ({
+            label: i.deviceName,
+            value: i.id,
+          }) as any as Option
+      )
+    );
+  }, [currentUpdatableUserDevices]);
 
   const form = useAppForm({
     defaultValues: {
-      username: '',
+      username: state?.username,
       role: 'VIEWER',
     } as any,
     validators: {
@@ -50,7 +97,12 @@ export function DeviceSharingCreationModal() {
         return;
       }
 
-      const res = await shareDevice({
+      const removed = currentUpdatableUserDevices
+        .map(i => i.id)
+        .filter(id => !deviceIds.some(device => Number(device.value) === id))
+        .filter(i => i !== undefined);
+
+      const shareRes = await shareDevice({
         shareDeviceRequest: {
           role: parsed.data.role,
           username: parsed.data.username,
@@ -58,36 +110,39 @@ export function DeviceSharingCreationModal() {
         },
       });
 
-      if (res.data) {
-        notification.success({
-          message: `Devices shared created succesfully`,
-        });
-      } else {
+      const unshareRes = await unshareDevice({
+        unshareDeviceRequest: {
+          username: parsed.data.username,
+          deviceIds: removed,
+        },
+      });
+
+      if (shareRes.error) {
         notification.error({
           message: 'Failed to share devices',
-          description: JSON.stringify(res.error),
+          description: JSON.stringify(shareRes.error),
+        });
+      } else {
+        notification.success({
+          message: `Devices shared succesfully`,
+        });
+      }
+
+      if (unshareRes.error) {
+        notification.error({
+          message: 'Failed to unshare devices',
+          description: JSON.stringify(unshareRes.error),
+        });
+      } else {
+        notification.success({
+          message: `Devices unshared succesfully`,
         });
       }
 
       form.reset();
-      setState(false);
+      setState(null);
     },
   });
-
-  const { owner } = useUsersWithDevices();
-
-  const options = useMemo(() => {
-    return (owner?.devices ?? [])
-      .filter(i => i.role === 'OWNER')
-      .filter(i => !!i.deviceName && !!i.id)
-      .map(i => {
-        return {
-          label: i.deviceName,
-          value: i.id,
-        } as any as Option;
-      })
-      .filter(i => !deviceIds.some(selected => selected.value == i.value));
-  }, [owner]);
 
   useEffect(() => {
     form.reset();
@@ -97,13 +152,13 @@ export function DeviceSharingCreationModal() {
     <Dialog
       open={Boolean(state)}
       onOpenChange={open => {
-        if (!open) setState(false);
+        if (!open) setState(null);
       }}
     >
       <DialogContent>
         <form
           className="contents"
-          id={DeviceSharingCreationModalId}
+          id={DeviceSharingUpdatingModalId}
           onSubmit={e => {
             e.preventDefault();
             form.handleSubmit();
@@ -157,7 +212,15 @@ export function DeviceSharingCreationModal() {
                     type="button"
                     variant={'secondary'}
                     onClick={() => {
-                      setDeviceIds(options);
+                      setDeviceIds(
+                        currentOwnedDevices.map(
+                          i =>
+                            ({
+                              value: i.id,
+                              label: i.deviceName,
+                            }) as any as Option
+                        )
+                      );
                     }}
                   >
                     Select all
