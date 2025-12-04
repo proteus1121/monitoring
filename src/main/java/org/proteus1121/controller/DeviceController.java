@@ -2,6 +2,7 @@ package org.proteus1121.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.enums.DeviceRole;
@@ -26,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,14 +59,15 @@ public class DeviceController {
 
     @PostMapping
     @Operation(summary = "Create a new device", description = "Creates a new device for the current user")
-    public ResponseEntity<Device> createDevice(@RequestBody DeviceRequest deviceRequest) {
-        Device createdDevice = deviceService.createDevice(deviceMapper.toDevice(deviceRequest), getCurrentUser().getId());
+    public ResponseEntity<Device> createDevice(@Valid @RequestBody DeviceRequest deviceRequest) {
+        Device device = deviceMapper.toDevice(deviceRequest);
+        Device createdDevice = deviceService.createDevice(device, getCurrentUser().getId());
         return ResponseEntity.ok(createdDevice);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update an existing device", description = "Updates the details of an existing device")
-    public ResponseEntity<Device> updateDevice(@PathVariable Long id, @RequestBody DeviceRequest deviceRequest) {
+    public ResponseEntity<Device> updateDevice(@PathVariable Long id, @Valid @RequestBody DeviceRequest deviceRequest) {
         Device device = deviceService.checkDevice(id, DeviceRole.EDITOR);
 
         deviceMapper.toDevice(deviceRequest, device);
@@ -86,7 +87,7 @@ public class DeviceController {
 
     @PutMapping("/share")
     @Operation(summary = "Share devices with a user", description = "Shares one or more devices with another user and assigns a role")
-    public ResponseEntity<Device> shareDevice(@RequestBody ShareDeviceRequest deviceRequest) {
+    public ResponseEntity<Device> shareDevice(@Valid @RequestBody ShareDeviceRequest deviceRequest) {
         Set<Device> devices = deviceRequest.getDeviceIds().stream()
                 .map(id -> deviceService.checkDevice(id, DeviceRole.EDITOR))
                 .collect(Collectors.toSet());
@@ -103,7 +104,7 @@ public class DeviceController {
 
     @PutMapping("/unshare")
     @Operation(summary = "Unshare devices from a user", description = "Removes sharing of one or more devices from a user")
-    public ResponseEntity<Device> unshareDevice(@RequestBody UnshareDeviceRequest request) {
+    public ResponseEntity<Device> unshareDevice(@Valid @RequestBody UnshareDeviceRequest request) {
         Set<Device> devices = request.getDeviceIds().stream()
                 .map(id -> deviceService.checkDevice(id, DeviceRole.EDITOR))
                 .collect(Collectors.toSet());
