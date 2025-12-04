@@ -13,7 +13,12 @@ import { notification } from 'antd';
 
 const SignUpSchema = z
   .object({
-    username: z.string().min(3, 'Username must be at least 3 characters long'),
+    username: z
+      .string()
+      .min(3, 'Username must be at least 3 characters long')
+      .refine(s => !/\s/.test(s), {
+        message: 'Cannot contain spaces.',
+      }),
     password: z.string().min(3, 'Password must be at least 3 characters long'),
     passwordConfirmation: z.string(),
   })

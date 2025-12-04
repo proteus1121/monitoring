@@ -7,52 +7,42 @@ import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
-import { useGetUsersQuery } from '@src/redux/generatedApi';
+import {
+  GetUsersApiResponse,
+  useGetUserQuery,
+  useGetUsersQuery,
+} from '@src/redux/generatedApi';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceIcon } from './DevicesPage/DevicesPage';
 import { capitalizeFirstLetter } from '@src/lib/capitalizeFirstLetter';
 import { DeviceSharingCreationModalId } from '@src/redux/modals/DeviceSharingCreationModal';
 
-const dropdownOptions = [
-  {
-    value: 'all',
-    label: 'All Users',
-  } as const,
-  {
-    value: NotificationType.INFO,
-    label: 'Info',
-  },
-  {
-    value: NotificationType.WARNING,
-    label: 'Warning',
-  },
-  {
-    value: NotificationType.CRITICAL,
-    label: 'Critical',
-  },
-];
-
 export const UsersPage = () => {
-  const { data: items, isLoading } = useGetUsersQuery();
   const [editModal, setEditModal] = useState<any>();
   const { setState: deletionModal } = useModal(AppAlertDialogModalId);
-
   const { setState: showDeviceSharingCreationModal } = useModal(
     DeviceSharingCreationModalId
   );
+  const { data: items, isLoading } = useGetUsersQuery();
+  const { data: me } = useGetUserQuery();
 
-  const filter = 'all';
-  const flatUsers = useMemo(() => {
+  const flatUsersWithoutOwner = useMemo(() => {
     if (!items) return [];
 
     const arr = Object.entries(items);
-    const flatArr = arr.map(a => ({ username: a[0], devices: a[1] }));
+    const flatArr = arr
+      .map(i => ({ username: i[0], devices: i[1] }))
+      .filter(i => i.username !== me?.name);
 
     return flatArr;
-  }, [items]);
+  }, [items, me]);
 
-  const owner = useMemo(() => flatUsers[0], [flatUsers]); // HACK: at least i hope that he is owner
+  const owner = useMemo(() => {
+    if (!items) return undefined;
+    if (!me || !me.name) return undefined;
+    return { devices: items[me.name], username: me.name };
+  }, [items, me]);
 
   if (isLoading && !items) {
     return <Loader />;
@@ -102,64 +92,9 @@ export const UsersPage = () => {
             {/*   </SelectContent> */}
             {/* </Select> */}
           </div>
-          {flatUsers.map((i, id) => (
-            <div
-              className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-gray-50"
-              key={i.username}
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex flex-1 items-center gap-4">
-                  <span
-                    data-slot="avatar"
-                    className="relative flex size-10 h-12 w-12 shrink-0 overflow-hidden rounded-full"
-                  >
-                    <span
-                      data-slot="avatar-fallback"
-                      className="flex size-full items-center justify-center rounded-full bg-blue-100 text-blue-700"
-                    >
-                      {i.username.length >= 2 ? (
-                        i.username.slice(0, 2).toUpperCase()
-                      ) : (
-                        <Icon icon="lucide:user" />
-                      )}
-                    </span>
-                  </span>
-                  <div className="flex-1">
-                    <div className="mb-1 flex items-center gap-2">
-                      <h4 className="font-medium">{i.username}</h4>
-                    </div>
-                  </div>
-                  <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/40 bg-current/20 px-2 py-0.5 text-xs text-purple-700">
-                    <Icon icon="lucide:crown" />
-                    Owner
-                  </span>
-                </div>
-                {id !== 0 && (
-                  <Button size="icon-lg" variant="ghost">
-                    <Icon icon="lucide:edit" className="size-5" />
-                  </Button>
-                )}
-              </div>
-              <div className="ml-16 border-t pt-2">
-                <p className="mb-2 text-xs text-gray-500">
-                  Shared Devices ({i.devices.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {i.devices.map(i => (
-                    <span
-                      data-slot="badge"
-                      className="[&amp;&gt;svg]:size-3 [&amp;&gt;svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-foreground [a&amp;]:hover:bg-accent [a&amp;]:hover:text-accent-foreground inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border bg-gray-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px]"
-                    >
-                      <DeviceIcon type="UNKNOWN" />
-                      {i.deviceName}
-                      <span className="ml-1 text-gray-400">
-                        ({capitalizeFirstLetter(i.role ?? '')})
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
+          {owner && <UserItem user={owner} isCurrentUser />}
+          {flatUsersWithoutOwner.map(i => (
+            <UserItem user={i} key={i.username} />
           ))}
         </Card>
 
@@ -268,5 +203,77 @@ export const UsersPage = () => {
         {/* </Card> */}
       </PageLayout>
     </>
+  );
+};
+
+const UserItem = ({
+  user,
+  isCurrentUser = false,
+}: {
+  user: {
+    username: string;
+    devices: GetUsersApiResponse[keyof GetUsersApiResponse];
+  };
+  isCurrentUser?: boolean;
+}) => {
+  return (
+    <div
+      className="flex flex-col rounded-lg border p-4 transition-colors hover:bg-gray-50"
+      key={user.username}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex flex-1 items-center gap-4">
+          <span
+            data-slot="avatar"
+            className="relative flex size-10 h-12 w-12 shrink-0 overflow-hidden rounded-full"
+          >
+            <span
+              data-slot="avatar-fallback"
+              className="flex size-full items-center justify-center rounded-full bg-blue-100 text-blue-700"
+            >
+              {user.username.length >= 2 ? (
+                user.username.slice(0, 2).toUpperCase()
+              ) : (
+                <Icon icon="lucide:user" />
+              )}
+            </span>
+          </span>
+          <div className="flex-1">
+            <div className="mb-1 flex items-center gap-2">
+              <h4 className="font-medium">{user.username}</h4>
+            </div>
+          </div>
+          {isCurrentUser && (
+            <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/40 bg-current/20 px-2 py-0.5 text-xs text-green-700">
+              You
+            </span>
+          )}
+        </div>
+        {!isCurrentUser && (
+          <Button size="icon-lg" variant="ghost">
+            <Icon icon="lucide:edit" className="size-5" />
+          </Button>
+        )}
+      </div>
+      <div className="ml-16 border-t pt-2">
+        <p className="mb-2 text-xs text-gray-500">
+          Shared Devices ({user.devices.length})
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {user.devices.map(i => (
+            <span
+              data-slot="badge"
+              className="[&amp;&gt;svg]:size-3 [&amp;&gt;svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-foreground [a&amp;]:hover:bg-accent [a&amp;]:hover:text-accent-foreground inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border bg-gray-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px]"
+            >
+              <DeviceIcon type="UNKNOWN" />
+              {i.deviceName}
+              <span className="ml-1 text-gray-400">
+                ({capitalizeFirstLetter(i.role ?? '')})
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
