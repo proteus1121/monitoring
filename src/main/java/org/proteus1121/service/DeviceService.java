@@ -34,11 +34,10 @@ public class DeviceService {
         return deviceEntity.map(deviceMapper::toDevice);
     }
 
-    @Transactional
     public Device createDevice(Device device, Long ownerId) {
 
         DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device));
-        Set<UserDevices> userDevices = userDeviceService.shareDevice(device.getId(), Map.of(ownerId, DeviceRole.OWNER));
+        Set<UserDevices> userDevices = userDeviceService.shareDevice(deviceEntity.getId(), Map.of(ownerId, DeviceRole.OWNER));
 
         Device createdDevice = deviceMapper.toDevice(deviceEntity, userDevices);
         configurationPublisher.publish(ownerId, deviceEntity.getId(),

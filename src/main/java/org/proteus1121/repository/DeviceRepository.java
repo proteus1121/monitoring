@@ -16,7 +16,7 @@ public interface DeviceRepository extends JpaRepository<DeviceEntity, Long> {
     List<DeviceEntity> findDevicesByUserId(@Param("userId") Long userId);
 
     @EntityGraph(attributePaths = { "userDevices", "userDevices.user" })
-    @Query("SELECT d FROM DeviceEntity d WHERE d.id = :id")
+    @Query("SELECT d FROM DeviceEntity d JOIN d.userDevices ud WHERE d.id = :id")
     Optional<DeviceEntity> findByIdWithUsers(@Param("id") Long id);
 
 

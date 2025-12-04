@@ -60,7 +60,8 @@ public class DeviceController {
     @PostMapping
     @Operation(summary = "Create a new device", description = "Creates a new device for the current user")
     public ResponseEntity<Device> createDevice(@RequestBody DeviceRequest deviceRequest) {
-        Device createdDevice = deviceService.createDevice(deviceMapper.toDevice(deviceRequest), getCurrentUser().getId());
+        Device device = deviceMapper.toDevice(deviceRequest);
+        Device createdDevice = deviceService.createDevice(device, getCurrentUser().getId());
         return ResponseEntity.ok(createdDevice);
     }
 

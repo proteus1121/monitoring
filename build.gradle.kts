@@ -31,6 +31,7 @@ dependencies {
 
     // Jakarta Validation
     implementation("jakarta.validation:jakarta.validation-api:3.1.0")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
 
     // Mapstruct
     implementation("org.mapstruct:mapstruct:1.5.5.Final")
