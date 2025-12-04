@@ -1,6 +1,7 @@
 package org.proteus1121.model.request;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,7 +24,7 @@ public class DeviceRequest {
     
     private Double lowerValue;
 
-    @NotBlank
+    @NotNull
     private Long delay; // in ms
     
     private DeviceType type;
