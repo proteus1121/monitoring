@@ -2,16 +2,20 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ModalId, ModalsList } from './modals.types';
 import { DeviceCreationModalId } from './DeviceCreationModal';
 import { AlertTemplateCreationModalId } from './AlertTemplateCreationModal';
-import { AlertDialogModalId } from './AlertDialog';
+import { AppAlertDialogModalId } from './AlertDialog';
 import { AlertTemplateUpdatingModalId } from './AlertTemplateUpdatingModal';
 import { DeviceUpdatingModalId } from './DeviceUpdatingModal';
+import { DeviceSharingCreationModalId } from './DeviceSharingCreationModal';
+import { DeviceSharingUpdatingModalId } from './DeviceSharingUpdatingModal';
 
 const initialState: ModalsList = {
   [DeviceCreationModalId]: false,
   [AlertTemplateCreationModalId]: false,
-  [AlertDialogModalId]: null,
+  [AppAlertDialogModalId]: null,
   [AlertTemplateUpdatingModalId]: null,
   [DeviceUpdatingModalId]: null,
+  [DeviceSharingCreationModalId]: false,
+  [DeviceSharingUpdatingModalId]: null,
 };
 
 export const modalsSlice = createSlice({

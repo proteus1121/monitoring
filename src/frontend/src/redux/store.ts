@@ -2,9 +2,11 @@ import { configureStore } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { modalsSlice } from './modals/modals.slice';
 import { uiSlice } from './ui/ui.slice';
+import { api } from './api';
 
 export const store = configureStore({
   reducer: {
+    [api.reducerPath]: api.reducer,
     modals: modalsSlice.reducer,
     ui: uiSlice.reducer,
   },
@@ -12,7 +14,7 @@ export const store = configureStore({
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       serializableCheck: false,
-    }),
+    }).concat(api.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

@@ -47,12 +47,13 @@ export enum DeviceType {
 }
 
 export enum NotificationType {
-  INFO = 'INFO', 
-  WARNING = 'WARNING', 
-  CRITICAL = 'CRITICAL'
+  INFO = 'INFO',
+  WARNING = 'WARNING',
+  CRITICAL = 'CRITICAL',
 }
 
-export const NOTIFICATION_TYPES: NotificationType[] = Object.values(NotificationType);
+export const NOTIFICATION_TYPES: NotificationType[] =
+  Object.values(NotificationType);
 
 export interface Metrics {
   timestamp: string; // ISO date string
@@ -73,6 +74,7 @@ export type CreateTelegramNotificationRequest = {
   template: string;
 };
 
-export type UpdateTelegramNotificationRequest = CreateTelegramNotificationRequest & {
-  id: number;
-};
+export type UpdateTelegramNotificationRequest =
+  CreateTelegramNotificationRequest & {
+    id: number;
+  };

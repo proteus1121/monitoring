@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import DeviceDataChart from './components/DeviceDataChart';
-import { useApi } from '@src/lib/api/ApiProvider';
-import { Device } from '@src/lib/api/api.types';
-import { DatePicker, notification } from 'antd';
+import { DatePicker } from 'antd';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Card } from '@src/components/Card';
@@ -16,32 +14,12 @@ import {
 } from '@src/components/Select';
 import dayjs, { Dayjs } from 'dayjs';
 import { Loader } from '@src/components/Loader';
+import { useGetAllDevicesQuery } from '@src/redux/generatedApi';
 
 const { RangePicker } = DatePicker;
 
 export const DashboardPage = () => {
-  const api = useApi();
-  const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  useEffect(() => {
-    const onLoad = async () => {
-      setIsLoading(true);
-      const res = await api.getDevices();
-      if (!res.ok) {
-        notification.error({
-          message: 'Failed to get devices',
-          description: res.message,
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      setDevices(res.data);
-      if (res.data[0].id) setChoosenDevicesIds([res.data[0].id]);
-      setIsLoading(false);
-    };
-    onLoad();
-  }, [api, setDevices]);
+  const { data: devices, isLoading } = useGetAllDevicesQuery();
 
   const [choosenDevicesIds, setChoosenDevicesIds] = useState<number[]>([]);
 
@@ -50,7 +28,7 @@ export const DashboardPage = () => {
   );
   const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
 
-  if (!devices || isLoading) {
+  if (isLoading) {
     return <Loader />;
   }
 

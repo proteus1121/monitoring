@@ -20,6 +20,7 @@ import {
 import { FieldGroup } from '@src/components/Field';
 import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
+import { useUpdateNotificationMutation } from '../generatedApi';
 
 export const AlertTemplateUpdatingModalId = 'alert-template-updating-modal-id';
 export type AlertTemplateUpdatingModal = ModalState<
@@ -37,7 +38,7 @@ type CreateAlert = z.infer<typeof UpdateAlertTemplateSchema>;
 
 export function AlertTemplateUpdatingModal() {
   const { state, setState } = useModal(AlertTemplateUpdatingModalId);
-  const api = useApi();
+  const [updateNotification] = useUpdateNotificationMutation();
 
   const form = useAppForm({
     defaultValues: {
@@ -58,27 +59,23 @@ export function AlertTemplateUpdatingModal() {
         return;
       }
 
-      const res = await api.updateNotification({
-        ...parsed.data,
+      const res = await updateNotification({
+        telegramNotificationRequest: parsed.data,
         id: state.id,
       });
-      if (res.ok) {
+      if (res.data) {
         notification.success({
           message: `alert template for chatId:${value.telegramChatId} created succesfully`,
         });
       } else {
         notification.error({
           message: 'Failed to create alert template',
-          description: res.message,
+          description: JSON.stringify(res.error),
         });
       }
 
       form.reset();
       setState(null);
-
-      //HACK : workaround because we do not have query caching yet, so alerts wouldn't be refetched
-      // TODO: remove when react-query will be used
-      window.location.reload();
     },
   });
 
