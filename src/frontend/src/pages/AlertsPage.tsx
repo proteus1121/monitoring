@@ -1,10 +1,6 @@
 import { useApi } from '@src/lib/api/ApiProvider';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  TelegramNotification,
-  UpdateTelegramNotificationRequest,
-  NotificationType,
-} from '@src/lib/api/api.types';
+import { TelegramNotification, NotificationType } from '@src/lib/api/api.types';
 import { Loader } from '@src/components/Loader';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { notification } from 'antd';
@@ -24,7 +20,7 @@ import { useModal } from '@src/redux/modals/modals.hook';
 import { AlertTemplateCreationModalId } from '@src/redux/modals/AlertTemplateCreationModal';
 import { H1, H3 } from '@src/components/Text';
 import { cn } from '@src/lib/classnameUtils';
-import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { AlertTemplateUpdatingModalId } from '@src/redux/modals/AlertTemplateUpdatingModal';
 
 const alertTemplateDropdownOptions = [
@@ -46,7 +42,7 @@ const alertTemplateDropdownOptions = [
   },
 ];
 
-const NotificationsPage = () => {
+const AlertsPage = () => {
   const api = useApi();
   const [items, setItems] = useState<Array<TelegramNotification>>([]);
   const [templateType, setTemplateType] = useState<{
@@ -96,7 +92,7 @@ const NotificationsPage = () => {
   };
 
   const { setState } = useModal(AlertTemplateCreationModalId);
-  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: deletionModal } = useModal(AppAlertDialogModalId);
   const { setState: editModal } = useModal(AlertTemplateUpdatingModalId);
 
   if (isLoading && !items) {
@@ -573,4 +569,4 @@ const NotificationsPage = () => {
   );
 };
 
-export default NotificationsPage;
+export default AlertsPage;

@@ -6,12 +6,14 @@
     "dev:local": "cross-env NODE_ENV=development BASE_URL=http://localhost:8080 webpack serve --config webpack.config.mjs",
     "proxy": "node proxy/proxy-server.js",
     "webpack": "cross-env NODE_ENV=development BASE_URL=https://localhost:4000 webpack serve --config webpack.config.mjs",
+    "api-typegen": "npx @rtk-query/codegen-openapi openapi-config.ts",
     "dev:staging": "npm-run-all --parallel proxy webpack",
     "build": "cross-env NODE_ENV=production webpack --config webpack.config.mjs"
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@reduxjs/toolkit": "^2.10.1",
+    "@rtk-query/codegen-openapi": "^2.1.0",
     "@tailwindcss/postcss": "^4.0.6",
     "@tanstack/react-form": "^1.25.0",
     "@types/node": "^24.0.15",
@@ -21,6 +23,7 @@
     "chart.js": "^4.5.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "copy-webpack-plugin": "^13.0.0",
     "dayjs": "^1.11.19",
     "esbuild-loader": "^4.3.0",

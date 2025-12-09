@@ -1,9 +1,7 @@
-import { useApi } from '@src/lib/api/ApiProvider';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { notification } from 'antd';
-import { Device, DeviceStatus } from '@src/lib/api/api.types';
 import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { Button } from '@src/components/Button';
@@ -11,86 +9,46 @@ import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
-import { Switch } from '@src/components/Switch';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { H1, H3 } from '@src/components/Text';
-import { AlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
 import {
-  DeviceUpdatingModal,
-  DeviceUpdatingModalId,
-} from '@src/redux/modals/DeviceUpdatingModal';
+  Device,
+  useDeleteDeviceMutation,
+  useGetAllDevicesQuery,
+} from '@src/redux/generatedApi';
 
 dayjs.extend(relativeTime);
 const DevicesPage = () => {
-  const api = useApi();
-  const [devices, setDevices] = useState<Array<Device> | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { data: devices, isLoading, error } = useGetAllDevicesQuery();
 
-  const fetchDevices = async () => {
-    setIsLoading(true);
-    const res = await api.getDevices();
-    if (!res.ok) {
-      notification.error({
-        message: 'Failed to fetch devices',
-        description: res.message,
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(false);
-    setDevices(res.data);
-  };
+  const [deleteDeviceMutation] = useDeleteDeviceMutation();
 
   useEffect(() => {
-    fetchDevices();
-  }, [api, setDevices]);
+    if (error) {
+      notification.error({
+        message: `Failed to load devices:${JSON.stringify(error)}`,
+      });
+    }
+  }, [error]);
 
   const handleDelete = async (deviceId: number, deviceName?: string) => {
-    const res = await api.deleteDevice(deviceId);
-    if (res.ok) {
+    const res = await deleteDeviceMutation({
+      id: deviceId,
+    });
+
+    if (res.data) {
       notification.success({ message: `Deleted ${deviceName ?? 'device'}` });
     }
-
-    await fetchDevices();
-  };
-
-  const handleUpdate = async (device: Device) => {
-    if (!device.id || !device.name) {
-      notification.error({
-        message: 'Failed to update device',
-        description: 'Device should have id and name',
-      });
-      return;
-    }
-
-    const res = await api.updateDevice({
-      id: device.id!,
-      deviceType: device.type,
-      name: device.name,
-      delay: device.delay,
-      description: device.description,
-      criticalValue: device.criticalValue,
-      lowerValue: device.lowerValue,
-    });
-    if (res.ok) {
-      notification.success({ message: `${device.name} updated succesfully` });
-    } else {
-      notification.error({
-        message: 'Failed to update device',
-        description: res.message,
-      });
-    }
-
-    await fetchDevices();
   };
 
   const { setState } = useModal(DeviceCreationModalId);
 
-  const { setState: deletionModal } = useModal(AlertDialogModalId);
+  const { setState: deletionModal } = useModal(AppAlertDialogModalId);
   const { setState: updationModal } = useModal(DeviceUpdatingModalId);
 
-  if (isLoading && !devices) {
+  if (isLoading) {
     return <Loader />;
   }
 
@@ -148,51 +106,81 @@ function DeviceCard(props: {
   onUpdate: () => void;
 }) {
   return (
-    <Card className="flex flex-col gap-6 transition-shadow hover:shadow-lg">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
-            <div className="grid aspect-square place-items-center text-xs">
-              icon
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold">{props.device.name}</h3>
-            <p className="text-sm text-gray-500">{props.device.description}</p>
-          </div>
+    <Card className="bg-card text-card-foreground flex w-full flex-col gap-6 rounded-xl border">
+      <div className="flex items-center gap-3">
+        <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
+          <DeviceIcon type={props.device.type} className="size-5" />
+        </div>
+        <div>
+          <h3 className="font-semibold">{props.device.name}</h3>
+        </div>
+      </div>
+      <div className="flex h-full gap-4">
+        <p className="text-sm leading-relaxed text-slate-600">
+          {props.device.description}
+        </p>
+      </div>
+      <div className="flex gap-2 border-t pt-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-2 text-xs text-white ${getColorByStatus(props.device.status)}`}
+          >
+            {props.device.status}
+          </span>
         </div>
 
-        <span
-          className={`rounded-full px-2 text-xs text-white ${getColorByStatus(props.device.status)}`}
-        >
-          {props.device.status}
-        </span>
-      </div>
-      <div className="flex items-center justify-between">
-        <Button size="icon" variant="ghost" onClick={props.onUpdate}>
-          <Icon icon="lucide:edit" />
-        </Button>
+        <div className="ml-auto flex justify-between">
+          <div className="flex w-9 items-center gap-1">
+            <Icon icon="lucide:user" />
+            {props.device.userDevices?.length}
+          </div>
 
-        <Button size="icon" variant="ghost" onClick={props.onDelete}>
-          <Icon icon="lucide:trash-2" />
-        </Button>
+          <Button size="icon" variant="ghost" onClick={props.onUpdate}>
+            <Icon icon="lucide:edit" />
+          </Button>
+
+          <Button size="icon" variant="ghost" onClick={props.onDelete}>
+            <Icon icon="lucide:trash-2" />
+          </Button>
+        </div>
       </div>
     </Card>
   );
 }
 
-function getColorByStatus(status?: DeviceStatus) {
-  if (status === DeviceStatus.OK) {
+export function DeviceIcon({
+  type,
+  className,
+}: {
+  type: Device['type'];
+  className?: string;
+}) {
+  let icon = 'lucide:microchip';
+
+  if (type === 'TEMPERATURE') icon = 'lucide:thermometer';
+  if (type === 'SMOKE') icon = 'lucide:cloud';
+  if (type === 'FLAME') icon = 'lucide:flame';
+  if (type === 'LIGHT') icon = 'lucide:lightbulb';
+  if (type === 'HUMIDITY') icon = 'lucide:droplet';
+
+  return <Icon icon={icon} className={className} />;
+}
+
+function getColorByStatus(status?: Device['status']) {
+  if (status === 'OK') {
     return 'bg-green-500';
   }
 
-  if (status === DeviceStatus.WARNING) {
+  if (status === 'WARNING') {
     return 'bg-orange-500';
   }
 
-  if (status === DeviceStatus.CRITICAL) {
+  if (status === 'CRITICAL') {
     return 'bg-red-500';
   }
+  if (status === 'OFFLINE') {
+    return 'bg-gray-700';
+  }
 
-  return 'bg-gray-700';
+  return 'bg-black';
 }

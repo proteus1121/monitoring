@@ -1,7 +1,5 @@
 import { useModal } from './modals.hook';
 import { ModalState } from './modals.types';
-import { Device, DeviceType } from '@src/lib/api/api.types';
-import { useApi } from '@src/lib/api/ApiProvider';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
 import {
@@ -16,6 +14,9 @@ import z from 'zod';
 import { useAppForm } from '@src/components/Form';
 import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
+import { Device, useUpdateDeviceMutation } from '../generatedApi';
+import { DeviceType } from '@src/lib/api/api.types';
+import { useEffect } from 'react';
 
 export const DeviceUpdatingModalId = 'device-updating-modal-id';
 export type DeviceUpdatingModal = ModalState<
@@ -24,17 +25,17 @@ export type DeviceUpdatingModal = ModalState<
 >;
 
 export const UpdateDeviceSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
+  name: z.string().min(1).max(30),
+  description: z.string().max(100).optional(),
   criticalValue: z.coerce.number<string>().or(z.undefined()),
   lowerValue: z.coerce.number<string>().or(z.undefined()),
-  delayMs: z.coerce.number<string>().or(z.undefined()),
-  deviceType: z.enum(DeviceType).optional(),
+  delay: z.coerce.number<string>(),
+  deviceType: z.enum(DeviceType).optional(), // TODO: try to inherit DeviceType from Device provided by openapi
 });
 
 export function DeviceUpdatingModal() {
   const { state, setState } = useModal(DeviceUpdatingModalId);
-  const api = useApi();
+  const [updateDevice] = useUpdateDeviceMutation();
 
   const form = useAppForm({
     defaultValues: state,
@@ -47,30 +48,38 @@ export function DeviceUpdatingModal() {
       if (!parsed.success) {
         return;
       }
-      if (!state || !state.id) {
+      const id = state?.id;
+
+      if (!id) {
         return;
       }
 
-      const res = await api.updateDevice({ ...parsed.data, id: state.id });
-      if (res.ok) {
+      const res = await updateDevice({
+        id,
+        deviceRequest: {
+          ...parsed.data,
+        },
+      });
+
+      if (res.data) {
         notification.success({
           message: `${parsed.data.name} created succesfully`,
         });
       } else {
         notification.error({
           message: 'Failed to create device',
-          description: res.message,
+          description: JSON.stringify(res.error),
         });
       }
 
       form.reset();
       setState(null);
-
-      //HACK : workaround because we do not have query caching yet, so devices wouldn't be refetched
-      // TODO: remove when react-query will be used
-      window.location.reload();
     },
   });
+
+  useEffect(() => {
+    form.reset();
+  }, [state]);
 
   return (
     <Dialog
@@ -89,7 +98,7 @@ export function DeviceUpdatingModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Create Device</DialogTitle>
+            <DialogTitle>Update Device</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <FieldGroup>
@@ -113,22 +122,24 @@ export function DeviceUpdatingModal() {
                 )}
               />
 
-              <form.AppField
-                name="criticalValue"
-                children={field => (
-                  <field.TextField label="Critical value" placeholder="0" />
-                )}
-              />
+              <div className="flex gap-2">
+                <form.AppField
+                  name="criticalValue"
+                  children={field => (
+                    <field.TextField label="Critical value" placeholder="0" />
+                  )}
+                />
+
+                <form.AppField
+                  name="lowerValue"
+                  children={field => (
+                    <field.TextField label="Lower value" placeholder="0" />
+                  )}
+                />
+              </div>
 
               <form.AppField
-                name="lowerValue"
-                children={field => (
-                  <field.TextField label="Lower value" placeholder="0" />
-                )}
-              />
-
-              <form.AppField
-                name="delayMs"
+                name="delay"
                 children={field => (
                   <field.TextField label="Delay (ms)" placeholder="1000" />
                 )}
@@ -137,7 +148,7 @@ export function DeviceUpdatingModal() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button>Cancel</Button>
+              <Button variant="secondary">Cancel</Button>
             </DialogClose>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}

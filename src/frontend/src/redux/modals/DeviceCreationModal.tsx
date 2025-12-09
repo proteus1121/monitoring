@@ -1,7 +1,6 @@
 import { useModal } from './modals.hook';
 import { SimpleModalState } from './modals.types';
 import { DeviceType } from '@src/lib/api/api.types';
-import { useApi } from '@src/lib/api/ApiProvider';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
 import {
@@ -16,6 +15,7 @@ import z from 'zod';
 import { useAppForm } from '@src/components/Form';
 import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
+import { useCreateDeviceMutation } from '../generatedApi';
 
 export const DeviceCreationModalId = 'device-creation-modal-id';
 export type DeviceCreationModal = SimpleModalState<
@@ -24,19 +24,23 @@ export type DeviceCreationModal = SimpleModalState<
 
 export const CreateDeviceSchema = z.object({
   name: z.string().min(1),
-  description: z.string().optional(),
+  description: z.string().max(200).optional(),
   criticalValue: z.coerce.number<string>().or(z.undefined()),
   lowerValue: z.coerce.number<string>().or(z.undefined()),
-  delayMs: z.coerce.number<string>().or(z.undefined()),
+  delay: z.coerce.number<string>(),
   deviceType: z.enum(DeviceType).optional(),
 });
+
 type CreateDevice = z.infer<typeof CreateDeviceSchema>;
 
 export function DeviceCreationModal() {
   const { state, setState } = useModal(DeviceCreationModalId);
-  const api = useApi();
+  const [createDevice] = useCreateDeviceMutation();
 
   const form = useAppForm({
+    defaultValues: {
+      delay: 1000,
+    } as Partial<CreateDevice>,
     validators: {
       onSubmit: CreateDeviceSchema as any,
     },
@@ -47,24 +51,20 @@ export function DeviceCreationModal() {
         return;
       }
 
-      const res = await api.createDevice(parsed.data);
-      if (res.ok) {
+      const res = await createDevice({ deviceRequest: parsed.data });
+      if (res.data) {
         notification.success({
           message: `${parsed.data.name} created succesfully`,
         });
       } else {
         notification.error({
           message: 'Failed to create device',
-          description: res.message,
+          description: JSON.stringify(res.error),
         });
       }
 
       form.reset();
       setState(false);
-
-      //HACK : workaround because we do not have query caching yet, so devices wouldn't be refetched
-      // TODO: remove when react-query will be used
-      window.location.reload();
     },
   });
 
@@ -104,22 +104,24 @@ export function DeviceCreationModal() {
                 )}
               />
 
-              <form.AppField
-                name="criticalValue"
-                children={field => (
-                  <field.TextField label="Critical value" placeholder="0" />
-                )}
-              />
+              <div className="flex gap-2">
+                <form.AppField
+                  name="criticalValue"
+                  children={field => (
+                    <field.TextField label="Critical value" placeholder="0" />
+                  )}
+                />
+
+                <form.AppField
+                  name="lowerValue"
+                  children={field => (
+                    <field.TextField label="Lower value" placeholder="0" />
+                  )}
+                />
+              </div>
 
               <form.AppField
-                name="lowerValue"
-                children={field => (
-                  <field.TextField label="Lower value" placeholder="0" />
-                )}
-              />
-
-              <form.AppField
-                name="delayMs"
+                name="delay"
                 children={field => (
                   <field.TextField label="Delay (ms)" placeholder="1000" />
                 )}
@@ -128,7 +130,7 @@ export function DeviceCreationModal() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button>Cancel</Button>
+              <Button variant="secondary">Cancel</Button>
             </DialogClose>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
