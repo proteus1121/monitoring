@@ -14,6 +14,8 @@ public enum DeviceType {
     SMOKE,
     FLAME,
     LIGHT,
+    PRESSURE,
+    MOTION,
     UNKNOWN;
     
 }
