@@ -14,9 +14,9 @@ std::vector<float> PIRSensor::read() {
 }
 
 std::vector<String> PIRSensor::getMeasurementNames() {
-    return {"Motion"}; 
+    return {"Motion"};
 }
 
 std::vector<String> PIRSensor::getUnits() {
-    return {""}; 
+    return {""};
 }

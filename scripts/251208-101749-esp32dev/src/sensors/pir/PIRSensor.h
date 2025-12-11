@@ -1,8 +1,8 @@
 #ifndef PIR_SENSOR_H
 #define PIR_SENSOR_H
 
-#include <Arduino.h>
 #include "../ISensor.h"
+#include <Arduino.h>
 
 class PIRSensor : public ISensor {
 public:

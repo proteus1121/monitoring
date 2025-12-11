@@ -7,7 +7,7 @@
 
 class BMP180Sensor : public ISensor {
 public:
-    BMP180Sensor();   // I2C – no pin needed
+    BMP180Sensor(); // I2C – no pin needed
 
     void init() override;
     std::vector<float> read() override;

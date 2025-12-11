@@ -1,54 +1,100 @@
 #include "Storage.h"
+#include <Preferences.h>
 
-static const int EEPROM_SIZE = 256;
-
-static const int SSID_ADDR = 0;       // [len][data]
-static const int PASS_ADDR = 64;      // [len][data]
+static Preferences prefs;
 
 void Storage::begin() {
-    EEPROM.begin(EEPROM_SIZE);
+    // Open namespace "monitor" for RW access
+    prefs.begin("monitor", false);
 }
 
+// =============================
+//          WI-FI
+// =============================
 void Storage::saveCredentials(const String &ssid, const String &pass) {
-    // --- Save SSID --- //
-    uint8_t len = ssid.length();
-    EEPROM.write(SSID_ADDR, len);
-    for (int i = 0; i < len; i++) {
-        EEPROM.write(SSID_ADDR + 1 + i, ssid[i]);
-    }
-
-    // --- Save PASS --- //
-    uint8_t len2 = pass.length();
-    EEPROM.write(PASS_ADDR, len2);
-    for (int i = 0; i < len2; i++) {
-        EEPROM.write(PASS_ADDR + 1 + i, pass[i]);
-    }
-
-    EEPROM.commit();
+    prefs.putString("ssid", ssid);
+    prefs.putString("pass", pass);
 }
 
 String Storage::loadSSID() {
-    uint8_t len = EEPROM.read(SSID_ADDR);
-    if (len == 0 || len > 32) return "";
-
-    char buf[33];
-    for (int i = 0; i < len; i++) {
-        buf[i] = EEPROM.read(SSID_ADDR + 1 + i);
-    }
-    buf[len] = '\0';
-
-    return String(buf);
+    if (!prefs.isKey("ssid"))
+        return String("");
+    return prefs.getString("ssid", "");
 }
 
 String Storage::loadPASS() {
-    uint8_t len = EEPROM.read(PASS_ADDR);
-    if (len == 0 || len > 64) return "";
+    if (!prefs.isKey("pass"))
+        return String("");
+    return prefs.getString("pass", "");
+}
 
-    char buf[65];
-    for (int i = 0; i < len; i++) {
-        buf[i] = EEPROM.read(PASS_ADDR + 1 + i);
-    }
-    buf[len] = '\0';
+// =============================
+//         USER ID
+// =============================
+void Storage::saveUserId(const String &userId) {
+    prefs.putString("userid", userId);
+}
 
-    return String(buf);
+String Storage::loadUserId() {
+    if (!prefs.isKey("userid"))
+        return String("");
+    return prefs.getString("userid", "");
+}
+
+// =============================
+//       MQTT USERNAME
+// =============================
+void Storage::saveMqttUser(const String &user) {
+    prefs.putString("mqtt_user", user);
+}
+
+String Storage::loadMqttUser() {
+    if (!prefs.isKey("mqtt_user"))
+        return String("");
+    return prefs.getString("mqtt_user", "");
+}
+
+// =============================
+//       MQTT PASSWORD
+// =============================
+void Storage::saveMqttPass(const String &pass) {
+    prefs.putString("mqtt_pass", pass);
+}
+
+String Storage::loadMqttPass() {
+    if (!prefs.isKey("mqtt_pass"))
+        return String("");
+    return prefs.getString("mqtt_pass", "");
+}
+
+// =============================
+//       MQTT SERVER
+// =============================
+void Storage::saveMqttServer(const String &server) {
+    prefs.putString("mqtt_server", server);
+}
+
+String Storage::loadMqttServer() {
+    if (!prefs.isKey("mqtt_server"))
+        return String("");
+    return prefs.getString("mqtt_server", "");
+}
+
+// =============================
+//       MQTT PORT
+// =============================
+void Storage::saveMqttPort(uint16_t port) {
+    prefs.putString("mqtt_port", String(port));
+}
+
+uint16_t Storage::loadMqttPort() {
+    if (!prefs.isKey("mqtt_port"))
+        return 0;
+    String s = prefs.getString("mqtt_port", "0");
+    return (uint16_t)s.toInt();
+}
+
+void Storage::sync() {
+    // Close preferences to ensure data is flushed to NVS
+    prefs.end();
 }

@@ -14,13 +14,14 @@ void BMP180Sensor::init() {
 }
 
 // Odesa average sea-level pressure
-const float SEA_LEVEL_PRESSURE = 101900;  // Pa
+const float SEA_LEVEL_PRESSURE = 101900; // Pa
 
 std::vector<float> BMP180Sensor::read() {
-    if (!bmp.begin()) return {}; // sensor missing
+    if (!bmp.begin())
+        return {}; // sensor missing
 
-    float temperature = bmp.readTemperature();   // °C
-    int32_t pressure = bmp.readPressure();       // Pa
+    float temperature = bmp.readTemperature(); // °C
+    int32_t pressure = bmp.readPressure();     // Pa
 
     // Convert pressure to hPa
     float pressure_hPa = pressure / 100.0f;

@@ -3,5 +3,6 @@
 
 void initSensors();
 void readAllSensors();
+void publishPendingToMQTT();
 
 #endif

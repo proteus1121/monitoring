@@ -1,10 +1,10 @@
 #ifndef IR_SENSOR_H
 #define IR_SENSOR_H
 
-#include <Arduino.h>
 #include "../ISensor.h"
+#include <Arduino.h>
 
-class IRSensor  : public ISensor {
+class IRSensor : public ISensor {
 public:
     IRSensor(int pin);
 
