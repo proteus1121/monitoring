@@ -2,8 +2,7 @@ package org.proteus1121.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.proteus1121.model.dto.user.UserDevices;
-import org.proteus1121.model.dto.user.User;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.enums.DeviceRole;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
@@ -35,30 +34,23 @@ public class DeviceService {
     }
 
     public Device createDevice(Device device, Long ownerId) {
-
         DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device));
-        Set<UserDevices> userDevices = userDeviceService.shareDevice(deviceEntity.getId(), Map.of(ownerId, DeviceRole.OWNER));
-
+        Set<DeviceUser> userDevices = userDeviceService.shareDevice(deviceEntity.getId(), Map.of(ownerId, DeviceRole.OWNER));
         Device createdDevice = deviceMapper.toDevice(deviceEntity, userDevices);
         configurationPublisher.publish(ownerId, deviceEntity.getId(),
                 deviceMapper.toDeviceConfiguration(createdDevice));
-
         return createdDevice;
     }
 
     @Transactional
     public Device updateDevice(Long id, Device device) {
-
         DeviceEntity deviceEntity = deviceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Device " + id + " not found")); // TODO: custom exception
-
         deviceMapper.toDevice(device, deviceEntity);
         deviceEntity = deviceRepository.save(deviceEntity);
-
         Device updatedDevice = deviceMapper.toDevice(deviceEntity);
-        getUsersByDeviceId(id).forEach(user -> 
-                configurationPublisher.publish(user.getId(), id, deviceMapper.toDeviceConfiguration(updatedDevice)));
-
+        getUsersByDeviceId(id).forEach(user ->
+                configurationPublisher.publish(user.getUserId(), id, deviceMapper.toDeviceConfiguration(updatedDevice)));
         return updatedDevice;
     }
 
@@ -68,7 +60,7 @@ public class DeviceService {
 
     public List<Device> getAllDevices(Long userId) {
         return deviceRepository.findDevicesByUserId(userId).stream()
-                .map(deviceMapper::toDevice)
+                .map(deviceEntity -> deviceMapper.toDeviceWithUsers(deviceEntity, userDeviceService.getUserDeviceMapper()))
                 .toList();
     }
 
@@ -78,20 +70,17 @@ public class DeviceService {
             throw new RuntimeException("Device " + id + " not found");
         }
         Device device = deviceOpt.get();
-
         Long currentUserId = getCurrentUser().getId();
         boolean hasAccess = device.getUserDevices().stream()
-                .anyMatch(ud -> Objects.equals(ud.getId(), currentUserId)
+                .anyMatch(ud -> Objects.equals(ud.getUserId(), currentUserId)
                         && ud.getRole().getPriority() >= requiredRole.getPriority());
-
         if (!hasAccess) {
             throw new RuntimeException("User does not have required role " + requiredRole + " for device " + id);
         }
-
         return device;
     }
 
-    public Set<User> getUsersByDeviceId(Long deviceId) {
+    public Set<DeviceUser> getUsersByDeviceId(Long deviceId) {
         return userDeviceService.getUsers(deviceId);
     }
 }

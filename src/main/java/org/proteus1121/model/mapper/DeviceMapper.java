@@ -8,7 +8,7 @@ import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
-import org.proteus1121.model.dto.user.UserDevices;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.request.DeviceRequest;
 
@@ -18,11 +18,8 @@ import java.util.Set;
 public interface DeviceMapper {
 
     @Named("toPlainDevice")
-    @Mapping(target = "userDevices", qualifiedByName = "toDeviceUser")
     Device toDevice(DeviceEntity deviceEntity);
-    
-    @Mapping(target = "userDevices", source = "userDevices")
-    Device toDevice(DeviceEntity deviceEntity, Set<UserDevices> userDevices);
+    Device toDevice(DeviceEntity deviceEntity, Set<DeviceUser> userDevices);
 
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
     @Mapping(target = "lastChecked", expression = "java(java.time.LocalDateTime.now())")
@@ -30,12 +27,10 @@ public interface DeviceMapper {
     Device toDevice(DeviceRequest deviceRequest);
 
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
-    @Mapping(target = "userDevices", ignore = true) // UserDevices will be set separately in the service
     @Mapping(target = "name", source = "device.name")
     DeviceEntity toDeviceEntity(Device device);
 
     @Mapping(target = "id", source = "id")
-    @Mapping(target = "userDevices", ignore = true)
     @Mapping(target = "name", source = "device.name")
     DeviceEntity toDeviceEntity(Long id, Device device);
     
@@ -45,7 +40,17 @@ public interface DeviceMapper {
     void toDevice(DeviceRequest deviceRequest, @MappingTarget Device device);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(target = "userDevices", ignore = true)
     void toDevice(Device device, @MappingTarget DeviceEntity deviceEntity);
 
+    @Named("toDeviceWithUsers")
+    default Device toDeviceWithUsers(DeviceEntity deviceEntity, UserDeviceMapper userDeviceMapper) {
+        Device device = toDevice(deviceEntity);
+        if (deviceEntity.getUserDevices() != null) {
+            Set<DeviceUser> users = deviceEntity.getUserDevices().stream()
+                .map(ude -> userDeviceMapper.toDeviceUserWithDeviceName(ude, deviceEntity.getName()))
+                .collect(java.util.stream.Collectors.toSet());
+            device.setUserDevices(users);
+        }
+        return device;
+    }
 }

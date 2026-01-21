@@ -1,9 +1,9 @@
 package org.proteus1121.model.request;
 
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.proteus1121.model.enums.DeviceRole;
+import org.proteus1121.validation.EnumValidator;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ public class ShareDeviceRequest {
     @NotNull
     private String username;
     @NotNull
-    @Pattern(regexp = "EDITOR|VIEWER", message = "Role must be EDITOR or VIEWER")
+    @EnumValidator(enumClass = DeviceRole.class, message = "Role must be a valid DeviceRole value")
     private DeviceRole role;
     
 }

@@ -6,6 +6,7 @@ import org.proteus1121.model.dto.incident.Incident;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.entity.IncidentEntity;
 import org.proteus1121.model.entity.UserDeviceEntity;
+import org.proteus1121.model.entity.UserDeviceId;
 import org.proteus1121.model.enums.Resolution;
 import org.proteus1121.model.enums.Severity;
 import org.proteus1121.model.mapper.DeviceMapper;

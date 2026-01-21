@@ -3,9 +3,7 @@ package org.proteus1121.service;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.proteus1121.model.dto.user.UserDevices;
-import org.proteus1121.model.dto.user.User;
-import org.proteus1121.model.entity.UserDeviceEntity;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.enums.DeviceRole;
 import org.proteus1121.model.mapper.UserDeviceMapper;
 import org.proteus1121.model.mapper.UserMapper;
@@ -26,7 +24,7 @@ public class UserDeviceService {
     private final EntityManager entityManager;
 
     @Transactional
-    public Set<UserDevices> shareDevice(Long deviceId, Map<Long, DeviceRole> users) {
+    public Set<DeviceUser> shareDevice(Long deviceId, Map<Long, DeviceRole> users) {
 
         return users.entrySet().stream()
                 .map(entry -> userDeviceRepository.findByUserIdAndDeviceId(entry.getKey(), deviceId)
@@ -49,11 +47,13 @@ public class UserDeviceService {
         userDeviceRepository.deleteByUserIdAndDeviceId(userId, deviceId);
     }
 
-    @Transactional
-    public Set<User> getUsers(Long deviceId) {
+    public Set<DeviceUser> getUsers(Long deviceId) {
         return userDeviceRepository.findByDeviceId(deviceId).stream()
-                .map(UserDeviceEntity::getUser)
-                .map(userMapper::toPlainUser)
+                .map(userDeviceMapper::toDeviceUser)
                 .collect(Collectors.toSet());
+    }
+
+    public UserDeviceMapper getUserDeviceMapper() {
+        return userDeviceMapper;
     }
 }

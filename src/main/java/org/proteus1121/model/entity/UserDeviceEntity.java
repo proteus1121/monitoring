@@ -26,31 +26,21 @@ public class UserDeviceEntity implements Serializable {
     @Column(name = "device_id")
     private Long deviceId;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @MapsId("userId")
-    @JoinColumn(name = "user_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private UserEntity user;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
-    @MapsId("deviceId")
-    @JoinColumn(name = "device_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "device_id", insertable = false, updatable = false)
     private DeviceEntity device;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false)
     private DeviceRole role;
-    
+
     public UserDeviceEntity(Long userId, Long deviceId, DeviceRole role) {
         this.userId = userId;
         this.deviceId = deviceId;
-        this.role = role;
-    }
-    
-    public UserDeviceEntity(UserEntity user, DeviceEntity device, DeviceRole role) {
-        this.user = user;
-        this.device = device;
-        this.userId = user.getId();
-        this.deviceId = device.getId();
         this.role = role;
     }
 }

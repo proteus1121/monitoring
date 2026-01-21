@@ -47,7 +47,7 @@ public class UserController {
     @Operation(summary = "Get all users", description = "Returns a list of all registered users")
     public Map<String, List<DeviceUser>> getUsers() {
         User principal = getCurrentUser();
-        return userService.getSharedDevices(principal.getId());
+        return userService.getSharedDevices(principal);
     }
     
     @PostMapping("/register")
