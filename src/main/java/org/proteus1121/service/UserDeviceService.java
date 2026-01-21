@@ -37,7 +37,6 @@ public class UserDeviceService {
                         })
                         .orElseGet(() -> userDeviceRepository.saveAndFlush(userDeviceMapper.toLinkByIds(entry.getKey(), deviceId, entry.getValue())))
                 )
-                // TODO: remove refresh after fixing N+1 problem with UserDeviceEntity->UserEntity mapping
                 .peek(entityManager::refresh)
                 .map(userDeviceMapper::toDeviceUser)
                 .collect(Collectors.toSet());

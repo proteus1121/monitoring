@@ -19,6 +19,8 @@ public interface DeviceMapper {
 
     @Named("toPlainDevice")
     Device toDevice(DeviceEntity deviceEntity);
+
+    @Mapping(target = "userDevices", source = "userDevices")
     Device toDevice(DeviceEntity deviceEntity, Set<DeviceUser> userDevices);
 
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
