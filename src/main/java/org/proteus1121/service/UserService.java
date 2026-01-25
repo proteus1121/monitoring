@@ -1,31 +1,24 @@
 package org.proteus1121.service;
 
 import lombok.RequiredArgsConstructor;
-import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
-import org.proteus1121.model.dto.user.UserDevices;
 import org.proteus1121.model.entity.UserEntity;
-import org.proteus1121.model.enums.DeviceRole;
-import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.mapper.UserMapper;
 import org.proteus1121.repository.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.LinkedHashMap;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
-import static org.springframework.security.core.userdetails.User.withUsername;
 
 @Service
 @RequiredArgsConstructor
@@ -68,15 +61,16 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new IllegalArgumentException("User " + id + " not found"));
     }
 
-    public Map<String, List<DeviceUser>> getSharedDevices(Long userId) {
+    public Map<String, List<DeviceUser>> getSharedDevices(User user) {
+        Long userId = user.getId();
         return deviceService.getAllDevices(userId).stream()
                 .flatMap(device -> {
-                    var associations = device.getUserDevices();
-                    return (associations == null ? Stream.<UserDevices>empty() : associations.stream())
+                    Set<DeviceUser> associations = deviceService.getUsersByDeviceId(device.getId());
+                    return (associations == null ? Stream.<DeviceUser>empty() : associations.stream())
                             .map(ud -> Map.entry(
                                     ud.getUsername(),
-                                    new DeviceUser(device.getId(), device.getName(), ud.getRole())
-                            ));
+                                    ud)
+                            );
                 })
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey,

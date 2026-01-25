@@ -8,7 +8,9 @@ import org.proteus1121.model.enums.DeviceRole;
 @AllArgsConstructor
 public class DeviceUser {
 
-    private Long id;
+    private Long deviceId;
+    private Long userId;
+    private String username;
     private String deviceName;
     private DeviceRole role;
 

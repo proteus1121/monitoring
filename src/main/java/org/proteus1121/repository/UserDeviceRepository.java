@@ -15,7 +15,8 @@ import java.util.Optional;
 @Repository
 public interface UserDeviceRepository extends JpaRepository<UserDeviceEntity, UserDeviceId> {
     
-    List<UserDeviceEntity> findByDeviceId(Long deviceId);
+    @Query("SELECT ude FROM UserDeviceEntity ude JOIN FETCH ude.user JOIN FETCH ude.device WHERE ude.deviceId = :deviceId")
+    List<UserDeviceEntity> findByDeviceId(@Param("deviceId") Long deviceId);
 
     Optional<UserDeviceEntity> findByUserIdAndDeviceId(Long userId, Long deviceId);
 

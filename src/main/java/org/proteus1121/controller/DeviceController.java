@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.enums.DeviceRole;
 import org.proteus1121.model.mapper.DeviceMapper;

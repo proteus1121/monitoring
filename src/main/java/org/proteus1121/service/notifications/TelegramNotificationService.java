@@ -5,6 +5,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.proteus1121.client.TelegramClient;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.notification.TelegramNotification;
+import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.entity.NotificationEntity;
 import org.proteus1121.model.entity.UserEntity;
@@ -71,10 +72,10 @@ public class TelegramNotificationService {
         telegramClient.sendMessage(messageRequest);
     }
 
-    public void sendCriticalNotifications(Set<User> recipients, Device device, Double value) {
+    public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value) {
 
-        for (User user : recipients) {
-            getNotifications(user.getId()).stream()
+        for (DeviceUser user : recipients) {
+            getNotifications(user.getUserId()).stream()
                     .filter(n -> n.getType() == NotificationType.CRITICAL)
                     .forEach(n -> sendNotification(n.getTelegramChatId(), getMessage(n.getTemplate(), user, device, value)));
         }
@@ -92,7 +93,7 @@ public class TelegramNotificationService {
      *  - {{timestamp}}  -> ISO-8601 date/time
      * Null fields are replaced with "N/A".
      */
-    private String getMessage(String template, User user, Device device, Double value) {
+    private String getMessage(String template, DeviceUser user, Device device, Double value) {
         if (template == null || template.isEmpty()) {
             return StringUtils.EMPTY;
         }
