@@ -29,6 +29,9 @@ dependencies {
     implementation("org.springframework.session:spring-session-jdbc")
     implementation("org.hibernate.orm:hibernate-core:6.4.1.Final")
 
+    // Hibernate Commons Annotations (required for Hibernate 6.x)
+    implementation("org.hibernate.common:hibernate-commons-annotations:6.0.6.Final")
+
     // Jakarta Validation
     implementation("jakarta.validation:jakarta.validation-api:3.1.0")
     implementation("org.springframework.boot:spring-boot-starter-validation")
