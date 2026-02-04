@@ -19,11 +19,14 @@ public class NeuralNetwork {
     }
 
     public void train(List<SensorData> data) throws Exception {
+        if (data.isEmpty()) return;
         float[][] features = new float[data.size()][2];
         float[] labels = new float[data.size()];
         for (int i = 0; i < data.size(); i++) {
-            features[i][0] = data.get(i).getTimestamp().toEpochSecond(ZoneOffset.UTC);
-            features[i][1] = data.get(i).getTimestamp().getHour();
+            int hourOfDay = data.get(i).getTimestamp().getHour();
+            int dayOfYear = data.get(i).getTimestamp().getDayOfYear();
+            features[i][0] = hourOfDay;
+            features[i][1] = dayOfYear;
             labels[i] = data.get(i).getValue().floatValue();
         }
         // Flatten features for DMatrix
@@ -44,9 +47,11 @@ public class NeuralNetwork {
     }
 
     public double predict(SensorData sensorData) throws Exception {
+        int hourOfDay = sensorData.getTimestamp().getHour();
+        int dayOfYear = sensorData.getTimestamp().getDayOfYear();
         float[] features = new float[]{
-                sensorData.getTimestamp().toEpochSecond(ZoneOffset.UTC),
-                sensorData.getTimestamp().getHour()
+                hourOfDay,
+                dayOfYear
         };
         DMatrix dmat = new DMatrix(features, 1, 2);
         float[][] preds = booster.predict(dmat);
@@ -66,9 +71,11 @@ public class NeuralNetwork {
 
     public void saveModel(String filePath) throws Exception {
         booster.saveModel(filePath);
+        // No meta file needed
     }
 
     public void loadModel(String filePath) throws Exception {
         booster = XGBoost.loadModel(filePath);
+        // No meta file needed
     }
 }

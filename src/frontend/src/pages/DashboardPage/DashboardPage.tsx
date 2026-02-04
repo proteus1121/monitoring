@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DeviceDataChart from './components/DeviceDataChart';
 import { DatePicker } from 'antd';
 import { PageLayout } from '@src/layouts/PageLayout';
@@ -23,10 +23,16 @@ export const DashboardPage = () => {
 
   const [choosenDevicesIds, setChoosenDevicesIds] = useState<number[]>([]);
 
+  useEffect(() => {
+    if (devices && devices.length > 0 && choosenDevicesIds.length === 0) {
+      setChoosenDevicesIds([devices[0].id!]);
+    }
+  }, [devices, choosenDevicesIds.length]);
+
   const [startDate, setStartDate] = useState<Dayjs>(
     dayjs(new Date()).subtract(5, 'days')
   );
-  const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
+  const [endDate, setEndDate] = useState<Dayjs>(dayjs().add(1, 'day'));
 
   if (isLoading) {
     return <Loader />;

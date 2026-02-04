@@ -49,7 +49,7 @@ const GeneralDataChart = () => {
   const [startDate, setStartDate] = useState<Dayjs>(
     dayjs(new Date()).subtract(5, 'days')
   );
-  const [endDate, setEndDate] = useState<Dayjs>(dayjs(new Date()));
+  const [endDate, setEndDate] = useState<Dayjs>(dayjs().add(1, 'day'));
   const api = useApi();
 
   useEffect(() => {
