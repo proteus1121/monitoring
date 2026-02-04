@@ -11,7 +11,7 @@ import {
   Title,
 } from 'chart.js';
 import { Dayjs } from 'dayjs';
-import { Device, useLazyGetMetricsQuery } from '@src/redux/generatedApi';
+import {Device, useLazyGetMetricsPredictedQuery, useLazyGetMetricsQuery} from '@src/redux/generatedApi';
 
 ChartJS.register(
   LineElement,
@@ -30,6 +30,7 @@ interface DatasetConfig {
   backgroundColor: string;
   tension: number;
   spanGaps: boolean;
+  borderDash?: number[];
 }
 
 interface ChartData {
@@ -52,6 +53,7 @@ const DeviceDataChart = ({
   const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [getMetricsByDevice] = useLazyGetMetricsQuery();
+  const [getPredictedMetricsByDevice] = useLazyGetMetricsPredictedQuery();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,31 +76,51 @@ const DeviceDataChart = ({
           'rgb(71,255,0)',
         ];
 
+        // Fetch both actual and predicted metrics for each device
         const responses = await Promise.all(
-          choosenDevicesIds.map(id =>
-            getMetricsByDevice({
-              deviceId: id,
-              start: startDate.toISOString(),
-              end: endDate.toISOString(),
-            })
-          )
+          choosenDevicesIds.map(async (id) => {
+            const [actual, predicted] = await Promise.all([
+              getMetricsByDevice({
+                deviceId: id,
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+              }).unwrap(),
+              getPredictedMetricsByDevice({
+                deviceId: id,
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+              }).unwrap()
+            ]);
+            return { actual, predicted };
+          })
         );
 
+        // Collect all unique timestamps from both actual and predicted data
         const allTimestampsSet = new Set<string>();
-        const deviceDataMaps: Record<string, number>[] = [];
+        const deviceDataMaps: { actual: Record<string, number>, predicted: Record<string, number> }[] = [];
 
         responses.forEach(res => {
-          const dataMap: Record<string, number> = {};
-          if (res.data) {
-            res.data.forEach(entry => {
+          const actualMap: Record<string, number> = {};
+          const predictedMap: Record<string, number> = {};
+          if (res.actual) {
+            res.actual.forEach((entry: any) => {
               if (entry.timestamp) {
                 const ts = new Date(entry.timestamp).toISOString();
                 allTimestampsSet.add(ts);
-                if (entry.value) dataMap[ts] = entry.value;
+                if (entry.value !== undefined && entry.value !== null) actualMap[ts] = entry.value;
               }
             });
-            deviceDataMaps.push(dataMap);
           }
+          if (res.predicted) {
+            res.predicted.forEach((entry: any) => {
+              if (entry.timestamp) {
+                const ts = new Date(entry.timestamp).toISOString();
+                allTimestampsSet.add(ts);
+                if (entry.value !== undefined && entry.value !== null) predictedMap[ts] = entry.value;
+              }
+            });
+          }
+          deviceDataMaps.push({ actual: actualMap, predicted: predictedMap });
         });
 
         const allTimestamps = Array.from(allTimestampsSet).sort();
@@ -107,21 +129,34 @@ const DeviceDataChart = ({
           return choosenDevicesIds.includes(device.id);
         });
 
-        const datasets: DatasetConfig[] = deviceDataMaps.map(
-          (dataMap, index) => {
-            const color = colors[index % colors.length];
-            return {
-              label: choosenDevices[index]?.name || `Device ${index + 1}`,
-              data: allTimestamps.map(timestamp =>
-                dataMap[timestamp] !== undefined ? dataMap[timestamp] : null
-              ),
-              borderColor: color,
-              backgroundColor: color.replace('1)', '0.2)'),
-              tension: 0.3,
-              spanGaps: true,
-            };
-          }
-        );
+        // Build datasets: for each device, one for actual, one for predicted
+        const datasets: DatasetConfig[] = [];
+        deviceDataMaps.forEach((dataMap, index) => {
+          const color = colors[index % colors.length];
+          // Actual
+          datasets.push({
+            label: (choosenDevices[index]?.name || `Device ${index + 1}`) + ' (Actual)',
+            data: allTimestamps.map(timestamp =>
+              dataMap.actual[timestamp] !== undefined ? dataMap.actual[timestamp] : null
+            ),
+            borderColor: color,
+            backgroundColor: color.replace('1)', '0.2)'),
+            tension: 0.3,
+            spanGaps: true,
+          });
+          // Predicted
+          datasets.push({
+            label: (choosenDevices[index]?.name || `Device ${index + 1}`) + ' (Predicted)',
+            data: allTimestamps.map(timestamp =>
+              dataMap.predicted[timestamp] !== undefined ? dataMap.predicted[timestamp] : null
+            ),
+            borderColor: color,
+            backgroundColor: color.replace('1)', '0.1)'),
+            tension: 0.3,
+            spanGaps: true,
+            borderDash: [6, 6],
+          });
+        });
 
         const formattedLabels = allTimestamps.map(timestamp =>
           new Date(timestamp).toLocaleString(undefined, {
@@ -143,7 +178,7 @@ const DeviceDataChart = ({
     };
 
     fetchData();
-  }, [devices, choosenDevicesIds, startDate, endDate, getMetricsByDevice]);
+  }, [devices, choosenDevicesIds, startDate, endDate, getMetricsByDevice, getPredictedMetricsByDevice]);
 
   if (isLoading) {
     return <>Loading...</>;

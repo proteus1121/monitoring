@@ -2,8 +2,6 @@ package org.proteus1121.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.PredictedSensorDataEntity;
 import org.proteus1121.model.entity.SensorDataEntity;
@@ -103,18 +101,23 @@ public class MetricService {
 
     public void predictMetrics(Long deviceId, LocalDateTime startTimestamp) {
         List<SensorData> metrics = getMetrics(deviceId, startTimestamp, LocalDateTime.now(), LIVE);
-        INDArray inputs = network.extractInputs(metrics);
-        INDArray labels = network.extractLabels(metrics);
-
-        NormalizerStandardize normalizer = network.train(inputs, labels);
+        try {
+            network.train(metrics);
+        } catch (Exception e) {
+            log.error("Error training XGBoost model", e);
+            return;
+        }
         List<SensorData> hourlyFeatures = network.generateHourlyFeatures(LocalDateTime.now());
 
-        // Prepare a map to hold predictions
         Map<LocalDateTime, Double> predictions = new HashMap<>();
-
-        // Predict for each hour
         for (SensorData sensorData : hourlyFeatures) {
-            double predictedValue = network.predict(sensorData, normalizer);
+            double predictedValue;
+            try {
+                predictedValue = network.predict(sensorData);
+            } catch (Exception e) {
+                log.error("Error predicting value with XGBoost", e);
+                predictedValue = 0.0;
+            }
             predictions.put(sensorData.getTimestamp(), predictedValue);
         }
 

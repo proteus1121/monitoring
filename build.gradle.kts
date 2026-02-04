@@ -43,9 +43,8 @@ dependencies {
     // Apache Commons
     implementation("org.apache.commons:commons-lang3:3.17.0")
 
-    // ND4J
-    implementation("org.nd4j:nd4j-native-platform:1.0.0-M2.1")
-    implementation("org.deeplearning4j:deeplearning4j-core:1.0.0-M2.1")
+    // XGBoost4J for machine learning
+    implementation("ml.dmlc:xgboost4j_2.13:3.1.1")
 
     // Mosquitto
     implementation("org.springframework.integration:spring-integration-mqtt")
