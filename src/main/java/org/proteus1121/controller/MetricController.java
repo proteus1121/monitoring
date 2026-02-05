@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,7 +30,7 @@ public class MetricController {
                                        @RequestParam("start") LocalDateTime startTimestamp,
                                        @RequestParam("end") LocalDateTime endTimestamp,
                                        @RequestParam(value = "period", defaultValue = "LIVE") Period period) {
-        return metricService.getMetrics(deviceId, startTimestamp, endTimestamp, period).stream()
+        return metricService.getMetrics(deviceId, startTimestamp, endTimestamp, period, false).stream()
                 .toList();
     }
 
@@ -46,7 +47,10 @@ public class MetricController {
     @PostMapping("/predict")
     @Operation(summary = "Predict metrics", description = "Trigger prediction for future metrics based on historical data")
     public void predictMetrics(@RequestParam("deviceId") Long deviceId,
-                               @RequestParam("start") LocalDateTime startTimestamp) {
-        metricService.predictMetrics(deviceId, startTimestamp);
+                               @RequestParam(value = "start", required = false) LocalDateTime startTimestamp) {
+        LocalDateTime startDate = (startTimestamp != null)
+                ? startTimestamp
+                : LocalDate.now().minusDays(365).atStartOfDay();
+        metricService.predictMetrics(deviceId, startDate);
     }
 }

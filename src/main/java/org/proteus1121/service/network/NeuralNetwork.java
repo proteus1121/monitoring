@@ -7,19 +7,20 @@ import org.proteus1121.model.response.metric.SensorData;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class NeuralNetwork {
-    private Booster booster;
 
     public NeuralNetwork() {
         // Model will be trained in train() method
     }
 
-    public void train(List<SensorData> data) throws Exception {
-        if (data.isEmpty()) return;
+    public Booster train(List<SensorData> data) throws Exception {
+        if (data.isEmpty()) return null;
         float[][] features = new float[data.size()][2];
         float[] labels = new float[data.size()];
         for (int i = 0; i < data.size(); i++) {
@@ -43,10 +44,10 @@ public class NeuralNetwork {
         params.put("eta", 0.1);
         params.put("verbosity", 0);
         params.put("tree_method", "auto");
-        booster = XGBoost.train(trainMat, params, 50, new HashMap<>(), null, null);
+        return XGBoost.train(trainMat, params, 50, new HashMap<>(), null, null);
     }
 
-    public double predict(SensorData sensorData) throws Exception {
+    public double predict(Booster trainedModel, SensorData sensorData) throws Exception {
         int hourOfDay = sensorData.getTimestamp().getHour();
         int dayOfYear = sensorData.getTimestamp().getDayOfYear();
         float[] features = new float[]{
@@ -54,7 +55,7 @@ public class NeuralNetwork {
                 dayOfYear
         };
         DMatrix dmat = new DMatrix(features, 1, 2);
-        float[][] preds = booster.predict(dmat);
+        float[][] preds = trainedModel.predict(dmat);
         return preds[0][0];
     }
 
@@ -69,13 +70,13 @@ public class NeuralNetwork {
         return hourlyFeatures;
     }
 
-    public void saveModel(String filePath) throws Exception {
-        booster.saveModel(filePath);
+    public void saveModel(Booster trainedModel, String filePath) throws Exception {
+        trainedModel.saveModel(filePath);
         // No meta file needed
     }
 
-    public void loadModel(String filePath) throws Exception {
-        booster = XGBoost.loadModel(filePath);
+    public void loadModel(Booster trainedModel, String filePath) throws Exception {
+        trainedModel = XGBoost.loadModel(filePath);
         // No meta file needed
     }
 }

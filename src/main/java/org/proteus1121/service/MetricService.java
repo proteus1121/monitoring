@@ -2,6 +2,7 @@ package org.proteus1121.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import ml.dmlc.xgboost4j.java.Booster;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.PredictedSensorDataEntity;
 import org.proteus1121.model.entity.SensorDataEntity;
@@ -39,8 +40,8 @@ public class MetricService {
     private final TelegramNotificationService telegramNotificationService;
     private final IncidentService incidentService;
 
-    public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
-        Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER);
+    public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period, boolean bypass) {
+        Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER, bypass);
 
         List<SensorDataEntity> rawData = sensorDataRepository
                 .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp).stream()
@@ -100,9 +101,14 @@ public class MetricService {
     }
 
     public void predictMetrics(Long deviceId, LocalDateTime startTimestamp) {
-        List<SensorData> metrics = getMetrics(deviceId, startTimestamp, LocalDateTime.now(), LIVE);
+        List<SensorData> metrics = getMetrics(deviceId, startTimestamp, LocalDateTime.now(), LIVE, true);
+        if (metrics.isEmpty()) {
+            log.warn("No metrics available for device {} to train prediction model", deviceId);
+            return;
+        }
+        Booster trainedModel;
         try {
-            network.train(metrics);
+            trainedModel = network.train(metrics);
         } catch (Exception e) {
             log.error("Error training XGBoost model", e);
             return;
@@ -113,7 +119,7 @@ public class MetricService {
         for (SensorData sensorData : hourlyFeatures) {
             double predictedValue;
             try {
-                predictedValue = network.predict(sensorData);
+                predictedValue = network.predict(trainedModel, sensorData);
             } catch (Exception e) {
                 log.error("Error predicting value with XGBoost", e);
                 predictedValue = 0.0;
