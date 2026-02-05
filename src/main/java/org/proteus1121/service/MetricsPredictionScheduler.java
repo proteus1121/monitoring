@@ -34,14 +34,15 @@ public class MetricsPredictionScheduler {
     public void predictAllUsersDevicesForNextDay() {
         log.info("Starting daily metrics prediction for all users and devices");
         List<User> users = userService.getUsers();
-        LocalDateTime nextDayStart = LocalDate.now().plusDays(1).atStartOfDay();
+        LocalDateTime startDate = LocalDate.now().minusDays(365).atStartOfDay();
         for (User user : users) {
+            // take data from last year to predict next day
             List<Device> devices = deviceService.getAllDevices(user.getId());
             for (Device device : devices) {
                 executorService.submit(() -> {
                     try {
-                        log.info("Predicting metrics for user {} device {} for {}", user.getId(), device.getId(), nextDayStart);
-                        metricService.predictMetrics(device.getId(), nextDayStart);
+                        log.info("Predicting metrics for user {} device {} for {}", user.getId(), device.getId(), startDate);
+                        metricService.predictMetrics(device.getId(), startDate);
                     } catch (Exception e) {
                         log.error("Failed to predict metrics for user {} device {}: {}", user.getId(), device.getId(), e.getMessage(), e);
                     }

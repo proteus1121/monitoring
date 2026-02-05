@@ -65,11 +65,19 @@ public class DeviceService {
     }
 
     public Device checkDevice(Long id, DeviceRole requiredRole) {
+        return checkDevice(id, requiredRole, false);
+    }
+
+    public Device checkDevice(Long id, DeviceRole requiredRole, boolean bypass) {
         Optional<Device> deviceOpt = getDeviceById(id);
         if (deviceOpt.isEmpty()) {
             throw new RuntimeException("Device " + id + " not found");
         }
         Device device = deviceOpt.get();
+        
+        if (bypass) {
+            return device;
+        }
         Long currentUserId = getCurrentUser().getId();
         boolean hasAccess = device.getUserDevices().stream()
                 .anyMatch(ud -> Objects.equals(ud.getUserId(), currentUserId)
