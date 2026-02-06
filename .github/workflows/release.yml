@@ -171,6 +171,7 @@ jobs:
             mkdir -p ./traefik
             touch traefik/acme.json
             chmod 600 traefik/acme.json
+            sudo chown -R 1883:1883 /home/${{ secrets.SSH_USER }}/deploy/mosquitto
             sudo chown -R 1001:1001 /home/${{ secrets.SSH_USER }}/deploy/mysql
             set -a; . ./.env; set +a
             sleep 20
