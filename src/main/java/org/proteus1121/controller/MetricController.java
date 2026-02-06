@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.enums.Period;
 import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.service.MetricService;
+import org.proteus1121.service.MetricsPredictionScheduler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,6 +24,7 @@ import java.util.List;
 public class MetricController {
 
     private final MetricService metricService;
+    private final MetricsPredictionScheduler predictionScheduler;
 
     @GetMapping
     @Operation(summary = "Get metrics", description = "Retrieve sensor metrics for a device within a time range")
@@ -52,5 +54,11 @@ public class MetricController {
                 ? startTimestamp
                 : LocalDate.now().minusDays(365).atStartOfDay();
         metricService.predictMetrics(deviceId, startDate);
+    }
+
+    @PostMapping("/predict-all")
+    @Operation(summary = "Predict ALL metrics", description = "Trigger prediction for all users and devices for the next day. TODO: Service endpoint, should be removed in production.")
+    public void predictAllMetrics() {
+        predictionScheduler.predictAllUsersDevicesForNextDay();
     }
 }
