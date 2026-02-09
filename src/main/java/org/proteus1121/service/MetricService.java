@@ -120,6 +120,7 @@ public class MetricService {
             double predictedValue;
             try {
                 predictedValue = network.predict(trainedModel, sensorData);
+                log.info("Predicted value for device {} at {}: {}", deviceId, sensorData.getTimestamp(), predictedValue);
             } catch (Exception e) {
                 log.error("Error predicting value with XGBoost", e);
                 predictedValue = 0.0;
