@@ -84,6 +84,7 @@ const DeviceDataChart = ({
                 deviceId: id,
                 start: startDate.toISOString(),
                 end: endDate.toISOString(),
+                period: 'ONE_HOUR'
               }).unwrap(),
               getPredictedMetricsByDevice({
                 deviceId: id,
