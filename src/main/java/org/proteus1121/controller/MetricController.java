@@ -7,6 +7,7 @@ import org.proteus1121.model.enums.Period;
 import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.service.MetricService;
 import org.proteus1121.service.MetricsPredictionScheduler;
+import org.proteus1121.util.SensorCleaner;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,8 +33,16 @@ public class MetricController {
                                        @RequestParam("start") LocalDateTime startTimestamp,
                                        @RequestParam("end") LocalDateTime endTimestamp,
                                        @RequestParam(value = "period", defaultValue = "LIVE") Period period) {
-        return metricService.getMetrics(deviceId, startTimestamp, endTimestamp, period, false).stream()
+        List<SensorData> metrics = metricService.getMetrics(deviceId, startTimestamp, endTimestamp, period, false).stream()
                 .toList();
+
+        var isStrange = SensorCleaner.lowOrSentinel(
+                0.1,
+                metrics.stream().map(SensorData::getValue).toList(),
+                1e-9
+        );
+
+        return SensorCleaner.removeSandwichedRuns(metrics, isStrange);
     }
 
     @GetMapping("/predicted")
