@@ -8,14 +8,13 @@ void LightSensor::init() {
 }
 
 std::vector<float> LightSensor::read() {
-    int raw = analogRead(pin);
-    const int RAW_DARK = 3300;
-    const int RAW_LIGHT = 300;
+    bool lightDetected = digitalRead(pin) == LOW;
+    float lightValue = lightDetected ? 1.0 : 0.0;
 
-    raw = constrain(raw, RAW_LIGHT, RAW_DARK);
-    float lightPercent = map(raw, RAW_LIGHT, RAW_DARK, 100, 0);
+    Serial.print("[DEBUG] LightSensor detected=");
+    Serial.println(lightDetected);
 
-    return {lightPercent};
+    return {lightValue};
 }
 
 std::vector<String> LightSensor::getMeasurementNames() {
@@ -23,5 +22,5 @@ std::vector<String> LightSensor::getMeasurementNames() {
 }
 
 std::vector<String> LightSensor::getUnits() {
-    return {"%"};
+    return {""};
 }

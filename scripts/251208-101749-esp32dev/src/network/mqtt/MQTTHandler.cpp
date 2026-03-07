@@ -1,9 +1,14 @@
 #include "MQTTHandler.h"
 #include "../../sensors/SensorState.h"
 #include "../../storage/Storage.h"
+#include "network/setup-server/ServerManager.h" // needed for AP fallback
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#else
 #include <WiFi.h>
+#endif
 
 // Fallback defaults (used when storage is empty)
 static const char *DEFAULT_MQTT_SERVER = "139.59.148.159";
@@ -62,8 +67,9 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
 
     Serial.printf("[MQTT] Parsed - userId: %s, deviceId: %d\n", userIdStr.c_str(), deviceId);
 
-    // Parse JSON config
-    StaticJsonDocument<256> doc;
+    // Parse JSON config; DynamicJsonDocument avoids deprecation and allows
+    // size specification.
+    DynamicJsonDocument doc(256);
     DeserializationError err = deserializeJson(doc, message);
     if (err) {
         Serial.println("[ERROR] JSON parse failed!");
@@ -75,8 +81,9 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
     float maxValue = doc["criticalValue"] | (currentConfig->maxValue);
     float minValue = doc["lowerValue"] | (currentConfig->minValue);
 
-    Serial.printf("[CONFIG] delay=%lu, maxValue=%.2f, minValue=%.2f\n",
-                  interval, maxValue, minValue);
+    // interval is uint32_t on both ESP32 and ESP8266; print as unsigned
+    Serial.printf("[CONFIG] delay=%u, maxValue=%.2f, minValue=%.2f\n",
+                  (unsigned)interval, maxValue, minValue);
 
     // Update the matching device config
     SensorConfig *cfg = currentConfig;
@@ -84,8 +91,8 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
         cfg->sendDelay = interval;
         cfg->maxValue = maxValue;
         cfg->minValue = minValue;
-        Serial.printf("[CONFIG] Updated device %d with interval=%lu, max=%.2f, min=%.2f\n",
-                      deviceId, interval, maxValue, minValue);
+        Serial.printf("[CONFIG] Updated device %d with interval=%u, max=%.2f, min=%.2f\n",
+                      deviceId, (unsigned)interval, maxValue, minValue);
     }
 
     Serial.println("[MQTT] Configuration applied");
@@ -134,6 +141,9 @@ void initMQTT() {
 }
 
 void reconnectMQTT() {
+    int attempts = 0;
+    const int MAX_MQTT_RETRIES = 3;
+
     while (!client.connected()) {
         // Load credentials from storage
         String user = Storage::loadMqttUser();
@@ -162,13 +172,23 @@ void reconnectMQTT() {
                     Serial.println(configTopic);
                 }
             }
+            break; // success
         } else {
+            attempts++;
             Serial.print("MQTT connect failed to ");
             Serial.print(currentServer);
             Serial.print(":");
             Serial.print(currentPort);
             Serial.print(" , rc=");
             Serial.println(client.state());
+
+            if (attempts >= MAX_MQTT_RETRIES) {
+                Serial.println("[MQTT] too many connection failures, entering setup mode");
+                // trigger access-point so user can reconfigure credentials
+                ServerManager::enterSetupMode();
+                return; // give up on MQTT for now
+            }
+
             delay(3000);
         }
     }

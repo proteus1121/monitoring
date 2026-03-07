@@ -1,17 +1,32 @@
 #include "ServerManager.h"
 #include "storage/Storage.h"
+#if defined(ESP8266)
+#include <ESP8266WebServer.h>
+#include <ESP8266WiFi.h>
+#include <base64.h> // required by ESP8266WebServer implementation
+#else
 #include <Preferences.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#endif
 
+// instantiate correct server type for the platform
+#if defined(ESP8266)
+static ESP8266WebServer server(80);
+#else
 static WebServer server(80);
+#endif
 
+// common state for both boards
 static String savedSSID = "";
 static String savedPASS = "";
 static bool wifiConfigured = false;
 
-// initialize static variables
+#if defined(ESP8266)
+String ServerManager::apSsid = "ESP8266-Setup";
+#else
 String ServerManager::apSsid = "ESP32-Setup";
+#endif
 String ServerManager::apPass = ""; // will generate random
 
 // =========================
@@ -166,28 +181,133 @@ void ServerManager::handleSavePage() {
 // =========================
 //  Wi-Fi logic
 // =========================
+void ServerManager::scanWiFiNetworks() {
+    Serial.println("[DEBUG] Scanning available WiFi networks...");
+    WiFi.mode(WIFI_STA);
+    int numNetworks = WiFi.scanNetworks();
+
+    if (numNetworks == 0) {
+        Serial.println("[DEBUG] No WiFi networks found!");
+        return;
+    }
+
+    Serial.print("[DEBUG] Found ");
+    Serial.print(numNetworks);
+    Serial.println(" networks:");
+
+    bool found = false;
+    for (int i = 0; i < numNetworks; i++) {
+        String ssid = WiFi.SSID(i);
+        int rssi = WiFi.RSSI(i);
+
+        Serial.print("  [");
+        Serial.print(i);
+        Serial.print("] ");
+        Serial.print(ssid);
+        Serial.print(" (RSSI: ");
+        Serial.print(rssi);
+        Serial.println(" dBm)");
+
+        if (ssid == savedSSID) {
+            found = true;
+            Serial.println("       ^ THIS IS OUR TARGET NETWORK");
+        }
+    }
+
+    if (!found) {
+        Serial.println("[DEBUG] WARNING: Saved SSID 'Proteus' not found in scan results!");
+    }
+}
+
 bool ServerManager::tryConnectWiFi() {
     if (savedSSID.isEmpty())
         return false;
 
+    // perform scan once to verify network visibility
+    static bool scannedOnce = false;
+    if (!scannedOnce) {
+        scanWiFiNetworks();
+        scannedOnce = true;
+    }
+
+    // reset radio before attempting connection
+    Serial.println("[DEBUG] Preparing WiFi for connection...");
+    WiFi.disconnect(false); // just disconnect, don't disable radio
+    delay(300);
+    WiFi.mode(WIFI_STA);
+#if defined(ESP8266)
+    WiFi.setPhyMode(WIFI_PHY_MODE_11G);
+#endif
+    delay(200);
+
     Serial.print("Connecting to WiFi: ");
     Serial.println(savedSSID);
+    Serial.print("[DEBUG] Using password: ");
+    Serial.println(savedPASS);
 
+    // Configure DNS servers for better connectivity (optional but recommended)
+    // Note: ESP32's Arduino WiFi defaults to DHCP with Google DNS, so explicit config usually not needed
+    // If you want to set DNS manually, uncomment and adjust:
+    // IPAddress primaryDNS(8, 8, 8, 8);      // Google primary
+    // IPAddress secondaryDNS(8, 8, 4, 4);    // Google secondary
+    // WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, primaryDNS, secondaryDNS);
+
+    // Add small delay before beginning connection
+    delay(100);
+
+    Serial.print("[DEBUG] Starting WiFi.begin()...");
     WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
-    unsigned long start = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - start < 8000) {
-        delay(300);
+
+    // Use polling with 20 second timeout to check connection status
+    unsigned long startTime = millis();
+    int status = WiFi.status();
+    while (millis() - startTime < 100000 && status != WL_CONNECTED) {
+        delay(500);
+        status = WiFi.status();
         Serial.print(".");
     }
     Serial.println();
-    return WiFi.status() == WL_CONNECTED;
+
+    Serial.print("[DEBUG] WiFi.status returned: ");
+    Serial.println(status);
+    // Status codes: 0=IDLE, 1=NO_SSID_AVAIL, 2=SCAN_COMPLETED, 3=CONNECTED, 4=CONNECT_FAILED, 5=CONNECTION_LOST, 6=DISCONNECTED
+    if (status == WL_CONNECTED) {
+        Serial.println("[DEBUG] - CONNECTED!");
+        Serial.print("[DEBUG] IP Address: ");
+        Serial.println(WiFi.localIP());
+        Serial.print("[DEBUG] Gateway: ");
+        Serial.println(WiFi.gatewayIP());
+        Serial.print("[DEBUG] Subnet: ");
+        Serial.println(WiFi.subnetMask());
+    } else if (status == WL_CONNECT_FAILED) {
+        Serial.println("[DEBUG] - CONNECT_FAILED (Wrong password or network not found?)");
+    } else if (status == WL_NO_SSID_AVAIL) {
+        Serial.println("[DEBUG] - NO_SSID_AVAILABLE (WiFi network not found)");
+    } else if (status == WL_DISCONNECTED) {
+        Serial.println("[DEBUG] - DISCONNECTED (Timeout waiting for connection)");
+    } else if (status == WL_IDLE_STATUS) {
+        Serial.println("[DEBUG] - IDLE (Connection process did not start)");
+    } else {
+        Serial.print("[DEBUG] - UNKNOWN STATUS ");
+        Serial.println(status);
+    }
+
+    return status == WL_CONNECTED;
 }
 
 // =========================
 //  AP mode
 // =========================
+// public helper forwards to private startAPMode
+void ServerManager::enterSetupMode() {
+    startAPMode();
+}
+
 void ServerManager::startAPMode() {
     Serial.println("Starting WiFi setup AP…");
+
+    // mark configuration state as false so sketch loop will display setup info
+    wifiConfigured = false;
 
     WiFi.disconnect(false);
     delay(200);
@@ -238,17 +358,35 @@ void ServerManager::connect() {
     Serial.print("[DEBUG] savedSSID: '");
     Serial.print(savedSSID);
     Serial.println("'");
+    Serial.print("[DEBUG] savedPASS: '");
+    Serial.print(savedPASS);
+    Serial.println("'");
     Serial.print("[DEBUG] savedSSID.isEmpty(): ");
     Serial.println(savedSSID.isEmpty());
 
-    if (tryConnectWiFi()) {
+    bool success = false;
+    // try a few times before giving up and switching to AP mode
+    for (int attempt = 1; attempt <= WIFI_CONNECT_RETRIES; ++attempt) {
+        Serial.print("[DEBUG] WiFi connect attempt ");
+        Serial.println(attempt);
+        if (tryConnectWiFi()) {
+            success = true;
+            break;
+        }
+        // Between attempts, wait longer and reset WiFi radio state
+        Serial.println("[DEBUG] Attempt failed, resetting WiFi...");
+        WiFi.disconnect(false);
+        delay(1000); // wait 1 second between attempts
+    }
+
+    if (success) {
         wifiConfigured = true;
         Serial.println("Connected!");
         Serial.print("IP: ");
         Serial.println(WiFi.localIP());
     } else {
         wifiConfigured = false;
-        Serial.println("[DEBUG] WiFi connection failed, starting AP mode");
+        Serial.println("[DEBUG] WiFi connection failed after " + String(WIFI_CONNECT_RETRIES) + " attempts, starting AP mode");
         startAPMode();
     }
 }

@@ -8,22 +8,19 @@ void IRSensor::init() {
 }
 
 std::vector<float> IRSensor::read() {
-    int raw = analogRead(_pin); // ESP32 ADC: 0–4095
-    float irPercent = 100.0f - (raw / 4095.0f * 100.0f);
+    bool flameDetected = digitalRead(_pin) == LOW;
+    float flameValue = flameDetected ? 1.0 : 0.0;
 
-    // Clamp 0–100%
-    if (irPercent < 0)
-        irPercent = 0;
-    if (irPercent > 100)
-        irPercent = 100;
+    Serial.print("[DEBUG] IRSensor detected=");
+    Serial.println(flameDetected);
 
-    return {irPercent};
+    return {flameValue};
 }
 
 std::vector<String> IRSensor::getMeasurementNames() {
-    return {"IR"};
+    return {"Flame"};
 }
 
 std::vector<String> IRSensor::getUnits() {
-    return {"%"};
+    return {""};
 }
