@@ -106,23 +106,31 @@ public class MetricService {
             log.warn("No metrics available for device {} to train prediction model", deviceId);
             return;
         }
-        Booster trainedModel;
+
         try {
-            trainedModel = network.train(metrics);
+            // Train ensemble of models
+            network.trainEnsemble(metrics);
         } catch (Exception e) {
-            log.error("Error training XGBoost model", e);
+            log.error("Error training XGBoost ensemble", e);
             return;
         }
+
         List<SensorData> hourlyFeatures = network.generateHourlyFeatures(LocalDateTime.now());
 
         Map<LocalDateTime, Double> predictions = new HashMap<>();
         for (SensorData sensorData : hourlyFeatures) {
             double predictedValue;
             try {
-                predictedValue = network.predict(trainedModel, sensorData);
-                log.info("Predicted value for device {} at {}: {}", deviceId, sensorData.getTimestamp(), predictedValue);
+                // Use ensemble prediction with uncertainty
+                NeuralNetwork.PredictionResult result = network.predictWithUncertainty(sensorData);
+                predictedValue = result.getPrediction();
+                log.info("Predicted value for device {} at {} (±{}): {}",
+                        deviceId,
+                        sensorData.getTimestamp(),
+                        String.format("%.2f", result.getUpperBound() - result.getLowerBound()),
+                        predictedValue);
             } catch (Exception e) {
-                log.error("Error predicting value with XGBoost", e);
+                log.error("Error predicting value with XGBoost ensemble", e);
                 predictedValue = 0.0;
             }
             predictions.put(sensorData.getTimestamp(), predictedValue);
@@ -135,9 +143,9 @@ public class MetricService {
     }
 
     private <T> List<T> downsampleByPeriod(List<T> items,
-                                           Function<T, LocalDateTime> tsExtractor,
-                                           LocalDateTime startTimestamp,
-                                           Period period) {
+            Function<T, LocalDateTime> tsExtractor,
+            LocalDateTime startTimestamp,
+            Period period) {
         if (period == LIVE) {
             return items;
         }
