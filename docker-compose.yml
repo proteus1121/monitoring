@@ -97,11 +97,6 @@ services:
       - traefik-public
     deploy:
       replicas: 1
-      resources:
-        limits:
-          memory: 8G
-        reservations:
-          memory: 4G
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.ollama.rule=Host(`llm.ssn.pp.ua`)"
