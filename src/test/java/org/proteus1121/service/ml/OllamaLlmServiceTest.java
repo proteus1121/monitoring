@@ -8,6 +8,7 @@ import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.enums.DeviceType;
 import org.proteus1121.model.ml.IncidentContext;
 import org.proteus1121.model.ml.IncidentMessage;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,7 +27,13 @@ class OllamaLlmServiceTest {
     void setUp() {
         llmProperties = new LlmProperties();
         llmProperties.setEnabled(false); // Disable actual HTTP calls in tests
-        ollamaLlmService = new OllamaLlmService(llmProperties, new ObjectMapper());
+
+        // Create RestTemplateBuilder mock
+        RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
+
+        // Initialize service with all required parameters
+        ollamaLlmService = new OllamaLlmService(llmProperties, new ObjectMapper(), restTemplateBuilder);
+        ollamaLlmService.init(); // Trigger @PostConstruct initialization
 
         // Create test context
         Device device = new Device();
@@ -73,5 +80,19 @@ class OllamaLlmServiceTest {
         assertTrue(message.title().length() <= 100);
         assertTrue(message.body().length() <= 300);
     }
-}
 
+    @Test
+    void testFallbackMessageWhenDisabled() {
+        // Test that fallback works when LLM is disabled
+        llmProperties.setEnabled(false);
+
+        IncidentMessage message = ollamaLlmService.generateMessage(testContext);
+
+        assertNotNull(message);
+        assertFalse(message.title().isEmpty());
+        assertFalse(message.body().isEmpty());
+        // Should contain device name and probability percentage
+        assertTrue(message.title().contains("Test Device") || message.title().contains("Anomaly"));
+        assertTrue(message.body().contains("85"));
+    }
+}
