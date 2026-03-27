@@ -7,6 +7,9 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libgomp1 \
       libstdc++6 \
+      libomp-dev \
+      gcc \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 
 COPY build/libs/monitoring-1.0.0.jar monitoring.jar

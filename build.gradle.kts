@@ -5,7 +5,7 @@ plugins {
     java
     id("org.springframework.boot") version ("3.2.2")
     id("io.spring.dependency-management") version ("1.1.4")
-    id("io.freefair.lombok") version "6.6.3"
+    id("io.freefair.lombok") version "8.4"
 }
 
 group = "org.proteus1121"
@@ -45,6 +45,19 @@ dependencies {
 
     // XGBoost4J for machine learning
     implementation("ml.dmlc:xgboost4j_2.13:3.1.1")
+    
+    // XAI - SHAP explanations and statistical analysis
+    implementation("org.apache.commons:commons-math3:3.6.1")
+    implementation("com.google.guava:guava:33.1.0-jre")
+    
+    // Collections for uncertainty estimation
+    implementation("org.apache.commons:commons-collections4:4.4")
+    
+    // CSV processing for data analysis
+    implementation("org.apache.commons:commons-csv:1.10.0")
+    
+    // JSON Processing for model explanations
+    implementation("com.google.code.gson:gson:2.10.1")
 
     // Mosquitto
     implementation("org.springframework.integration:spring-integration-mqtt")
