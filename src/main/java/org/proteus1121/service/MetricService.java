@@ -101,6 +101,7 @@ public class MetricService {
 
     /**
      * Perform AI-based anomaly detection using XGBoost model and Ollama LLM
+     * Prevents notification spam by checking for existing unresolved incidents
      * @return true if anomaly was detected and handled, false otherwise
      */
     private boolean performAiAnomalyDetection(Device device, Double currentValue) {
@@ -131,6 +132,15 @@ public class MetricService {
         boolean isAnomalous = probability >= mlProperties.getThreshold();
 
         if (isAnomalous) {
+            // Check if there's already an unresolved incident for this device
+            boolean hasUnresolvedIncident = incidentService.hasUnresolvedIncident(device.getId());
+            
+            if (hasUnresolvedIncident) {
+                log.debug("Unresolved incident already exists for device {} ({}). Skipping notification to prevent spam.",
+                    device.getId(), device.getName());
+                return true; // Anomaly still exists but don't send duplicate notification
+            }
+
             // 4) Generate human-readable message via LLM
             List<String> topContributors = getTopContributingFeatures(engineeredFeatures);
             IncidentContext incidentContext = new IncidentContext(
@@ -170,18 +180,37 @@ public class MetricService {
 
     /**
      * Legacy threshold-based anomaly check (fallback)
+     * Prevents notification spam by checking for existing unresolved incidents
      */
     private void performLegacyThresholdCheck(Device device, Double value) {
         Double criticalValue = device.getCriticalValue();
         Double lowerValue = device.getLowerValue();
 
         if (criticalValue != null && value >= criticalValue) {
+            // Check if there's already an unresolved incident for this device
+            boolean hasUnresolvedIncident = incidentService.hasUnresolvedIncident(device.getId());
+            
+            if (hasUnresolvedIncident) {
+                log.debug("Unresolved incident already exists for device {} ({}). Skipping notification to prevent spam.",
+                    device.getId(), device.getName());
+                return;
+            }
+            
             log.warn("Critical alert triggered for device {}: value = {}", device.getId(), value);
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
                     CRITICAL,
                     List.of(device));
             telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(device.getId()), device, value);
         } else if (lowerValue != null && value <= lowerValue) {
+            // Check if there's already an unresolved incident for this device
+            boolean hasUnresolvedIncident = incidentService.hasUnresolvedIncident(device.getId());
+            
+            if (hasUnresolvedIncident) {
+                log.debug("Unresolved incident already exists for device {} ({}). Skipping notification to prevent spam.",
+                    device.getId(), device.getName());
+                return;
+            }
+            
             log.warn("Lower alert triggered for device {}: value = {}", device.getId(), value);
             telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(device.getId()), device, value);
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,

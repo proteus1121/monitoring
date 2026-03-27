@@ -76,4 +76,21 @@ public class IncidentService {
         IncidentEntity incidentEntity = new IncidentEntity(message, severity, deviceEntities);
         incidentRepository.save(incidentEntity);
     }
+
+    /**
+     * Check if there is an unresolved incident for a device
+     * @return true if an unresolved incident exists, false otherwise
+     */
+    public boolean hasUnresolvedIncident(Long deviceId) {
+        long unresolvedCount = incidentRepository.countUnresolvedIncidentsByDeviceId(deviceId);
+        return unresolvedCount > 0;
+    }
+
+    /**
+     * Get the latest unresolved incident for a device
+     * @return Optional containing the latest unresolved incident if it exists
+     */
+    public Optional<IncidentEntity> getLatestUnresolvedIncident(Long deviceId) {
+        return incidentRepository.findLatestUnresolvedByDeviceId(deviceId, Resolution.UNRESOLVED);
+    }
 }
