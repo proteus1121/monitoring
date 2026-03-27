@@ -125,6 +125,7 @@ public class NeuralNetwork {
      */
     public PredictionResult predictWithUncertainty(SensorData sensorData) throws Exception {
         if (ensemble.isEmpty()) {
+            log.warn("Model ensemble is empty, cannot predict");
             throw new IllegalStateException("Model ensemble not trained yet");
         }
 

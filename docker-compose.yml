@@ -85,6 +85,37 @@ services:
     deploy:
       replicas: 1
 
+  ollama:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: 0.0.0.0:11434
+    ports:
+      - "11434:11434"
+    volumes:
+      - /home/${SSH_USER}/deploy/ollama/models:/root/.ollama/models
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ollama.rule=Host(`llm.ssn.pp.ua`)"
+        - "traefik.http.routers.ollama.entrypoints=websecure"
+        - "traefik.http.routers.ollama.tls=true"
+        - "traefik.http.routers.ollama.tls.certresolver=myresolver"
+        - "traefik.http.services.ollama.loadbalancer.server.port=11434"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
   monitoring-backend:
     image: ghcr.io/proteus1121/monitoring-backend:latest
     environment:
@@ -95,6 +126,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
     depends_on:
       - mysql-db
+      - ollama
     networks:
       - traefik-public
     deploy:
@@ -122,4 +154,3 @@ services:
         - "traefik.http.routers.frontend.tls=true"
         - "traefik.http.routers.frontend.tls.certresolver=myresolver"
         - "traefik.http.services.frontend.loadbalancer.server.port=80"
-
