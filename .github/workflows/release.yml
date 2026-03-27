@@ -169,6 +169,7 @@ jobs:
             mkdir -p ./mosquitto/log
             mkdir -p ./mysql
             mkdir -p ./traefik
+            mkdir -p ./ollama/models
             touch traefik/acme.json
             chmod 600 traefik/acme.json
             sudo chown -R 1883:1883 /home/${{ secrets.SSH_USER }}/deploy/mosquitto
