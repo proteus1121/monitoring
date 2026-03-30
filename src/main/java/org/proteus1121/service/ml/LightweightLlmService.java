@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.model.enums.DeviceType;
 import org.proteus1121.model.ml.IncidentContext;
 import org.proteus1121.model.ml.IncidentMessage;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -18,8 +17,7 @@ import java.util.*;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "llm.provider", havingValue = "lightweight", matchIfMissing = true)
-public class OllamaLlmService implements LocalLlmService {
+public class LightweightLlmService implements LocalLlmService {
 
     private static final double HIGH_THRESHOLD = 0.8;
     private static final double MEDIUM_THRESHOLD = 0.5;
