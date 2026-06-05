@@ -48,12 +48,13 @@
 
 #if defined(ESP32)
 const uint8_t PIN_DHT = 26;
-const uint8_t PIN_MQ2 = 35;
-const uint8_t PIN_LIGHT = 32;
-const uint8_t PIN_IR = 33;
-const uint8_t PIN_PIR = 13;
-const uint8_t I2C_SDA = 14;
-const uint8_t I2C_SCL = 27;
+const uint8_t PIN_MQ2 = NO_PIN;
+const uint8_t PIN_LIGHT = 34;
+const uint8_t PIN_IR = NO_PIN;
+const uint8_t PIN_PIR = NO_PIN;
+const uint8_t I2C_SDA = 27;
+const uint8_t I2C_SCL = 14;
+const uint8_t PIN_BOOT = 0; // BOOT button on GPIO0
 #elif defined(ESP8266)
 // dht, mq2, light and ir sensors only; PIR and i2c peripherals are omitted
 // entirely.  if you add them later just define PIN_PIR, I2C_SDA/I2C_SCL here.
@@ -76,9 +77,54 @@ const uint8_t I2C_SCL = NO_PIN;
 #warning "No default pin assignments defined for this board. You must supply values manually."
 #endif
 
+// BOOT button debounce and hold detection
+static unsigned long bootButtonPressTime = 0;
+const unsigned long BOOT_HOLD_TIME = 3000; // 3 seconds to trigger setup mode
+
+void checkBootButton() {
+#if defined(ESP32)
+    bool bootPressed = (digitalRead(PIN_BOOT) == LOW);
+
+    if (bootPressed) {
+        if (bootButtonPressTime == 0) {
+            bootButtonPressTime = millis();
+            Serial.println("[BOOT] Button pressed - starting count");
+        } else {
+            unsigned long holdTime = millis() - bootButtonPressTime;
+            if (holdTime % 1000 == 0 && holdTime > 0) {
+                Serial.print("[BOOT] Holding for ");
+                Serial.print(holdTime);
+                Serial.println(" ms");
+            }
+            if (holdTime >= BOOT_HOLD_TIME) {
+                Serial.println("[BOOT] 3 seconds reached - ENTERING SETUP MODE!");
+                bootButtonPressTime = 0;
+                ServerManager::enterSetupMode();
+            }
+        }
+    } else {
+        if (bootButtonPressTime != 0) {
+            unsigned long holdTime = millis() - bootButtonPressTime;
+            Serial.print("[BOOT] Button released after ");
+            Serial.print(holdTime);
+            Serial.println(" ms");
+            bootButtonPressTime = 0;
+        }
+    }
+#endif
+}
+
 void setup() {
     Serial.begin(115200);
     delay(1000);
+
+    // Initialize BOOT button (GPIO0)
+#if defined(ESP32)
+    pinMode(PIN_BOOT, INPUT_PULLUP);
+    Serial.println("[BOOT] GPIO0 initialized as INPUT_PULLUP");
+    Serial.print("[BOOT] Current GPIO0 state: ");
+    Serial.println(digitalRead(PIN_BOOT) ? "HIGH" : "LOW");
+#endif
 
     // provide pin assignments for the sensors (allows ESP32/8266 support and
     // easy reconfiguration from the sketch).  The pin constants defined above
@@ -91,7 +137,7 @@ void setup() {
     uint8_t i2cSda = I2C_SDA;
     uint8_t i2cScl = I2C_SCL;
 
-    initSensors(pinDht, pinMq2, pinLight, pinIr, pinPir, i2cSda, i2cScl);
+     initSensors(pinDht, pinMq2, pinLight, pinIr, pinPir, i2cSda, i2cScl);
 
     // Report display status
     if (oled.isInitialized()) {
@@ -130,6 +176,9 @@ void setup() {
 }
 
 void loop() {
+    // Check BOOT button very frequently - this is non-blocking
+    checkBootButton();
+
     ServerManager::loop();
 
     if (!ServerManager::isConfigured()) {
@@ -155,7 +204,7 @@ void loop() {
         oled.printLine(3, "IP:");
         oled.printLine(4, ip);
         oled.show();
-        delay(2000);
+        delay(500); // Reduced delay to allow frequent button checking
         return;
     }
 
@@ -171,5 +220,5 @@ void loop() {
     publishPendingToMQTT();
     // maintain MQTT connection
     mqttLoop();
-    delay(5000);
+    delay(500); // Reduced delay - button will be checked 5x more frequently
 }
