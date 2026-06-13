@@ -42,7 +42,8 @@ public class WebConfig implements WebMvcConfigurer {
             "/v3/api-docs/**",
             "/swagger-resources/**",
             "/users/register",
-            "/users/login"
+            "/users/login",
+            "/webhook/telegram/**"
     };
 
     @Override

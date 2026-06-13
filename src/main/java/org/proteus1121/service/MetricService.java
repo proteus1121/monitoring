@@ -26,7 +26,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,11 +47,11 @@ public class MetricService {
     private final NeuralNetwork network;
     private final TelegramNotificationService telegramNotificationService;
     private final IncidentService incidentService;
-    private final MlProperties mlProperties;
     private final AnomalyDetectionService anomalyDetectionService;
     private final LocalLlmService localLlmService;
     private final FeatureBuilder featureBuilder;
     private final SensorReadingAggregationService sensorReadingAggregationService;
+    private final MlProperties mlProperties;
 
     public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period, boolean bypass) {
         Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER, bypass);
@@ -83,14 +82,14 @@ public class MetricService {
         }
         Device device = deviceOpt.get();
 
-        // Try AI-based anomaly detection first
+        // Try rule-based anomaly detection first (always enabled when ml.enabled=true)
         if (mlProperties.isEnabled()) {
             try {
-                if (performAiAnomalyDetection(device, value)) {
+                if (performRuleBasedAnomalyDetection(device, value)) {
                     return;
                 }
             } catch (Exception ex) {
-                log.error("AI anomaly check failed for device {}: {}", deviceId, ex.getMessage(), ex);
+                log.error("Rule-based anomaly check failed for device {}: {}", deviceId, ex.getMessage(), ex);
                 // Fall through to legacy thresholds
             }
         }
@@ -100,11 +99,12 @@ public class MetricService {
     }
 
     /**
-     * Perform AI-based anomaly detection using XGBoost model and Ollama LLM
-     * Prevents notification spam by checking for existing unresolved incidents
+     * Perform rule-based anomaly detection using multi-sensor correlation and thresholds.
+     * Prevents notification spam by checking for existing unresolved incidents.
+     * Note: This uses RuleBasedAnomalyDetectionService, not XGBoost (XGBoost is for predictions only).
      * @return true if anomaly was detected and handled, false otherwise
      */
-    private boolean performAiAnomalyDetection(Device device, Double currentValue) {
+    private boolean performRuleBasedAnomalyDetection(Device device, Double currentValue) {
         // 1) Gather correlated latest values for all sensor types
         LocalDateTime windowStart = LocalDateTime.now().minusMinutes(5);
         Map<DeviceType, Double> latestValues = sensorReadingAggregationService
@@ -155,10 +155,10 @@ public class MetricService {
             IncidentMessage message = localLlmService.generateMessage(incidentContext);
 
             // 5) Log anomaly with context
-            log.warn("AI anomaly detected for device {} ({}): probability={:.3f}, title='{}', features={}",
+            log.warn("Rule-based anomaly detected for device {} ({}): probability={}, title='{}', features={}",
                 device.getId(),
                 device.getName(),
-                probability,
+                String.format("%.3f", probability),
                 message.title(),
                 engineeredFeatures);
 

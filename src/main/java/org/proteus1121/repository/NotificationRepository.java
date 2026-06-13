@@ -8,5 +8,7 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<NotificationEntity, Long> {
 
     List<NotificationEntity> findAllByUserId(Long userId);
+    
+    List<NotificationEntity> findByTelegramChatId(String telegramChatId);
 
 }

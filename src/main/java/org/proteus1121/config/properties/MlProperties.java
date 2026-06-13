@@ -4,23 +4,24 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * Configuration properties for ML anomaly detection.
+ * 
+ * Note: Anomaly detection always uses rule-based approach.
+ * XGBoost is used only for time-series predictions.
+ */
 @Component
 @ConfigurationProperties(prefix = "ml")
 @Data
 public class MlProperties {
+    /**
+     * Enable/disable ML anomaly detection features
+     */
     private boolean enabled = true;
-    private String modelPath = "file:./models/environmental_xgb.json";
+    
+    /**
+     * Anomaly score threshold (0.0 to 1.0)
+     * Scores above this threshold are considered anomalies
+     */
     private double threshold = 0.72;
-    private String provider = "xgboost4j";
-    private ExternalProperties external = new ExternalProperties();
-
-    @Data
-    public static class ExternalProperties {
-        private String url = "http://localhost:8089/score";
-        private long timeoutMs = 1200;
-    }
 }
-
