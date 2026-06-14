@@ -70,15 +70,22 @@ public class MetricService {
     public void processMetrics(Long deviceId, Double value) {
         sensorDataRepository.save(sensorDataMapper.toSensorDataEntity(value, deviceId));
 
-        checkValue(deviceId, value);
+        boolean anomalyDetected = checkValue(deviceId, value);
+        
+        // Update device status based on anomaly detection result
+        if (anomalyDetected) {
+            deviceService.updateDeviceStatus(deviceId, org.proteus1121.model.enums.DeviceStatus.WARNING);
+        } else {
+            deviceService.updateDeviceStatus(deviceId, org.proteus1121.model.enums.DeviceStatus.OK);
+        }
     }
 
     @Transactional(readOnly = true)
-    public void checkValue(Long deviceId, Double value) {
+    public boolean checkValue(Long deviceId, Double value) {
         Optional<Device> deviceOpt = deviceService.getDeviceById(deviceId);
         if (deviceOpt.isEmpty()) {
             log.warn("Device {} not found for value check", deviceId);
-            return;
+            return false;
         }
         Device device = deviceOpt.get();
 
@@ -86,7 +93,7 @@ public class MetricService {
         if (mlProperties.isEnabled()) {
             try {
                 if (performRuleBasedAnomalyDetection(device, value)) {
-                    return;
+                    return true; // Anomaly detected
                 }
             } catch (Exception ex) {
                 log.error("Rule-based anomaly check failed for device {}: {}", deviceId, ex.getMessage(), ex);
@@ -95,7 +102,7 @@ public class MetricService {
         }
 
         // Legacy threshold fallback
-        performLegacyThresholdCheck(device, value);
+        return performLegacyThresholdCheck(device, value);
     }
 
     /**
@@ -181,8 +188,9 @@ public class MetricService {
     /**
      * Legacy threshold-based anomaly check (fallback)
      * Prevents notification spam by checking for existing unresolved incidents
+     * @return true if anomaly was detected, false otherwise
      */
-    private void performLegacyThresholdCheck(Device device, Double value) {
+    private boolean performLegacyThresholdCheck(Device device, Double value) {
         Double criticalValue = device.getCriticalValue();
         Double lowerValue = device.getLowerValue();
 
@@ -193,7 +201,7 @@ public class MetricService {
             if (hasUnresolvedIncident) {
                 log.debug("Unresolved incident already exists for device {} ({}). Skipping notification to prevent spam.",
                     device.getId(), device.getName());
-                return;
+                return true; // Anomaly exists but don't send duplicate notification
             }
             
             log.warn("Critical alert triggered for device {}: value = {}", device.getId(), value);
@@ -201,6 +209,7 @@ public class MetricService {
                     CRITICAL,
                     List.of(device));
             telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(device.getId()), device, value);
+            return true;
         } else if (lowerValue != null && value <= lowerValue) {
             // Check if there's already an unresolved incident for this device
             boolean hasUnresolvedIncident = incidentService.hasUnresolvedIncident(device.getId());
@@ -208,7 +217,7 @@ public class MetricService {
             if (hasUnresolvedIncident) {
                 log.debug("Unresolved incident already exists for device {} ({}). Skipping notification to prevent spam.",
                     device.getId(), device.getName());
-                return;
+                return true; // Anomaly exists but don't send duplicate notification
             }
             
             log.warn("Lower alert triggered for device {}: value = {}", device.getId(), value);
@@ -216,7 +225,10 @@ public class MetricService {
             incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
                     CRITICAL,
                     List.of(device));
+            return true;
         }
+        
+        return false; // No anomaly detected
     }
 
     /**
