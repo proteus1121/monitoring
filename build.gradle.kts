@@ -80,6 +80,9 @@ dependencies {
     implementation("org.springframework.security:spring-security-core")
     implementation("org.springframework.security:spring-security-config")
 
+    // Logback Appender For Loki
+    implementation("com.github.loki4j:loki-logback-appender:1.5.1")
+
     // Tests
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))

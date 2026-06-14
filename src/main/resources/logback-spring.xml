@@ -1,0 +1,28 @@
+<configuration>
+
+    <!-- Console Logging -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loki Logging to Grafana Cloud -->
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <http>
+            <url>https://otlp-gateway-prod-eu-west-2.grafana.net/otlp/v1/logs</url>
+            <auth>
+                <username>1690824</username>
+                <password>${GRAFANA_KEY}</password>
+            </auth>
+        </http>
+
+    </appender>
+
+    <!-- Root Logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+    </root>
+
+</configuration>
