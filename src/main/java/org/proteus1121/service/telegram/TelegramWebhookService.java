@@ -181,6 +181,13 @@ public class TelegramWebhookService {
             // Query for the latest sensor data for this device
             SensorDataEntity latestSensorData = sensorDataRepository.findLatestByDeviceId(device.getId());
             
+            // Safe handling of device type
+            DeviceType deviceType = device.getType();
+            if (deviceType == null) {
+                log.warn("Device {} has null type", device.getId());
+                deviceType = DeviceType.UNKNOWN; // Use UNKNOWN as fallback
+            }
+            
             if (latestSensorData == null) {
                 log.debug("No sensor data found for device: {}", device.getId());
                 return DeviceSensorValues.builder()
@@ -191,29 +198,21 @@ public class TelegramWebhookService {
                         .lastUpdated(LocalDateTime.now())
                         .build();
             }
-            
-            // Create a map with the latest sensor value
-            Map<DeviceType, DeviceSensorValues.SensorValue> latestValues = new HashMap<>();
-            
-            // Safe handling of device type
-            DeviceType deviceType = device.getType();
-            if (deviceType != null) {
-                latestValues.put(
-                    deviceType,
-                    DeviceSensorValues.SensorValue.builder()
-                            .value(latestSensorData.getValue())
-                            .timestamp(latestSensorData.getTimestamp())
-                            .build()
-                );
-            } else {
-                log.warn("Device {} has null type", device.getId());
-            }
+
+            Map<DeviceType, DeviceSensorValues.SensorValue> sensorValues = new HashMap<>();
+            sensorValues.put(
+                deviceType,
+                DeviceSensorValues.SensorValue.builder()
+                        .value(latestSensorData.getValue())
+                        .timestamp(latestSensorData.getTimestamp())
+                        .build()
+            );
             
             return DeviceSensorValues.builder()
                     .deviceId(device.getId())
                     .deviceName(device.getName() != null ? device.getName() : "Unknown Device")
                     .deviceDescription(device.getDescription())
-                    .values(latestValues)
+                    .values(sensorValues)
                     .lastUpdated(LocalDateTime.now())
                     .build();
                     
