@@ -22,6 +22,7 @@ public class DeviceSensorValues {
     private String deviceName;
     private String deviceDescription;
     private Map<DeviceType, SensorValue> values;
+    private LocalDateTime lastUpdated;
     
     @Data
     @Builder

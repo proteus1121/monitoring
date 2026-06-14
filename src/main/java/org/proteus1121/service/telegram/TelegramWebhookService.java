@@ -101,64 +101,63 @@ public class TelegramWebhookService {
                     message.append("  ").append(emoji).append(" ")
                            .append(type.name()).append(": ")
                            .append(formattedValue).append("\n");
+                    
+                    // Show when this sensor value was recorded
+                    if (sensorValue.getTimestamp() != null) {
+                        message.append("    _Recorded: ")
+                               .append(sensorValue.getTimestamp().toString())
+                               .append("_\n");
+                    }
                 }
+            }
+            
+            // Show when this device data was last updated
+            if (device.getLastUpdated() != null) {
+                message.append("  _Last Updated: ")
+                       .append(device.getLastUpdated().toString())
+                       .append("_\n");
             }
             
             message.append("\n");
         }
         
-        message.append("_Updated: ").append(LocalDateTime.now().toString()).append("_");
+        message.append("_Report Generated: ").append(LocalDateTime.now().toString()).append("_");
         
         return message.toString();
     }
 
     private DeviceSensorValues getLatestSensorValuesForDevice(DeviceEntity device) {
         try {
-            // Query for the latest sensor data for this device (last 24 hours)
-            LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
-            List<SensorDataEntity> sensorData = sensorDataRepository.findByDeviceIdAndTimestampRange(
-                    device.getId(), 
-                    oneDayAgo, 
-                    LocalDateTime.now()
-            );
+            // Query for the latest sensor data for this device
+            SensorDataEntity latestSensorData = sensorDataRepository.findLatestByDeviceId(device.getId());
             
-            if (sensorData.isEmpty()) {
+            if (latestSensorData == null) {
                 log.debug("No sensor data found for device: {}", device.getId());
                 return DeviceSensorValues.builder()
                         .deviceId(device.getId())
                         .deviceName(device.getName())
                         .deviceDescription(device.getDescription())
                         .values(Collections.emptyMap())
+                        .lastUpdated(LocalDateTime.now())
                         .build();
             }
             
-            // Get the most recent value (last in the list if ordered by timestamp)
+            // Create a map with the latest sensor value
             Map<DeviceType, DeviceSensorValues.SensorValue> latestValues = new HashMap<>();
-            
-            // Group by device type and take the latest
-            Map<DeviceType, Optional<SensorDataEntity>> latestByType = sensorData.stream()
-                    .collect(Collectors.groupingBy(
-                            sd -> sd.getDevice().getType(),
-                            Collectors.maxBy(Comparator.comparing(SensorDataEntity::getTimestamp))
-                    ));
-            
-            for (Map.Entry<DeviceType, Optional<SensorDataEntity>> entry : latestByType.entrySet()) {
-                entry.getValue().ifPresent(sd -> 
-                    latestValues.put(
-                        entry.getKey(),
-                        DeviceSensorValues.SensorValue.builder()
-                                .value(sd.getValue())
-                                .timestamp(sd.getTimestamp())
-                                .build()
-                    )
-                );
-            }
+            latestValues.put(
+                device.getType(),
+                DeviceSensorValues.SensorValue.builder()
+                        .value(latestSensorData.getValue())
+                        .timestamp(latestSensorData.getTimestamp())
+                        .build()
+            );
             
             return DeviceSensorValues.builder()
                     .deviceId(device.getId())
                     .deviceName(device.getName())
                     .deviceDescription(device.getDescription())
                     .values(latestValues)
+                    .lastUpdated(LocalDateTime.now())
                     .build();
                     
         } catch (Exception e) {

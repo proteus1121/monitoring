@@ -121,14 +121,6 @@ public class TelegramWebhookController {
         String lowerText = text.toLowerCase().trim();
         
         // Check for various report request patterns
-        return lowerText.equals("/report") 
-            || lowerText.equals("/status")
-            || lowerText.equals("/latest")
-            || lowerText.equals("/values")
-            || lowerText.contains("latest values")
-            || lowerText.contains("current status")
-            || lowerText.contains("sensor data")
-            || lowerText.contains("show report")
-            || lowerText.contains("get report");
+        return lowerText.equals("/latest");
     }
 }

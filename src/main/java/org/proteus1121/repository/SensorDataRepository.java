@@ -29,4 +29,7 @@ public interface SensorDataRepository extends JpaRepository<SensorDataEntity, Lo
             @Param("deviceId") Long deviceId,
             @Param("timestamp") LocalDateTime timestamp
     );
+
+    @Query("SELECT s FROM SensorDataEntity s WHERE s.device.id = :deviceId ORDER BY s.timestamp DESC LIMIT 1")
+    SensorDataEntity findLatestByDeviceId(@Param("deviceId") Long deviceId);
 }
