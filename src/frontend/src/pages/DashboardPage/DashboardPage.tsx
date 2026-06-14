@@ -1,18 +1,10 @@
 import { useEffect, useState } from 'react';
 import DeviceDataChart from './components/DeviceDataChart';
 import { RecentIncidentsCard } from './components/RecentIncidentsCard';
-import { DatePicker } from 'antd';
+import { DatePicker, Select } from 'antd';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { PageHeader, PageHeaderTitle } from '@src/components/PageHeader';
 import { Card } from '@src/components/Card';
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@src/components/Select';
 import dayjs, { Dayjs } from 'dayjs';
 import { Loader } from '@src/components/Loader';
 import { useGetAllDevicesQuery } from '@src/redux/generatedApi';
@@ -58,26 +50,20 @@ export const DashboardPage = () => {
             </div>
           </div>
 
-          <div className="flex w-full items-center">
+          <div className="flex w-full items-center gap-4">
             {devices && devices.length > 0 && (
               <Select
-                // TODO : add multi select
-                defaultValue={String(devices[0].id)}
-                onValueChange={value => setChoosenDevicesIds([Number(value)])}
-              >
-                <SelectTrigger className="w-[240px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {devices.map((option, index) => (
-                      <SelectItem key={index} value={String(option.id)}>
-                        {option.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                mode="multiple"
+                placeholder="Select devices"
+                style={{ width: 300 }}
+                defaultValue={[devices[0].id!]}
+                onChange={(selectedIds: number[]) => setChoosenDevicesIds(selectedIds)}
+                options={devices.map(device => ({
+                  label: device.name,
+                  value: device.id!,
+                }))}
+                maxTagCount="responsive"
+              />
             )}
 
             <RangePicker
