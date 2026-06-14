@@ -13,6 +13,7 @@ import org.proteus1121.repository.SensorDataRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,6 +24,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class TelegramWebhookService {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final NotificationRepository notificationRepository;
     private final DeviceRepository deviceRepository;
@@ -100,28 +103,22 @@ public class TelegramWebhookService {
                     
                     message.append("  ").append(emoji).append(" ")
                            .append(type.name()).append(": ")
-                           .append(formattedValue).append("\n");
+                           .append(formattedValue)
+                            .append("\n");
                     
                     // Show when this sensor value was recorded
                     if (sensorValue.getTimestamp() != null) {
-                        message.append("    _Recorded: ")
-                               .append(sensorValue.getTimestamp().toString())
+                        message.append("    _")
+                               .append(sensorValue.getTimestamp().format(DATE_TIME_FORMATTER))
                                .append("_\n");
                     }
                 }
             }
             
-            // Show when this device data was last updated
-            if (device.getLastUpdated() != null) {
-                message.append("  _Last Updated: ")
-                       .append(device.getLastUpdated().toString())
-                       .append("_\n");
-            }
-            
             message.append("\n");
         }
         
-        message.append("_Report Generated: ").append(LocalDateTime.now().toString()).append("_");
+        message.append("_Report Generated: ").append(LocalDateTime.now().format(DATE_TIME_FORMATTER)).append("_");
         
         return message.toString();
     }
