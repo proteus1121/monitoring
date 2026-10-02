@@ -11,6 +11,7 @@ import {
   Title,
 } from 'chart.js';
 import { Dayjs } from 'dayjs';
+import { serverTime } from '@src/lib/readings';
 import {Device, useLazyGetMetricsPredictedQuery, useLazyGetMetricsQuery} from '@src/redux/generatedApi';
 
 ChartJS.register(
@@ -106,7 +107,7 @@ const DeviceDataChart = ({
           if (res.actual) {
             res.actual.forEach((entry: any) => {
               if (entry.timestamp) {
-                const ts = new Date(entry.timestamp).toISOString();
+                const ts = serverTime(entry.timestamp)!.toISOString();
                 allTimestampsSet.add(ts);
                 if (entry.value !== undefined && entry.value !== null) actualMap[ts] = entry.value;
               }
@@ -115,7 +116,7 @@ const DeviceDataChart = ({
           if (res.predicted) {
             res.predicted.forEach((entry: any) => {
               if (entry.timestamp) {
-                const ts = new Date(entry.timestamp).toISOString();
+                const ts = serverTime(entry.timestamp)!.toISOString();
                 allTimestampsSet.add(ts);
                 if (entry.value !== undefined && entry.value !== null) predictedMap[ts] = entry.value;
               }

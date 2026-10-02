@@ -252,6 +252,37 @@ const injectedRtkApi = api
         }),
         providesTags: ["Metrics"],
       }),
+      getRecentIncidents: build.query<
+        GetRecentIncidentsApiResponse,
+        GetRecentIncidentsApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/incidents/recent`,
+          params: { openOnly: queryArg.openOnly, limit: queryArg.limit },
+        }),
+        providesTags: ["Incident Management"],
+      }),
+      getOpenIncidentCount: build.query<
+        GetOpenIncidentCountApiResponse,
+        GetOpenIncidentCountApiArg
+      >({
+        query: () => ({ url: `/incidents/open-count` }),
+        providesTags: ["Incident Management"],
+      }),
+      resolveAllIncidents: build.mutation<
+        ResolveAllIncidentsApiResponse,
+        ResolveAllIncidentsApiArg
+      >({
+        query: () => ({ url: `/incidents/resolve-all`, method: "POST" }),
+        invalidatesTags: ["Incident Management"],
+      }),
+      getLatestReadings: build.query<
+        GetLatestReadingsApiResponse,
+        GetLatestReadingsApiArg
+      >({
+        query: () => ({ url: `/metrics/latest` }),
+        providesTags: ["Metrics"],
+      }),
       getAllIncidents: build.query<
         GetAllIncidentsApiResponse,
         GetAllIncidentsApiArg
@@ -396,6 +427,23 @@ export type GetMetricsPredictedApiArg = {
     | "SIX_HOURS"
     | "TWELVE_HOURS"
     | "ONE_DAY";
+};
+export type GetRecentIncidentsApiResponse = /** status 200 OK */ Incident[];
+export type GetRecentIncidentsApiArg = {
+  openOnly?: boolean;
+  limit?: number;
+};
+export type GetOpenIncidentCountApiResponse = /** status 200 OK */ number;
+export type GetOpenIncidentCountApiArg = void;
+export type ResolveAllIncidentsApiResponse = /** status 200 OK */ number;
+export type ResolveAllIncidentsApiArg = void;
+export type GetLatestReadingsApiResponse =
+  /** status 200 OK */ LatestReading[];
+export type GetLatestReadingsApiArg = void;
+export type LatestReading = {
+  deviceId: number;
+  timestamp: string;
+  value: number;
 };
 export type GetAllIncidentsApiResponse = /** status 200 OK */ Incident[];
 export type GetAllIncidentsApiArg = void;
@@ -590,6 +638,10 @@ export const {
   useLazyGetMetricsQuery,
   useGetMetricsPredictedQuery,
   useLazyGetMetricsPredictedQuery,
+  useGetRecentIncidentsQuery,
+  useGetOpenIncidentCountQuery,
+  useResolveAllIncidentsMutation,
+  useGetLatestReadingsQuery,
   useGetAllIncidentsQuery,
   useLazyGetAllIncidentsQuery,
   useGetIncidentQuery,

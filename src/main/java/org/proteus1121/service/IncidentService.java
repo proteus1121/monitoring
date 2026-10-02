@@ -1,5 +1,6 @@
 package org.proteus1121.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.dto.incident.Incident;
@@ -12,6 +13,7 @@ import org.proteus1121.model.enums.Severity;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.mapper.IncidentMapper;
 import org.proteus1121.repository.IncidentRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -34,6 +36,46 @@ public class IncidentService {
         List<IncidentEntity> incidents = incidentRepository.findAllByDevices(allDevices);
         return incidents.stream()
                 .map(incidentMapper::toIncident)
+                .toList();
+    }
+
+    /**
+     * Statuses that still need attention.
+     */
+    public static final List<Resolution> OPEN_STATUSES = List.of(Resolution.UNRESOLVED, Resolution.ACKNOWLEDGED);
+
+    /**
+     * Newest first; only open ones when {@code openOnly}.
+     */
+    public List<Incident> getIncidents(Long userId, boolean openOnly, int limit) {
+        List<Long> deviceIds = deviceIds(userId);
+        if (deviceIds.isEmpty()) {
+            return List.of();
+        }
+        List<Resolution> statuses = openOnly ? OPEN_STATUSES : List.of(Resolution.values());
+        return incidentRepository.findByDevicesAndStatuses(deviceIds, statuses, PageRequest.of(0, limit)).stream()
+                .map(incidentMapper::toIncident)
+                .toList();
+    }
+
+    public long countOpenIncidents(Long userId) {
+        List<Long> deviceIds = deviceIds(userId);
+        return deviceIds.isEmpty() ? 0 : incidentRepository.findIdsByDevicesAndStatuses(deviceIds, OPEN_STATUSES).size();
+    }
+
+    @Transactional
+    public int resolveAllIncidents(Long userId) {
+        List<Long> deviceIds = deviceIds(userId);
+        if (deviceIds.isEmpty()) {
+            return 0;
+        }
+        List<Long> ids = incidentRepository.findIdsByDevicesAndStatuses(deviceIds, OPEN_STATUSES);
+        return ids.isEmpty() ? 0 : incidentRepository.updateStatus(ids, Resolution.RESOLVED_MANUALLY);
+    }
+
+    private List<Long> deviceIds(Long userId) {
+        return deviceService.getAllDevices(userId).stream()
+                .map(Device::getId)
                 .toList();
     }
 

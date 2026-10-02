@@ -1,5 +1,6 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.model.response.metric.LatestReading;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import static org.proteus1121.util.SessionUtils.getCurrentUser;
 
 @RestController
 @RequestMapping("/metrics")
@@ -43,6 +46,12 @@ public class MetricController {
         );
 
         return SensorCleaner.removeSandwichedRuns(metrics, isStrange);
+    }
+
+    @GetMapping("/latest")
+    @Operation(summary = "Get latest readings", description = "The most recent value of every device of the current user")
+    public List<LatestReading> getLatestReadings() {
+        return metricService.getLatestReadings(getCurrentUser().getId());
     }
 
     @GetMapping("/predicted")

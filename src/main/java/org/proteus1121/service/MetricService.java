@@ -1,5 +1,7 @@
 package org.proteus1121.service;
 
+import java.util.Objects;
+import org.proteus1121.model.response.metric.LatestReading;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.config.properties.MlProperties;
@@ -64,6 +66,18 @@ public class MetricService {
 
         return downsampled.stream()
                 .map(sensorDataMapper::toSensorData)
+                .toList();
+    }
+
+    /**
+     * Last stored value of every device the user can see; devices without data are left out.
+     */
+    public List<LatestReading> getLatestReadings(Long userId) {
+        return deviceService.getAllDevices(userId).stream()
+                .map(device -> Optional.ofNullable(sensorDataRepository.findLatestByDeviceId(device.getId()))
+                        .map(data -> new LatestReading(device.getId(), data.getTimestamp(), data.getValue()))
+                        .orElse(null))
+                .filter(Objects::nonNull)
                 .toList();
     }
 

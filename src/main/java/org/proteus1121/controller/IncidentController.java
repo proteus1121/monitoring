@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -30,6 +31,25 @@ public class IncidentController {
     public List<Incident> getAllIncidents() {
         User principal = getCurrentUser();
         return incidentService.getAllIncidents(principal.getId());
+    }
+
+    @GetMapping("/recent")
+    @Operation(summary = "Get recent incidents", description = "Newest incidents of the current user, optionally only unresolved ones")
+    public List<Incident> getRecentIncidents(@RequestParam(value = "openOnly", defaultValue = "false") boolean openOnly,
+                                             @RequestParam(value = "limit", defaultValue = "50") int limit) {
+        return incidentService.getIncidents(getCurrentUser().getId(), openOnly, Math.min(Math.max(limit, 1), 500));
+    }
+
+    @GetMapping("/open-count")
+    @Operation(summary = "Count unresolved incidents")
+    public long countOpenIncidents() {
+        return incidentService.countOpenIncidents(getCurrentUser().getId());
+    }
+
+    @PostMapping("/resolve-all")
+    @Operation(summary = "Resolve all incidents", description = "Marks every unresolved incident of the current user as resolved")
+    public int resolveAllIncidents() {
+        return incidentService.resolveAllIncidents(getCurrentUser().getId());
     }
 
     @GetMapping("/{id}")
