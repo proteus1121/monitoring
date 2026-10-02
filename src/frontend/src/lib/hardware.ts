@@ -119,3 +119,103 @@ export function controllerPlatform(
 ) {
   return controllers?.find(c => c.id === controllerId)?.platform;
 }
+
+export type BoardPin = {
+  label: string;
+  gpio?: number;
+};
+
+export type BoardLayout = {
+  name: string;
+  // header rows top to bottom, the USB connector is at the bottom
+  left: BoardPin[];
+  right: BoardPin[];
+};
+
+const NODEMCU_LAYOUT: BoardLayout = {
+  name: 'NodeMCU v2 (ESP8266)',
+  left: [
+    { label: 'A0', gpio: 17 },
+    { label: 'RSV' },
+    { label: 'RSV' },
+    { label: 'SD3', gpio: 10 },
+    { label: 'SD2', gpio: 9 },
+    { label: 'SD1' },
+    { label: 'CMD' },
+    { label: 'SD0' },
+    { label: 'CLK' },
+    { label: 'GND' },
+    { label: '3V3' },
+    { label: 'EN' },
+    { label: 'RST' },
+    { label: 'GND' },
+    { label: 'VIN' },
+  ],
+  right: [
+    { label: 'D0', gpio: 16 },
+    { label: 'D1', gpio: 5 },
+    { label: 'D2', gpio: 4 },
+    { label: 'D3', gpio: 0 },
+    { label: 'D4', gpio: 2 },
+    { label: '3V3' },
+    { label: 'GND' },
+    { label: 'D5', gpio: 14 },
+    { label: 'D6', gpio: 12 },
+    { label: 'D7', gpio: 13 },
+    { label: 'D8', gpio: 15 },
+    { label: 'RX', gpio: 3 },
+    { label: 'TX', gpio: 1 },
+    { label: 'GND' },
+    { label: '3V3' },
+  ],
+};
+
+const ESP32_DEVKIT_LAYOUT: BoardLayout = {
+  name: 'ESP32 DevKit',
+  left: [
+    { label: 'EN' },
+    { label: 'VP', gpio: 36 },
+    { label: 'VN', gpio: 39 },
+    { label: 'D34', gpio: 34 },
+    { label: 'D35', gpio: 35 },
+    { label: 'D32', gpio: 32 },
+    { label: 'D33', gpio: 33 },
+    { label: 'D25', gpio: 25 },
+    { label: 'D26', gpio: 26 },
+    { label: 'D27', gpio: 27 },
+    { label: 'D14', gpio: 14 },
+    { label: 'D12', gpio: 12 },
+    { label: 'GND' },
+    { label: 'D13', gpio: 13 },
+    { label: 'VIN' },
+  ],
+  right: [
+    { label: 'D23', gpio: 23 },
+    { label: 'D22', gpio: 22 },
+    { label: 'TX0', gpio: 1 },
+    { label: 'RX0', gpio: 3 },
+    { label: 'D21', gpio: 21 },
+    { label: 'D19', gpio: 19 },
+    { label: 'D18', gpio: 18 },
+    { label: 'D5', gpio: 5 },
+    { label: 'TX2', gpio: 17 },
+    { label: 'RX2', gpio: 16 },
+    { label: 'D4', gpio: 4 },
+    { label: 'D2', gpio: 2 },
+    { label: 'D15', gpio: 15 },
+    { label: 'GND' },
+    { label: '3V3' },
+  ],
+};
+
+export function boardLayout(platform?: string): BoardLayout {
+  return platform === 'esp8266' ? NODEMCU_LAYOUT : ESP32_DEVKIT_LAYOUT;
+}
+
+// What the pin is taken by on this board (display, serial, ...), undefined when free
+export function reservedPinNote(platform: string | undefined, gpio?: number) {
+  if (gpio === undefined) return undefined;
+  const spec = pinSpecs(platform).find(pin => pin.gpio === gpio);
+  if (!spec || !(spec.reserved || spec.i2cOnly)) return undefined;
+  return spec.label.split(' - ')[1];
+}
