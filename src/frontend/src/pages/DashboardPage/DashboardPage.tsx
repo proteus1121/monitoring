@@ -57,16 +57,18 @@ export const DashboardPage = () => {
   const [startDate, setStartDate] = useState<Dayjs>(dayjs().subtract(1, 'day'));
   const [endDate, setEndDate] = useState<Dayjs>(dayjs().add(1, 'hour'));
 
-  // ?device=ID from search selects that device, otherwise the first one
+  // ?device=ID from search selects that device, otherwise the first one;
+  // not tied to the polled list itself so a refresh keeps the user's selection
+  const devicesLoaded = Boolean(devices?.length);
+  const requestedDevice = Number(searchParams.get('device'));
   useEffect(() => {
     if (!devices?.length) return;
-    const requested = Number(searchParams.get('device'));
-    if (requested && devices.some(d => d.id === requested)) {
-      setChosenDeviceIds([requested]);
+    if (requestedDevice && devices.some(d => d.id === requestedDevice)) {
+      setChosenDeviceIds([requestedDevice]);
     } else if (chosenDeviceIds.length === 0) {
       setChosenDeviceIds([devices[0].id!]);
     }
-  }, [devices, searchParams]);
+  }, [devicesLoaded, requestedDevice]);
 
   // jump to #chart / #alerts after navigating from search or the alerts popover
   useEffect(() => {

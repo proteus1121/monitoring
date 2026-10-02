@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -12,7 +12,12 @@ import {
 } from 'chart.js';
 import { Dayjs } from 'dayjs';
 import { serverTime } from '@src/lib/readings';
-import {Device, useLazyGetMetricsPredictedQuery, useLazyGetMetricsQuery} from '@src/redux/generatedApi';
+import {
+  Device,
+  SensorData,
+  useLazyGetMetricsPredictedQuery,
+  useLazyGetMetricsQuery,
+} from '@src/redux/generatedApi';
 
 ChartJS.register(
   LineElement,
@@ -24,6 +29,16 @@ ChartJS.register(
   Title
 );
 
+const COLORS = [
+  'rgb(37, 99, 235)',
+  'rgb(234, 88, 12)',
+  'rgb(22, 163, 74)',
+  'rgb(219, 39, 119)',
+  'rgb(124, 58, 237)',
+  'rgb(8, 145, 178)',
+  'rgb(202, 138, 4)',
+];
+
 interface DatasetConfig {
   label: string;
   data: (number | null)[];
@@ -31,12 +46,23 @@ interface DatasetConfig {
   backgroundColor: string;
   tension: number;
   spanGaps: boolean;
+  pointRadius: number;
   borderDash?: number[];
 }
 
 interface ChartData {
   labels: string[];
   datasets: DatasetConfig[];
+}
+
+function toMap(entries?: SensorData[]) {
+  const map: Record<string, number> = {};
+  entries?.forEach(entry => {
+    if (entry.timestamp && entry.value !== undefined && entry.value !== null) {
+      map[serverTime(entry.timestamp)!.toISOString()] = entry.value;
+    }
+  });
+  return map;
 }
 
 const DeviceDataChart = ({
@@ -50,154 +76,139 @@ const DeviceDataChart = ({
   startDate: Dayjs;
   endDate: Dayjs;
 }) => {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
   const [getMetricsByDevice] = useLazyGetMetricsQuery();
   const [getPredictedMetricsByDevice] = useLazyGetMetricsPredictedQuery();
 
+  // the device list is polled, keep names in a ref so a refresh does not reload the chart
+  const devicesRef = useRef(devices);
+  devicesRef.current = devices;
+
+  const idsKey = choosenDevicesIds.join(',');
+  const start = startDate.toISOString();
+  const end = endDate.toISOString();
+
   useEffect(() => {
+    let cancelled = false;
+    const ids = idsKey ? idsKey.split(',').map(Number) : [];
+    if (ids.length === 0) {
+      setChartData(null);
+      return;
+    }
+
     const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        setIsLoading(true);
-        setError(null);
-        setChartData(null);
-
-        if (!devices) {
-          return;
-        }
-
-        const colors = [
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-          'rgb(255,0,0)',
-          'rgb(71,255,0)',
-        ];
-
-        // Fetch both actual and predicted metrics for each device
         const responses = await Promise.all(
-          choosenDevicesIds.map(async (id) => {
+          ids.map(async id => {
             const [actual, predicted] = await Promise.all([
-              getMetricsByDevice({
-                deviceId: id,
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-                period: 'ONE_HOUR'
-              }).unwrap(),
-              getPredictedMetricsByDevice({
-                deviceId: id,
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-              }).unwrap()
+              getMetricsByDevice({ deviceId: id, start, end, period: 'ONE_HOUR' }, true).unwrap(),
+              // the forecast is optional, the chart still works without it
+              getPredictedMetricsByDevice({ deviceId: id, start, end }, true)
+                .unwrap()
+                .catch(() => [] as SensorData[]),
             ]);
-            return { actual, predicted };
+            return { id, actual: toMap(actual), predicted: toMap(predicted) };
           })
         );
+        if (cancelled) return;
 
-        // Collect all unique timestamps from both actual and predicted data
-        const allTimestampsSet = new Set<string>();
-        const deviceDataMaps: { actual: Record<string, number>, predicted: Record<string, number> }[] = [];
-
-        responses.forEach(res => {
-          const actualMap: Record<string, number> = {};
-          const predictedMap: Record<string, number> = {};
-          if (res.actual) {
-            res.actual.forEach((entry: any) => {
-              if (entry.timestamp) {
-                const ts = serverTime(entry.timestamp)!.toISOString();
-                allTimestampsSet.add(ts);
-                if (entry.value !== undefined && entry.value !== null) actualMap[ts] = entry.value;
-              }
-            });
-          }
-          if (res.predicted) {
-            res.predicted.forEach((entry: any) => {
-              if (entry.timestamp) {
-                const ts = serverTime(entry.timestamp)!.toISOString();
-                allTimestampsSet.add(ts);
-                if (entry.value !== undefined && entry.value !== null) predictedMap[ts] = entry.value;
-              }
-            });
-          }
-          deviceDataMaps.push({ actual: actualMap, predicted: predictedMap });
+        const timestamps = new Set<string>();
+        responses.forEach(r => {
+          Object.keys(r.actual).forEach(ts => timestamps.add(ts));
+          Object.keys(r.predicted).forEach(ts => timestamps.add(ts));
         });
+        const sorted = [...timestamps].sort();
 
-        const allTimestamps = Array.from(allTimestampsSet).sort();
-        const choosenDevices = devices.filter(device => {
-          if (!device.id) return;
-          return choosenDevicesIds.includes(device.id);
-        });
-
-        // Build datasets: for each device, one for actual, one for predicted
         const datasets: DatasetConfig[] = [];
-        deviceDataMaps.forEach((dataMap, index) => {
-          const color = colors[index % colors.length];
-          // Actual
+        responses.forEach((r, index) => {
+          const color = COLORS[index % COLORS.length];
+          const name =
+            devicesRef.current?.find(d => d.id === r.id)?.name ?? `Device ${r.id}`;
           datasets.push({
-            label: (choosenDevices[index]?.name || `Device ${index + 1}`) + ' (Actual)',
-            data: allTimestamps.map(timestamp =>
-              dataMap.actual[timestamp] !== undefined ? dataMap.actual[timestamp] : null
-            ),
+            label: name,
+            data: sorted.map(ts => r.actual[ts] ?? null),
             borderColor: color,
-            backgroundColor: color.replace('1)', '0.2)'),
+            backgroundColor: color,
             tension: 0.3,
             spanGaps: true,
+            pointRadius: 2,
           });
-          // Predicted
-          datasets.push({
-            label: (choosenDevices[index]?.name || `Device ${index + 1}`) + ' (Predicted)',
-            data: allTimestamps.map(timestamp =>
-              dataMap.predicted[timestamp] !== undefined ? dataMap.predicted[timestamp] : null
-            ),
-            borderColor: color,
-            backgroundColor: color.replace('1)', '0.1)'),
-            tension: 0.3,
-            spanGaps: true,
-            borderDash: [6, 6],
-          });
+          if (Object.keys(r.predicted).length > 0) {
+            datasets.push({
+              label: `${name} (forecast)`,
+              data: sorted.map(ts => r.predicted[ts] ?? null),
+              borderColor: color,
+              backgroundColor: color,
+              tension: 0.3,
+              spanGaps: true,
+              pointRadius: 0,
+              borderDash: [6, 6],
+            });
+          }
         });
 
-        const formattedLabels = allTimestamps.map(timestamp =>
-          new Date(timestamp).toLocaleString(undefined, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        );
-
-        setChartData({ labels: formattedLabels, datasets });
+        setChartData({
+          labels: sorted.map(ts =>
+            new Date(ts).toLocaleString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          ),
+          datasets,
+        });
       } catch (err) {
         console.error(err);
-        setError('Failed to fetch data');
+        if (!cancelled) setError('Failed to load data');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [devices, choosenDevicesIds, startDate, endDate, getMetricsByDevice, getPredictedMetricsByDevice]);
+    return () => {
+      cancelled = true;
+    };
+  }, [idsKey, start, end, getMetricsByDevice, getPredictedMetricsByDevice]);
 
-  if (isLoading) {
-    return <>Loading...</>;
-  }
-
-  if (error) {
-    return <>{error}</>;
-  }
+  const hasPoints = chartData?.labels.length;
 
   return (
-    <>
-      {chartData && choosenDevicesIds.length > 0 ? (
-        <Line data={chartData} options={{ responsive: true }} />
-      ) : (
-        <>No data available</>
+    <div className="relative h-[360px]">
+      {isLoading && (
+        <span className="absolute top-0 right-0 z-10 text-xs text-slate-400">
+          Loading…
+        </span>
       )}
-    </>
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      {!error && hasPoints ? (
+        <Line
+          data={chartData!}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { position: 'bottom' } },
+            scales: { x: { ticks: { maxTicksLimit: 12 } } },
+          }}
+        />
+      ) : (
+        !isLoading &&
+        !error && (
+          <p className="pt-10 text-center text-sm text-slate-500">
+            {choosenDevicesIds.length
+              ? 'No data for this period'
+              : 'Select devices to show their history'}
+          </p>
+        )
+      )}
+    </div>
   );
 };
 
