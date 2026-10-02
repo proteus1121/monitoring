@@ -6,9 +6,15 @@ networks:
 services:
   traefik:
     image: traefik:v2.10
+    # host mode bypasses the swarm ingress mesh: single node, and a broken ingress network
+    # ("error creating vxlan interface: file exists") must not take the site down
     ports:
-      - "80:80"
-      - "443:443"
+      - target: 80
+        published: 80
+        mode: host
+      - target: 443
+        published: 443
+        mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /home/${SSH_USER}/deploy/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -74,7 +80,9 @@ services:
   mosquitto:
     image: eclipse-mosquitto:latest
     ports:
-      - "1883:1883"
+      - target: 1883
+        published: 1883
+        mode: host
     volumes:
       - /home/${SSH_USER}/deploy/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - /home/${SSH_USER}/deploy/mosquitto/config/passwords.txt:/mosquitto/config/passwords.txt
