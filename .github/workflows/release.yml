@@ -181,5 +181,12 @@ jobs:
               [ -z "$(docker network ls -q --filter name=monitoring_stack_traefik-public)" ] && break
               sleep 2
             done
+            docker network prune -f
             sleep 5
-            docker stack deploy -c docker-compose.yml monitoring_stack
+            # right after removal swarm may not see the freshly created overlay network yet, retry
+            deployed=0
+            for i in 1 2 3 4 5; do
+              if docker stack deploy -c docker-compose.yml monitoring_stack; then deployed=1; break; fi
+              sleep 15
+            done
+            [ "$deployed" = 1 ]
