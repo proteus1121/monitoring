@@ -178,7 +178,7 @@ jobs:
             set -a; . ./.env; set +a
             # stack rm returns before the overlay network is gone; deploying earlier fails with "network not found"
             for i in $(seq 1 60); do
-              [ -z "$(docker network ls -q --filter name=monitoring_stack_traefik-public)" ] && break
+              [ -z "$(docker network ls -q --filter name=monitoring_stack_monitoring-net)" ] && break
               sleep 2
             done
             docker network prune -f

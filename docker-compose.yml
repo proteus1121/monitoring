@@ -1,5 +1,5 @@
 networks:
-  traefik-public:
+  monitoring-net:
     driver: overlay
     attachable: true
 
@@ -14,7 +14,7 @@ services:
       - /home/${SSH_USER}/deploy/traefik/traefik.yml:/etc/traefik/traefik.yml:ro
       - /home/${SSH_USER}/deploy/traefik/acme.json:/acme.json
     networks:
-      - traefik-public
+      - monitoring-net
     deploy:
       placement:
         constraints:
@@ -44,7 +44,7 @@ services:
       - /home/${SSH_USER}/deploy/mysql:/bitnami/mysql
       - /home/${SSH_USER}/deploy/mysql/my_custom.cnf:/opt/bitnami/mysql/conf/my_custom.cnf:ro
     networks:
-      - traefik-public
+      - monitoring-net
     deploy:
       resources:
         limits:
@@ -59,7 +59,7 @@ services:
     depends_on:
       - mysql-db
     networks:
-      - traefik-public
+      - monitoring-net
     deploy:
       replicas: 1
       labels:
@@ -81,7 +81,7 @@ services:
       - /home/${SSH_USER}/deploy/mosquitto/data:/mosquitto/data
       - /home/${SSH_USER}/deploy/mosquitto/log:/mosquitto/log
     networks:
-      - traefik-public
+      - monitoring-net
     deploy:
       replicas: 1
 
@@ -97,7 +97,7 @@ services:
     depends_on:
       - mysql-db
     networks:
-      - traefik-public
+      - monitoring-net
     deploy:
       replicas: 1
       labels:
@@ -113,7 +113,7 @@ services:
     depends_on:
       - mysql-db
     networks:
-      - traefik-public
+      - monitoring-net
     deploy:
       replicas: 1
       labels:
