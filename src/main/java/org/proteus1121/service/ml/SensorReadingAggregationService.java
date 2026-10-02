@@ -26,23 +26,16 @@ public class SensorReadingAggregationService {
      */
     public Map<DeviceType, Double> getLatestValuesByTimeWindow(LocalDateTime windowStart, LocalDateTime windowEnd) {
         Map<DeviceType, Double> latestValues = new HashMap<>();
-        
-        // Fetch the most recent reading for each device type within the window
-        for (DeviceType deviceType : DeviceType.values()) {
-            if (deviceType == DeviceType.UNKNOWN) continue;
-            
-            // Query the latest sensor data for this type within the window
-            var readings = sensorDataRepository.findLatestByDeviceTypeInWindow(
-                deviceType.name().toLowerCase(), 
-                windowStart, 
-                windowEnd
-            );
-            
-            if (!readings.isEmpty()) {
-                latestValues.put(deviceType, readings.get(0).getValue());
-            }
+
+        // runs for every measurement: one indexed query over the window instead of one scan per device type,
+        // rows are newest first so the first value seen for a type is its latest one
+        for (Object[] row : sensorDataRepository.findTypeAndValueInWindow(windowStart, windowEnd)) {
+            DeviceType deviceType = (DeviceType) row[0];
+            Double value = (Double) row[1];
+            if (deviceType == null || deviceType == DeviceType.UNKNOWN || value == null) continue;
+            latestValues.putIfAbsent(deviceType, value);
         }
-        
+
         return latestValues;
     }
 
@@ -51,25 +44,6 @@ public class SensorReadingAggregationService {
      * Fallback when specific location/group data is not available
      */
     public Map<DeviceType, Double> getLatestValuesAllDevices(LocalDateTime windowStart) {
-        Map<DeviceType, Double> latestValues = new HashMap<>();
-        LocalDateTime now = LocalDateTime.now();
-        
-        for (DeviceType deviceType : DeviceType.values()) {
-            if (deviceType == DeviceType.UNKNOWN) continue;
-            
-            // Get most recent reading for this device type
-            var readings = sensorDataRepository.findLatestByDeviceTypeInWindow(
-                deviceType.name().toLowerCase(), 
-                windowStart, 
-                now
-            );
-            
-            if (!readings.isEmpty()) {
-                latestValues.put(deviceType, readings.get(0).getValue());
-            }
-        }
-        
-        return latestValues;
+        return getLatestValuesByTimeWindow(windowStart, LocalDateTime.now());
     }
 }
-

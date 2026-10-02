@@ -17,9 +17,11 @@ public interface SensorDataRepository extends JpaRepository<SensorDataEntity, Lo
             @Param("endTimestamp") LocalDateTime endTimestamp
     );
 
-    @Query("SELECT s FROM SensorDataEntity s WHERE LOWER(s.device.type) = :deviceType AND s.timestamp BETWEEN :startTimestamp AND :endTimestamp ORDER BY s.timestamp DESC")
-    List<SensorDataEntity> findLatestByDeviceTypeInWindow(
-            @Param("deviceType") String deviceType,
+    /**
+     * Device type and value of every reading in the window, newest first; a projection so devices are not loaded per row.
+     */
+    @Query("SELECT d.type, s.value FROM SensorDataEntity s JOIN s.device d WHERE s.timestamp BETWEEN :startTimestamp AND :endTimestamp ORDER BY s.timestamp DESC")
+    List<Object[]> findTypeAndValueInWindow(
             @Param("startTimestamp") LocalDateTime startTimestamp,
             @Param("endTimestamp") LocalDateTime endTimestamp
     );

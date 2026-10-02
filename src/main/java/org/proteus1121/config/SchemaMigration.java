@@ -24,6 +24,23 @@ public class SchemaMigration {
     @EventListener(ApplicationReadyEvent.class)
     public void migrate() {
         convertEnumToVarchar("devices", "type");
+        // every measurement queries the last minutes of sensor_data; without these it is a full table scan
+        createIndex("sensor_data", "idx_sensor_data_timestamp", "`timestamp`");
+        createIndex("sensor_data", "idx_sensor_data_device_timestamp", "device_id, `timestamp`");
+    }
+
+    private void createIndex(String table, String index, String columns) {
+        try {
+            Integer existing = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?",
+                    Integer.class, table, index);
+            if (existing != null && existing == 0) {
+                log.info("Creating index {} on {}({})", index, table, columns);
+                jdbcTemplate.execute("CREATE INDEX " + index + " ON " + table + " (" + columns + ")");
+            }
+        } catch (Exception e) {
+            log.error("Failed to create index {} on {}", index, table, e);
+        }
     }
 
     private void convertEnumToVarchar(String table, String column) {
