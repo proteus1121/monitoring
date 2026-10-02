@@ -35,6 +35,7 @@ void DisplayManager::begin() {
     _initialized = true;
     Serial.println("[DISPLAY] U8G2 initialized successfully");
 #else
+    Wire.begin(DISPLAY_I2C_SDA, DISPLAY_I2C_SCL);
     // Try to initialize SSD1306 at address 0x3C
     Serial.println("[DISPLAY] Attempting to initialize SSD1306...");
     if (!_display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // 0x3C is common
@@ -65,7 +66,6 @@ bool DisplayManager::isInitialized() {
 
 void DisplayManager::clear() {
     if (!_initialized) {
-        Serial.println("[DISPLAY] clear() called but not initialized");
         return;
     }
 #ifdef USE_U8G2
@@ -78,7 +78,6 @@ void DisplayManager::clear() {
 
 void DisplayManager::printLine(int line, const String &text) {
     if (!_initialized) {
-        Serial.println("[DISPLAY] printLine() called but not initialized");
         return;
     }
 #ifdef USE_U8G2
@@ -94,9 +93,22 @@ void DisplayManager::printLine(int line, const String &text) {
 #endif
 }
 
+void DisplayManager::printAt(int x, int line, const String &text) {
+    if (!_initialized)
+        return;
+#ifdef USE_U8G2
+    if (_u8g2) {
+        _u8g2->setFont(u8g2_font_guildenstern_nbp_t_all);
+        _u8g2->drawStr(x, 12 + line * 12, text.c_str());
+    }
+#else
+    _display.setCursor(x, line * 10);
+    _display.print(text);
+#endif
+}
+
 void DisplayManager::show() {
     if (!_initialized) {
-        Serial.println("[DISPLAY] show() called but not initialized");
         return;
     }
 #ifdef USE_U8G2

@@ -13,7 +13,7 @@ public:
 
     // number of times to attempt a WiFi connection before
     // falling back to AP/setup mode
-    static const int WIFI_CONNECT_RETRIES = 10;
+    static const int WIFI_CONNECT_RETRIES = 5;
 
     // getters for AP info
     static String getSsid();

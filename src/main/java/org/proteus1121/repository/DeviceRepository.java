@@ -19,5 +19,7 @@ public interface DeviceRepository extends JpaRepository<DeviceEntity, Long> {
     @Query("SELECT d FROM DeviceEntity d JOIN d.userDevices ud WHERE d.id = :id")
     Optional<DeviceEntity> findByIdWithUsers(@Param("id") Long id);
 
+    List<DeviceEntity> findByControllerId(Long controllerId);
+
 
 }

@@ -43,6 +43,11 @@ export enum DeviceType {
   SMOKE = 'SMOKE',
   FLAME = 'FLAME',
   LIGHT = 'LIGHT',
+  PRESSURE = 'PRESSURE',
+  MOTION = 'MOTION',
+  DIGITAL = 'DIGITAL',
+  ANALOG = 'ANALOG',
+  RELAY = 'RELAY',
   UNKNOWN = 'UNKNOWN',
 }
 

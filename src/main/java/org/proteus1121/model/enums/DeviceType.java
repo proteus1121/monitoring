@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum DeviceType {
 
-    TEMPERATURE, 
-    HUMIDITY, 
+    TEMPERATURE,
+    HUMIDITY,
     LPG,
     CH4,
     SMOKE,
@@ -16,6 +16,9 @@ public enum DeviceType {
     LIGHT,
     PRESSURE,
     MOTION,
+    DIGITAL,
+    ANALOG,
+    RELAY,
     UNKNOWN;
-    
+
 }

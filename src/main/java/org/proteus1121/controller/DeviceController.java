@@ -9,6 +9,7 @@ import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.enums.DeviceRole;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
+import org.proteus1121.model.request.DeviceCommandRequest;
 import org.proteus1121.model.request.DeviceRequest;
 import org.proteus1121.model.request.ShareDeviceRequest;
 import org.proteus1121.model.request.UnshareDeviceRequest;
@@ -72,6 +73,10 @@ public class DeviceController {
         Device device = deviceService.checkDevice(id, DeviceRole.EDITOR);
 
         deviceMapper.toDevice(deviceRequest, device);
+        device.setControllerId(deviceRequest.getControllerId());
+        device.setSensorModel(deviceRequest.getSensorModel());
+        device.setPin(deviceRequest.getPin());
+        device.setSecondaryPin(deviceRequest.getSecondaryPin());
 
         Device updatedDevice = deviceService.updateDevice(id, device);
         return ResponseEntity.ok(updatedDevice);
@@ -84,6 +89,14 @@ public class DeviceController {
 
         deviceService.deleteDevice(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/command")
+    @Operation(summary = "Send a command to a device", description = "Publishes a value (e.g. 1 / 0 for a relay) to the controller the device is wired to")
+    public ResponseEntity<Void> sendCommand(@PathVariable Long id, @Valid @RequestBody DeviceCommandRequest request) {
+        deviceService.checkDevice(id, DeviceRole.EDITOR);
+        deviceService.sendCommand(id, request.getValue());
+        return ResponseEntity.accepted().build();
     }
 
     @PutMapping("/share")

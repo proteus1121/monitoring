@@ -6,6 +6,7 @@ import org.proteus1121.model.enums.ActionType;
 import org.proteus1121.model.enums.TopicType;
 import org.proteus1121.mqtt.consumer.Consumer;
 import org.proteus1121.model.dto.mqtt.Topic;
+import org.proteus1121.service.DeviceService;
 import org.proteus1121.service.MetricService;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +25,7 @@ public class MeasurementsConsumer implements Consumer {
     );
 
     private final MetricService metricService;
+    private final DeviceService deviceService;
 
     @Override
     public Optional<Topic> parseTopic(String topic) {
@@ -53,6 +55,10 @@ public class MeasurementsConsumer implements Consumer {
     @Override
     public void processMessage(Topic topic, String message) {
         log.debug("Processing message for topic: {}, message: {}", topic, message);
+        if (!deviceService.isAccessibleBy(topic.getDeviceId(), topic.getUserId())) {
+            log.warn("Ignoring measurement for device {} published by user {} without access", topic.getDeviceId(), topic.getUserId());
+            return;
+        }
         double value = Double.parseDouble(message);
         metricService.processMetrics(topic.getDeviceId(), value);
     }

@@ -1,46 +1,47 @@
 #include "BMP180Sensor.h"
-#include <Arduino.h>
+#include <Wire.h>
 
-Adafruit_BMP085 BMP180Sensor::bmp;
+static const unsigned long BMP180_READ_INTERVAL = 1000;
+static const unsigned long BMP180_RETRY_INTERVAL = 30000;
 
-BMP180Sensor::BMP180Sensor() {}
+BMP180Sensor::BMP180Sensor(uint8_t sda, uint8_t scl) : sda(sda), scl(scl) {}
 
 void BMP180Sensor::init() {
-    if (!bmp.begin()) {
-        Serial.println("BMP180 not found! Check SDA/SCL wiring.");
-    } else {
-        Serial.println("BMP180 initialized");
+    Wire.begin(sda, scl);
+    present = bmp.begin();
+    Serial.printf("[BMP180] SDA=%u SCL=%u %s\n", sda, scl, present ? "initialized" : "not found, check wiring");
+}
+
+void BMP180Sensor::update() {
+    unsigned long now = millis();
+    if (!present) {
+        // the module may be plugged in later
+        if (now - lastRead >= BMP180_RETRY_INTERVAL) {
+            lastRead = now;
+            present = bmp.begin();
+        }
+        return;
     }
+    if (lastRead != 0 && now - lastRead < BMP180_READ_INTERVAL) {
+        return;
+    }
+    lastRead = now;
+
+    temperature = bmp.readTemperature();
+    pressureHpa = bmp.readPressure() / 100.0f;
+    valid = true;
 }
 
-// Odesa average sea-level pressure
-const float SEA_LEVEL_PRESSURE = 101900; // Pa
-
-std::vector<float> BMP180Sensor::read() {
-    if (!bmp.begin())
-        return {}; // sensor missing
-
-    float temperature = bmp.readTemperature(); // °C
-    int32_t pressure = bmp.readPressure();     // Pa
-
-    // Convert pressure to hPa
-    float pressure_hPa = pressure / 100.0f;
-
-    float altitude = bmp.readAltitude(SEA_LEVEL_PRESSURE);
-
-    std::vector<float> result;
-
-    result.push_back(temperature);
-    result.push_back(pressure_hPa);
-    result.push_back(altitude);
-
-    return result;
-}
-
-std::vector<String> BMP180Sensor::getMeasurementNames() {
-    return {"T", "P", "alt"}; // Pressure, Temperature
-}
-
-std::vector<String> BMP180Sensor::getUnits() {
-    return {"C", "hPa", "m"};
+bool BMP180Sensor::read(const String &type, float &value) {
+    if (!present || !valid)
+        return false;
+    if (type == "TEMPERATURE") {
+        value = temperature;
+        return true;
+    }
+    if (type == "PRESSURE") {
+        value = pressureHpa;
+        return true;
+    }
+    return false;
 }

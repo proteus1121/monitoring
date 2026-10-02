@@ -3,19 +3,24 @@
 
 #include "../ISensor.h"
 #include <Adafruit_BMP085.h>
-#include <vector>
 
 class BMP180Sensor : public ISensor {
 public:
-    BMP180Sensor(); // I2C – no pin needed
+    BMP180Sensor(uint8_t sda, uint8_t scl);
 
     void init() override;
-    std::vector<float> read() override;
-    std::vector<String> getMeasurementNames() override;
-    std::vector<String> getUnits() override;
+    void update() override;
+    bool read(const String &type, float &value) override;
 
 private:
-    static Adafruit_BMP085 bmp;
+    uint8_t sda;
+    uint8_t scl;
+    Adafruit_BMP085 bmp;
+    bool present = false;
+    unsigned long lastRead = 0;
+    bool valid = false;
+    float temperature = 0;
+    float pressureHpa = 0;
 };
 
 #endif

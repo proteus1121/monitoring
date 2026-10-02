@@ -1,6 +1,5 @@
 import { useModal } from './modals.hook';
 import { SimpleModalState } from './modals.types';
-import { DeviceType } from '@src/lib/api/api.types';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
 import {
@@ -11,47 +10,41 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@src/components/Dialog';
-import z from 'zod';
 import { useAppForm } from '@src/components/Form';
-import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
+import { useEffect } from 'react';
 import { useCreateDeviceMutation } from '../generatedApi';
+import {
+  DeviceFormFields,
+  DeviceSchema,
+  toDeviceFormValues,
+  toDeviceRequest,
+} from './DeviceFormFields';
 
 export const DeviceCreationModalId = 'device-creation-modal-id';
 export type DeviceCreationModal = SimpleModalState<
   typeof DeviceCreationModalId
 >;
 
-export const CreateDeviceSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().max(200).optional(),
-  criticalValue: z.coerce.number<string>().or(z.undefined()),
-  lowerValue: z.coerce.number<string>().or(z.undefined()),
-  delay: z.coerce.number<string>(),
-  deviceType: z.enum(DeviceType).optional(),
-});
-
-type CreateDevice = z.infer<typeof CreateDeviceSchema>;
-
 export function DeviceCreationModal() {
   const { state, setState } = useModal(DeviceCreationModalId);
   const [createDevice] = useCreateDeviceMutation();
 
   const form = useAppForm({
-    defaultValues: {
-      delay: 1000,
-    } as Partial<CreateDevice>,
+    defaultValues: toDeviceFormValues(null),
     validators: {
-      onSubmit: CreateDeviceSchema as any,
+      onSubmit: DeviceSchema as any,
     },
     onSubmit: async ({ value }) => {
-      const parsed = CreateDeviceSchema.safeParse(value);
+      const parsed = DeviceSchema.safeParse(value);
 
       if (!parsed.success) {
         return;
       }
 
-      const res = await createDevice({ deviceRequest: parsed.data });
+      const res = await createDevice({
+        deviceRequest: toDeviceRequest(parsed.data),
+      });
       if (res.data) {
         notification.success({
           message: `${parsed.data.name} created succesfully`,
@@ -61,6 +54,7 @@ export function DeviceCreationModal() {
           message: 'Failed to create device',
           description: JSON.stringify(res.error),
         });
+        return;
       }
 
       form.reset();
@@ -68,9 +62,13 @@ export function DeviceCreationModal() {
     },
   });
 
+  useEffect(() => {
+    if (state) form.reset();
+  }, [state]);
+
   return (
     <Dialog open={state} onOpenChange={setState}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form
           className="contents"
           id={DeviceCreationModalId}
@@ -83,50 +81,7 @@ export function DeviceCreationModal() {
             <DialogTitle>Create Device</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
-            <FieldGroup>
-              <form.AppField
-                name="name"
-                children={field => (
-                  <field.TextField
-                    label="Device name"
-                    placeholder="my device"
-                  />
-                )}
-              />
-
-              <form.AppField
-                name="description"
-                children={field => (
-                  <field.TextareaField
-                    label="Description"
-                    placeholder="Does something interesting"
-                  />
-                )}
-              />
-
-              <div className="flex gap-2">
-                <form.AppField
-                  name="criticalValue"
-                  children={field => (
-                    <field.TextField label="Critical value" placeholder="0" />
-                  )}
-                />
-
-                <form.AppField
-                  name="lowerValue"
-                  children={field => (
-                    <field.TextField label="Lower value" placeholder="0" />
-                  )}
-                />
-              </div>
-
-              <form.AppField
-                name="delay"
-                children={field => (
-                  <field.TextField label="Delay (ms)" placeholder="1000" />
-                )}
-              />
-            </FieldGroup>
+            <DeviceFormFields form={form} />
           </div>
           <DialogFooter>
             <DialogClose asChild>

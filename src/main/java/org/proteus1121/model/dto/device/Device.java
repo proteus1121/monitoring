@@ -6,6 +6,7 @@ import lombok.Data;
 import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.enums.DeviceStatus;
 import org.proteus1121.model.enums.DeviceType;
+import org.proteus1121.model.enums.SensorModel;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -24,5 +25,9 @@ public class Device {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime lastChecked;
     private DeviceType type;
+    private Long controllerId;
+    private SensorModel sensorModel;
+    private Integer pin;
+    private Integer secondaryPin;
     private Set<DeviceUser> userDevices;
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.proteus1121.model.enums.DeviceType;
+import org.proteus1121.model.enums.SensorModel;
 
 import java.util.Set;
 
@@ -28,6 +29,10 @@ public class DeviceRequest {
     private Long delay; // in ms
     
     private DeviceType type;
+    private Long controllerId;
+    private SensorModel sensorModel;
+    private Integer pin;
+    private Integer secondaryPin;
     
     private Set<Long> userIds;
 

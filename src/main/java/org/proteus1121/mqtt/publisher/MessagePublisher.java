@@ -18,9 +18,17 @@ public class MessagePublisher {
 
     @ServiceActivator(outputChannel = "mqttOutboundChannel")
     public void publishMessage(String topic, String payload) {
+        publishMessage(topic, payload, false);
+    }
 
+    /**
+     * @param retained broker keeps the last message so a board gets it right after (re)subscribing
+     */
+    public void publishMessage(String topic, String payload, boolean retained) {
         Message<String> message = MessageBuilder.withPayload(payload)
                 .setHeader(MqttHeaders.TOPIC, topic)
+                .setHeader(MqttHeaders.RETAINED, retained)
+                .setHeader(MqttHeaders.QOS, retained ? 1 : 0)
                 .build();
         mqttOutboundChannel.send(message);
     }

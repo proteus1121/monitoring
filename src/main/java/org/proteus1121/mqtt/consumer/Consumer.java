@@ -26,5 +26,5 @@ public interface Consumer {
 
     Optional<Topic> parseTopic(String topic);
 
-    void processMessage(Topic topic, String message);
+    void processMessage(Topic topic, String message) throws Exception;
 }

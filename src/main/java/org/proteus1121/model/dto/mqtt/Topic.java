@@ -13,5 +13,12 @@ public class Topic {
     private Long deviceId;
     private TopicType type;
     private ActionType action;
+    /**
+     * Hardware id of the board for users/{userId}/controllers/{hardwareId}/... topics.
+     */
+    private String hardwareId;
 
+    public Topic(Long userId, Long deviceId, TopicType type, ActionType action) {
+        this(userId, deviceId, type, action, null);
+    }
 }

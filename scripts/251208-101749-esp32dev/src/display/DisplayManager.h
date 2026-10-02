@@ -28,6 +28,13 @@
 #endif
 #else
 #include <Adafruit_SSD1306.h>
+// I2C bus of the SSD1306; a BMP180 can share it
+#ifndef DISPLAY_I2C_SDA
+#define DISPLAY_I2C_SDA 27
+#endif
+#ifndef DISPLAY_I2C_SCL
+#define DISPLAY_I2C_SCL 14
+#endif
 #endif
 
 // Define your OLED size (only used for the SSD1306 backend)
@@ -40,6 +47,8 @@ public:
     void begin();
     void clear();
     void printLine(int line, const String &text);
+    // print starting at x pixels on the given line
+    void printAt(int x, int line, const String &text);
     void show();
     bool isInitialized(); // check if display was successfully initialized
 

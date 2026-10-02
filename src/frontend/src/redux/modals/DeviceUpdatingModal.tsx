@@ -10,13 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@src/components/Dialog';
-import z from 'zod';
 import { useAppForm } from '@src/components/Form';
-import { FieldGroup } from '@src/components/Field';
 import { notification } from 'antd';
 import { Device, useUpdateDeviceMutation } from '../generatedApi';
-import { DeviceType } from '@src/lib/api/api.types';
 import { useEffect } from 'react';
+import {
+  DeviceFormFields,
+  DeviceSchema,
+  toDeviceFormValues,
+  toDeviceRequest,
+} from './DeviceFormFields';
 
 export const DeviceUpdatingModalId = 'device-updating-modal-id';
 export type DeviceUpdatingModal = ModalState<
@@ -24,26 +27,17 @@ export type DeviceUpdatingModal = ModalState<
   Device
 >;
 
-export const UpdateDeviceSchema = z.object({
-  name: z.string().min(1).max(30),
-  description: z.string().max(100).optional(),
-  criticalValue: z.coerce.number<string>().or(z.undefined()),
-  lowerValue: z.coerce.number<string>().or(z.undefined()),
-  delay: z.coerce.number<string>(),
-  deviceType: z.enum(DeviceType).optional(), // TODO: try to inherit DeviceType from Device provided by openapi
-});
-
 export function DeviceUpdatingModal() {
   const { state, setState } = useModal(DeviceUpdatingModalId);
   const [updateDevice] = useUpdateDeviceMutation();
 
   const form = useAppForm({
-    defaultValues: state,
+    defaultValues: toDeviceFormValues(state),
     validators: {
-      onSubmit: UpdateDeviceSchema as any,
+      onSubmit: DeviceSchema as any,
     },
     onSubmit: async ({ value }) => {
-      const parsed = UpdateDeviceSchema.safeParse(value);
+      const parsed = DeviceSchema.safeParse(value);
 
       if (!parsed.success) {
         return;
@@ -56,20 +50,19 @@ export function DeviceUpdatingModal() {
 
       const res = await updateDevice({
         id,
-        deviceRequest: {
-          ...parsed.data,
-        },
+        deviceRequest: toDeviceRequest(parsed.data),
       });
 
       if (res.data) {
         notification.success({
-          message: `${parsed.data.name} created succesfully`,
+          message: `${parsed.data.name} updated succesfully`,
         });
       } else {
         notification.error({
-          message: 'Failed to create device',
+          message: 'Failed to update device',
           description: JSON.stringify(res.error),
         });
+        return;
       }
 
       form.reset();
@@ -78,7 +71,7 @@ export function DeviceUpdatingModal() {
   });
 
   useEffect(() => {
-    form.reset();
+    form.reset(toDeviceFormValues(state));
   }, [state]);
 
   return (
@@ -88,7 +81,7 @@ export function DeviceUpdatingModal() {
         if (!open) setState(null);
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form
           className="contents"
           id={DeviceUpdatingModalId}
@@ -101,50 +94,7 @@ export function DeviceUpdatingModal() {
             <DialogTitle>Update Device</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
-            <FieldGroup>
-              <form.AppField
-                name="name"
-                children={field => (
-                  <field.TextField
-                    label="Device name"
-                    placeholder="my device"
-                  />
-                )}
-              />
-
-              <form.AppField
-                name="description"
-                children={field => (
-                  <field.TextareaField
-                    label="Description"
-                    placeholder="Does something interesting"
-                  />
-                )}
-              />
-
-              <div className="flex gap-2">
-                <form.AppField
-                  name="criticalValue"
-                  children={field => (
-                    <field.TextField label="Critical value" placeholder="0" />
-                  )}
-                />
-
-                <form.AppField
-                  name="lowerValue"
-                  children={field => (
-                    <field.TextField label="Lower value" placeholder="0" />
-                  )}
-                />
-              </div>
-
-              <form.AppField
-                name="delay"
-                children={field => (
-                  <field.TextField label="Delay (ms)" placeholder="1000" />
-                )}
-              />
-            </FieldGroup>
+            <DeviceFormFields form={form} />
           </div>
           <DialogFooter>
             <DialogClose asChild>

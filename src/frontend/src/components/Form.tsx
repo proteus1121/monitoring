@@ -76,7 +76,8 @@ function PasswordField(props: { label: string; placeholder?: string }) {
 function SelectField(props: {
   label: string;
   placeholder?: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[];
+  className?: string;
 }) {
   const field = useFieldContext<string>(); // или используешь useField или другой хук для формы
   const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
@@ -90,14 +91,18 @@ function SelectField(props: {
         onValueChange={value => field.handleChange(value)}
         aria-invalid={isInvalid}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className={props.className ?? 'w-[180px]'}>
           <SelectValue placeholder={props.placeholder || 'Select an option'} />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             <SelectLabel>{props.label}</SelectLabel>
             {props.options.map((option, index) => (
-              <SelectItem key={index} value={option.value}>
+              <SelectItem
+                key={index}
+                value={option.value}
+                disabled={option.disabled}
+              >
                 {option.label}
               </SelectItem>
             ))}

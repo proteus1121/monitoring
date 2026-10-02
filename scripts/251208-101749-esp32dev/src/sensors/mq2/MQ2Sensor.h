@@ -6,16 +6,19 @@
 
 class MQ2Sensor : public ISensor {
 public:
-    MQ2Sensor(int pin);
+    MQ2Sensor(uint8_t pin);
 
     void init() override;
-    std::vector<float> read() override;
-    std::vector<String> getMeasurementNames() override;
-    std::vector<String> getUnits() override;
+    void update() override;
+    bool read(const String &type, float &value) override;
 
 private:
-    int pin;
     MQ2 mq2;
+    unsigned long lastRead = 0;
+    bool valid = false;
+    float lpg = 0;
+    float methane = 0;
+    float smoke = 0;
 };
 
 #endif

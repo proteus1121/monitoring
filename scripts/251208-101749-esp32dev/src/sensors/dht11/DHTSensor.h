@@ -6,16 +6,20 @@
 
 class DHTSensor : public ISensor {
 public:
-    DHTSensor(int pin);
+    DHTSensor(uint8_t pin, DHTesp::DHT_MODEL_t model);
 
     void init() override;
-    std::vector<float> read() override;
-    std::vector<String> getMeasurementNames() override;
-    std::vector<String> getUnits() override;
+    void update() override;
+    bool read(const String &type, float &value) override;
 
 private:
-    int pin;
+    uint8_t pin;
+    DHTesp::DHT_MODEL_t model;
     DHTesp dht;
+    unsigned long lastRead = 0;
+    bool valid = false;
+    float temperature = NAN;
+    float humidity = NAN;
 };
 
 #endif

@@ -1,30 +1,38 @@
 #include "DHTSensor.h"
-#include <Arduino.h>
 
-DHTSensor::DHTSensor(int pin) : pin(pin) {}
+DHTSensor::DHTSensor(uint8_t pin, DHTesp::DHT_MODEL_t model) : pin(pin), model(model) {}
 
 void DHTSensor::init() {
-    dht.setup(pin, DHTesp::DHT11);
+    dht.setup(pin, model);
 }
 
-std::vector<float> DHTSensor::read() {
-    TempAndHumidity data = dht.getTempAndHumidity();
-    std::vector<float> result;
-    if (isnan(data.temperature) || isnan(data.humidity)) {
-        result.push_back(-1); // error code
-        result.push_back(-1);
-    } else {
-        result.push_back(data.temperature);
-        result.push_back(data.humidity);
+void DHTSensor::update() {
+    unsigned long now = millis();
+    if (lastRead != 0 && now - lastRead < (unsigned long)dht.getMinimumSamplingPeriod()) {
+        return;
     }
+    lastRead = now;
 
-    return result;
+    TempAndHumidity data = dht.getTempAndHumidity();
+    valid = !isnan(data.temperature) && !isnan(data.humidity);
+    if (valid) {
+        temperature = data.temperature;
+        humidity = data.humidity;
+    } else {
+        Serial.printf("[DHT] pin %u read failed: %s\n", pin, dht.getStatusString());
+    }
 }
 
-std::vector<String> DHTSensor::getMeasurementNames() {
-    return {"T", "H"}; // temperature, humidity
-}
-
-std::vector<String> DHTSensor::getUnits() {
-    return {"C", "%"};
+bool DHTSensor::read(const String &type, float &value) {
+    if (!valid)
+        return false;
+    if (type == "TEMPERATURE") {
+        value = temperature;
+        return true;
+    }
+    if (type == "HUMIDITY") {
+        value = humidity;
+        return true;
+    }
+    return false;
 }

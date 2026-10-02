@@ -1,35 +1,47 @@
 #include "MQ2Sensor.h"
-#include <Arduino.h>
 
-MQ2Sensor::MQ2Sensor(int pin) : pin(pin), mq2(pin) {}
+// each read samples the ADC several times with delays, so do not poll too often
+static const unsigned long MQ2_READ_INTERVAL = 2000;
+
+MQ2Sensor::MQ2Sensor(uint8_t pin) : mq2(pin) {}
 
 void MQ2Sensor::init() {
     mq2.calibrate();
+    Serial.print("[MQ2] Ro = ");
+    Serial.println(mq2.getRo());
 }
 
-std::vector<float> MQ2Sensor::read() {
-    std::vector<float> result;
-    float lpg = mq2.readLPG();
-    float methane = mq2.readMethane();
-    float smoke = mq2.readSmoke();
+void MQ2Sensor::update() {
+    unsigned long now = millis();
+    if (lastRead != 0 && now - lastRead < MQ2_READ_INTERVAL) {
+        return;
+    }
+    lastRead = now;
 
-    // Check for valid readings (MQ2 library may return 0 or negative for invalid)
-    if (lpg > 0) result.push_back(lpg);
-    else result.push_back(0);
-
-    if (methane > 0) result.push_back(methane);
-    else result.push_back(0);
-
-    if (smoke > 0) result.push_back(smoke);
-    else result.push_back(0);
-
-    return result;
+    // library returns 0 or garbage for invalid readings
+    float v = mq2.readLPG();
+    lpg = v > 0 ? v : 0;
+    v = mq2.readMethane();
+    methane = v > 0 ? v : 0;
+    v = mq2.readSmoke();
+    smoke = v > 0 ? v : 0;
+    valid = true;
 }
 
-std::vector<String> MQ2Sensor::getMeasurementNames() {
-    return {"LPG", "CH4", "Smoke"};
-}
-
-std::vector<String> MQ2Sensor::getUnits() {
-    return {"", "", ""};
+bool MQ2Sensor::read(const String &type, float &value) {
+    if (!valid)
+        return false;
+    if (type == "LPG") {
+        value = lpg;
+        return true;
+    }
+    if (type == "CH4") {
+        value = methane;
+        return true;
+    }
+    if (type == "SMOKE") {
+        value = smoke;
+        return true;
+    }
+    return false;
 }

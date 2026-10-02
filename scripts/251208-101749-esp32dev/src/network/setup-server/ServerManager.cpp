@@ -1,4 +1,5 @@
 #include "ServerManager.h"
+#include "network/mqtt/MQTTHandler.h"
 #include "storage/Storage.h"
 #if defined(ESP8266)
 #include <ESP8266WebServer.h>
@@ -21,6 +22,9 @@ static WebServer server(80);
 static String savedSSID = "";
 static String savedPASS = "";
 static bool wifiConfigured = false;
+static unsigned long apStartedAt = 0;
+// in setup mode with saved WiFi, reboot after this time so a temporary outage does not need a manual reset
+static const unsigned long AP_RESTART_TIMEOUT_MS = 5UL * 60UL * 1000UL;
 
 #if defined(ESP8266)
 String ServerManager::apSsid = "ESP8266-Setup";
@@ -91,6 +95,7 @@ void ServerManager::handleRootPage() {
     html += "<style>body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:12px;background:#f6f7fb;color:#111} .card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,0.08)} h2{margin:0 0 8px 0;font-size:18px} label{display:block;margin:8px 0 4px 0;font-weight:600;font-size:14px} input[type=text], input[type=password], input[type=number]{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box} .row{display:flex;gap:8px} .submit{display:block;width:100%;padding:12px;border:0;background:#0078d4;color:#fff;border-radius:6px;font-size:16px} small{color:#666}</style>";
     html += "</head><body>";
     html += "<h2>Device Setup</h2>";
+    html += "<div class='card'><b>Hardware ID:</b> " + hardwareId() + "<br><small>The board appears on the Controllers page after it connects with your User ID.</small></div>";
     html += "<form action='/save' method='get'>";
 
     html += "<div class='card'><h3>WiFi</h3>";
@@ -99,7 +104,7 @@ void ServerManager::handleRootPage() {
     html += "</div>";
 
     html += "<div class='card'><h3>MQTT / Account</h3>";
-    html += "<label for='userId'>User ID</label><input id='userId' name='userId' type='text' value='" + curUserId + "'>";
+    html += "<label for='userId'>User ID (shown on the Controllers page)</label><input id='userId' name='userId' type='text' value='" + curUserId + "'>";
     html += "<label for='mqtt_server'>MQTT Server</label><input id='mqtt_server' name='mqtt_server' type='text' value='" + curMqttServer + "'>";
     html += "<label for='mqtt_port'>MQTT Port</label><input id='mqtt_port' name='mqtt_port' type='number' value='" + String(curMqttPort) + "'>";
     html += "<label for='mqtt_user'>MQTT User</label><input id='mqtt_user' name='mqtt_user' type='text' value='" + curMqttUser + "'>";
@@ -215,7 +220,7 @@ void ServerManager::scanWiFiNetworks() {
     }
 
     if (!found) {
-        Serial.println("[DEBUG] WARNING: Saved SSID 'Proteus' not found in scan results!");
+        Serial.println("[DEBUG] WARNING: Saved SSID '" + savedSSID + "' not found in scan results!");
     }
 }
 
@@ -261,7 +266,7 @@ bool ServerManager::tryConnectWiFi() {
     // Use polling with 20 second timeout to check connection status
     unsigned long startTime = millis();
     int status = WiFi.status();
-    while (millis() - startTime < 100000 && status != WL_CONNECTED) {
+    while (millis() - startTime < 20000 && status != WL_CONNECTED) {
         delay(500);
         status = WiFi.status();
         Serial.print(".");
@@ -308,6 +313,7 @@ void ServerManager::startAPMode() {
 
     // mark configuration state as false so sketch loop will display setup info
     wifiConfigured = false;
+    apStartedAt = millis();
 
     WiFi.disconnect(false);
     delay(200);
@@ -393,6 +399,13 @@ void ServerManager::connect() {
 
 void ServerManager::loop() {
     server.handleClient();
+
+    if (!wifiConfigured && apStartedAt != 0 && savedSSID.length() > 0 &&
+        millis() - apStartedAt > AP_RESTART_TIMEOUT_MS && WiFi.softAPgetStationNum() == 0) {
+        Serial.println("[SETUP] Nobody configured the device, rebooting to retry saved WiFi");
+        delay(200);
+        ESP.restart();
+    }
 }
 
 bool ServerManager::isConfigured() {

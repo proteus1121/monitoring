@@ -5,6 +5,7 @@ export const addTagTypes = [
   "Users",
   "Metrics",
   "Incident Management",
+  "Controller Management",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -53,7 +54,7 @@ const injectedRtkApi = api
             method: "PUT",
             body: queryArg.deviceRequest,
           }),
-          invalidatesTags: ["Device Management"],
+          invalidatesTags: ["Device Management", "Controller Management"],
         },
       ),
       deleteDevice: build.mutation<DeleteDeviceApiResponse, DeleteDeviceApiArg>(
@@ -62,7 +63,7 @@ const injectedRtkApi = api
             url: `/devices/${queryArg.id}`,
             method: "DELETE",
           }),
-          invalidatesTags: ["Device Management"],
+          invalidatesTags: ["Device Management", "Controller Management"],
         },
       ),
       unshareDevice: build.mutation<
@@ -142,6 +143,58 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Incident Management"],
       }),
+      sendCommand: build.mutation<SendCommandApiResponse, SendCommandApiArg>({
+        query: (queryArg) => ({
+          url: `/devices/${queryArg.id}/command`,
+          method: "POST",
+          body: queryArg.deviceCommandRequest,
+        }),
+      }),
+      getControllers: build.query<
+        GetControllersApiResponse,
+        GetControllersApiArg
+      >({
+        query: () => ({ url: `/controllers` }),
+        providesTags: ["Controller Management"],
+      }),
+      getSensorModels: build.query<
+        GetSensorModelsApiResponse,
+        GetSensorModelsApiArg
+      >({
+        query: () => ({ url: `/controllers/sensor-models` }),
+        providesTags: ["Controller Management"],
+      }),
+      updateController: build.mutation<
+        UpdateControllerApiResponse,
+        UpdateControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}`,
+          method: "PUT",
+          body: queryArg.controllerRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      deleteController: build.mutation<
+        DeleteControllerApiResponse,
+        DeleteControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Controller Management", "Device Management"],
+      }),
+      syncController: build.mutation<
+        SyncControllerApiResponse,
+        SyncControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/sync`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
       getAllDevices: build.query<GetAllDevicesApiResponse, GetAllDevicesApiArg>(
         {
           query: () => ({ url: `/devices` }),
@@ -155,7 +208,7 @@ const injectedRtkApi = api
             method: "POST",
             body: queryArg.deviceRequest,
           }),
-          invalidatesTags: ["Device Management"],
+          invalidatesTags: ["Device Management", "Controller Management"],
         },
       ),
       getUsers: build.query<GetUsersApiResponse, GetUsersApiArg>({
@@ -269,6 +322,29 @@ export type ResolveIncidentApiResponse = unknown;
 export type ResolveIncidentApiArg = {
   id: number;
 };
+export type SendCommandApiResponse = unknown;
+export type SendCommandApiArg = {
+  id: number;
+  deviceCommandRequest: DeviceCommandRequest;
+};
+export type GetControllersApiResponse = /** status 200 OK */ Controller[];
+export type GetControllersApiArg = void;
+export type GetSensorModelsApiResponse =
+  /** status 200 OK */ SensorModelInfo[];
+export type GetSensorModelsApiArg = void;
+export type UpdateControllerApiResponse = /** status 200 OK */ Controller;
+export type UpdateControllerApiArg = {
+  id: number;
+  controllerRequest: ControllerRequest;
+};
+export type DeleteControllerApiResponse = unknown;
+export type DeleteControllerApiArg = {
+  id: number;
+};
+export type SyncControllerApiResponse = unknown;
+export type SyncControllerApiArg = {
+  id: number;
+};
 export type GetAllDevicesApiResponse = /** status 200 OK */ Device[];
 export type GetAllDevicesApiArg = void;
 export type CreateDeviceApiResponse = /** status 200 OK */ Device;
@@ -357,15 +433,11 @@ export type Device = {
   delay?: number;
   status?: "OK" | "WARNING" | "CRITICAL" | "OFFLINE";
   lastChecked?: string;
-  type?:
-    | "TEMPERATURE"
-    | "HUMIDITY"
-    | "LPG"
-    | "CH4"
-    | "SMOKE"
-    | "FLAME"
-    | "LIGHT"
-    | "UNKNOWN";
+  type?: DeviceTypeValue;
+  controllerId?: number;
+  sensorModel?: SensorModel;
+  pin?: number;
+  secondaryPin?: number;
   userDevices?: UserDevices[];
 };
 export type DeviceRequest = {
@@ -374,16 +446,65 @@ export type DeviceRequest = {
   criticalValue?: number;
   lowerValue?: number;
   delay: number;
-  type?:
-    | "TEMPERATURE"
-    | "HUMIDITY"
-    | "LPG"
-    | "CH4"
-    | "SMOKE"
-    | "FLAME"
-    | "LIGHT"
-    | "UNKNOWN";
+  type?: DeviceTypeValue;
+  controllerId?: number;
+  sensorModel?: SensorModel;
+  pin?: number;
+  secondaryPin?: number;
   userIds?: number[];
+};
+export type DeviceTypeValue =
+  | "TEMPERATURE"
+  | "HUMIDITY"
+  | "LPG"
+  | "CH4"
+  | "SMOKE"
+  | "FLAME"
+  | "LIGHT"
+  | "PRESSURE"
+  | "MOTION"
+  | "DIGITAL"
+  | "ANALOG"
+  | "RELAY"
+  | "UNKNOWN";
+export type SensorModel =
+  | "DHT11"
+  | "DHT22"
+  | "MQ2"
+  | "BMP180"
+  | "FLAME_IR"
+  | "LIGHT_DIGITAL"
+  | "PIR"
+  | "DIGITAL_INPUT"
+  | "ANALOG_INPUT"
+  | "RELAY";
+export type DeviceCommandRequest = {
+  value: number;
+};
+export type Controller = {
+  id?: number;
+  userId?: number;
+  hardwareId?: string;
+  name?: string;
+  platform?: string;
+  firmwareVersion?: string;
+  ipAddress?: string;
+  lastSeen?: string;
+  online?: boolean;
+  synced?: boolean;
+  deviceCount?: number;
+};
+export type ControllerRequest = {
+  name: string;
+};
+export type SensorModelInfo = {
+  model?: SensorModel;
+  label?: string;
+  description?: string;
+  supportedTypes?: DeviceTypeValue[];
+  pins?: string[];
+  analog?: boolean;
+  output?: boolean;
 };
 export type UnshareDeviceRequest = {
   deviceIds?: number[];
@@ -442,6 +563,13 @@ export const {
   useCreateNotificationMutation,
   usePredictMetricsMutation,
   useResolveIncidentMutation,
+  useSendCommandMutation,
+  useGetControllersQuery,
+  useLazyGetControllersQuery,
+  useGetSensorModelsQuery,
+  useUpdateControllerMutation,
+  useDeleteControllerMutation,
+  useSyncControllerMutation,
   useGetAllDevicesQuery,
   useLazyGetAllDevicesQuery,
   useCreateDeviceMutation,
