@@ -2,16 +2,20 @@ import { useOutletContext } from 'react-router-dom';
 
 export type Lang = 'uk' | 'en';
 
+export const UNIVERSITY_URL = 'https://suitt.edu.ua';
+
 const uk = {
   langName: 'UA',
   appName: 'Smart Sensor Network',
-  appTagline: 'Розумна мережа сенсорів',
-  heroTitle: 'Моніторинг приміщень на ESP32 / ESP8266 без перепрошивки',
-  heroLead:
-    'Підключіть датчики до плати, опишіть їх у веб-інтерфейсі — плата сама отримає конфігурацію через MQTT і почне надсилати показники, а система стежитиме за аномаліями та сповіщатиме про небезпеку.',
+  kicker: 'Дослідницька платформа Інтернету речей',
+  heroTitle: 'Збір, аналіз і керування даними розподілених IoT-пристроїв',
+  intro: [
+    'Smart Sensor Network — платформа для досліджень і навчання в галузі Інтернету речей. Вона поєднує мікроконтролери з довільним набором датчиків і виконавчих пристроїв, брокер повідомлень MQTT та веб-застосунок для збору, зберігання й аналізу телеметрії.',
+    'Склад пристроїв описується у веб-інтерфейсі: плата сама отримує конфігурацію й починає передавати показники, тож новий експеримент не потребує перепрошивки чи зміни коду.',
+  ],
   universityLabel: 'Проєкт виконано в',
   university: 'Державний університет інтелектуальних технологій і зв’язку',
-  universityShort: 'ДУІТЗ, м. Одеса',
+  universityCity: 'м. Одеса',
 
   signIn: 'Вхід',
   signUp: 'Реєстрація',
@@ -31,69 +35,43 @@ const uk = {
   noSpaces: 'Без пробілів',
   passwordsMustMatch: 'Паролі не збігаються',
 
-  whyTitle: 'Навіщо цей проєкт',
-  why: [
+  aboutTitle: 'Для чого платформа',
+  about: [
     {
-      icon: 'lucide:flame',
-      title: 'Безпека',
-      text: 'Раннє виявлення витоку газу, диму та полум’я з миттєвим сповіщенням у Telegram.',
+      term: 'Дослідження IoT',
+      text: 'Стенд для експериментів зі збиранням телеметрії з розподілених пристроїв, протоколом MQTT, віддаленим конфігуруванням і керуванням.',
     },
     {
-      icon: 'lucide:thermometer',
-      title: 'Мікроклімат',
-      text: 'Постійний контроль температури, вологості, тиску й освітленості з історією та прогнозом.',
+      term: 'Аналіз даних',
+      text: 'Накопичені часові ряди використовуються для виявлення аномалій, кореляції між датчиками та прогнозування значень методами машинного навчання.',
     },
     {
-      icon: 'lucide:wallet',
-      title: 'Доступність',
-      text: 'Недорогі DIY-модулі замість промислових систем: одна прошивка для будь-якого набору датчиків.',
+      term: 'Безпека приміщень',
+      text: 'Раннє виявлення витоку газу, диму та полум’я зі сповіщенням у Telegram.',
+    },
+    {
+      term: 'Навчання',
+      text: 'Доступне обладнання та відкрита архітектура дають змогу студентам швидко зібрати власну мережу датчиків і працювати з реальними даними.',
     },
   ],
 
-  featuresTitle: 'Можливості',
+  featuresTitle: 'Що вміє',
   features: [
-    {
-      icon: 'lucide:radio-tower',
-      title: 'Автоконфігурація плат',
-      text: 'Плата реєструється сама й отримує список датчиків, пінів та інтервалів по MQTT.',
-    },
-    {
-      icon: 'lucide:chart-line',
-      title: 'Графіки та історія',
-      text: 'Живі показники, агрегація за періодами та порівняння пристроїв.',
-    },
-    {
-      icon: 'lucide:brain',
-      title: 'Виявлення аномалій',
-      text: 'Правила й кореляція між датчиками, прогноз значень моделлю XGBoost.',
-    },
-    {
-      icon: 'lucide:bell-ring',
-      title: 'Сповіщення',
-      text: 'Інциденти з пояснювальним повідомленням у Telegram.',
-    },
-    {
-      icon: 'lucide:power',
-      title: 'Керування',
-      text: 'Команди на виконавчі пристрої (реле) прямо з інтерфейсу.',
-    },
-    {
-      icon: 'lucide:users',
-      title: 'Спільний доступ',
-      text: 'Діліться пристроями з іншими користувачами з різними ролями.',
-    },
+    'автоматична реєстрація й конфігурування плат через MQTT',
+    'графіки показників і історія вимірювань',
+    'виявлення аномалій і прогноз значень',
+    'інциденти та сповіщення в Telegram',
+    'команди на виконавчі пристрої (реле)',
+    'схеми підключення плат і спільний доступ до пристроїв',
   ],
 
-  howTitle: 'Як це працює',
+  howTitle: 'Як почати',
   how: [
-    'Прошийте плату ESP32 або ESP8266 прошивкою проєкту.',
-    'Підключіться до точки доступу плати та вкажіть Wi-Fi і свій User ID.',
-    'Додайте датчики в інтерфейсі: плата, модуль, пін.',
+    'Завантажте на мікроконтролер універсальну прошивку платформи — вона одна для всіх підтримуваних плат.',
+    'Підключіться до точки доступу плати й укажіть мережу Wi-Fi та свій User ID.',
+    'Додайте в інтерфейсі датчики: плату, модуль і пін, до якого він під’єднаний.',
     'Плата застосує конфігурацію й почне надсилати дані.',
   ],
-
-  stackTitle: 'Технології',
-  footer: 'Державний університет інтелектуальних технологій і зв’язку, м. Одеса',
 };
 
 export type AuthTexts = typeof uk;
@@ -101,13 +79,15 @@ export type AuthTexts = typeof uk;
 const en: AuthTexts = {
   langName: 'EN',
   appName: 'Smart Sensor Network',
-  appTagline: 'Smart sensor network',
-  heroTitle: 'Indoor monitoring on ESP32 / ESP8266 without reflashing',
-  heroLead:
-    'Wire sensors to a board and describe them in the web interface — the board receives its configuration over MQTT and starts sending readings, while the system watches for anomalies and alerts you about danger.',
+  kicker: 'Internet of Things research platform',
+  heroTitle: 'Collecting, analysing and controlling data of distributed IoT devices',
+  intro: [
+    'Smart Sensor Network is a platform for research and education in the Internet of Things. It connects microcontrollers with any set of sensors and actuators, an MQTT message broker and a web application that collects, stores and analyses telemetry.',
+    'Devices are described in the web interface: the board receives its configuration and starts sending readings by itself, so a new experiment needs neither reflashing nor code changes.',
+  ],
   universityLabel: 'The project was carried out at',
   university: 'State University of Intelligent Technologies and Telecommunications',
-  universityShort: 'Odesa, Ukraine',
+  universityCity: 'Odesa, Ukraine',
 
   signIn: 'Sign in',
   signUp: 'Sign up',
@@ -127,82 +107,46 @@ const en: AuthTexts = {
   noSpaces: 'Cannot contain spaces',
   passwordsMustMatch: 'Passwords must match',
 
-  whyTitle: 'Why this project',
-  why: [
+  aboutTitle: 'What it is for',
+  about: [
     {
-      icon: 'lucide:flame',
-      title: 'Safety',
-      text: 'Early detection of gas leaks, smoke and fire with instant Telegram alerts.',
+      term: 'IoT research',
+      text: 'A testbed for experiments with telemetry from distributed devices, the MQTT protocol, remote configuration and control.',
     },
     {
-      icon: 'lucide:thermometer',
-      title: 'Indoor climate',
-      text: 'Continuous tracking of temperature, humidity, pressure and light with history and forecasts.',
+      term: 'Data analysis',
+      text: 'Collected time series are used for anomaly detection, cross-sensor correlation and value forecasting with machine learning.',
     },
     {
-      icon: 'lucide:wallet',
-      title: 'Affordability',
-      text: 'Cheap DIY modules instead of industrial systems: one firmware for any set of sensors.',
+      term: 'Indoor safety',
+      text: 'Early detection of gas leaks, smoke and fire with Telegram alerts.',
+    },
+    {
+      term: 'Education',
+      text: 'Affordable hardware and an open architecture let students build their own sensor network quickly and work with real data.',
     },
   ],
 
-  featuresTitle: 'Features',
+  featuresTitle: 'What it does',
   features: [
-    {
-      icon: 'lucide:radio-tower',
-      title: 'Board auto-configuration',
-      text: 'A board registers itself and receives its sensors, pins and intervals over MQTT.',
-    },
-    {
-      icon: 'lucide:chart-line',
-      title: 'Charts and history',
-      text: 'Live readings, aggregation by period and comparison of devices.',
-    },
-    {
-      icon: 'lucide:brain',
-      title: 'Anomaly detection',
-      text: 'Rules and cross-sensor correlation, value forecasts with an XGBoost model.',
-    },
-    {
-      icon: 'lucide:bell-ring',
-      title: 'Alerts',
-      text: 'Incidents with an explanatory message in Telegram.',
-    },
-    {
-      icon: 'lucide:power',
-      title: 'Control',
-      text: 'Commands to actuators (relays) right from the interface.',
-    },
-    {
-      icon: 'lucide:users',
-      title: 'Sharing',
-      text: 'Share devices with other users using different roles.',
-    },
+    'automatic registration and configuration of boards over MQTT',
+    'charts of readings and measurement history',
+    'anomaly detection and value forecasts',
+    'incidents and Telegram alerts',
+    'commands to actuators (relays)',
+    'board wiring diagrams and device sharing',
   ],
 
-  howTitle: 'How it works',
+  howTitle: 'Getting started',
   how: [
-    'Flash an ESP32 or ESP8266 with the project firmware.',
-    'Connect to the board access point and enter Wi-Fi and your User ID.',
-    'Add sensors in the interface: board, module, pin.',
+    'Flash the microcontroller with the platform’s universal firmware — one firmware for all supported boards.',
+    'Connect to the board’s access point and enter your Wi-Fi network and User ID.',
+    'Add sensors in the interface: the board, the module and the pin it is wired to.',
     'The board applies the configuration and starts sending data.',
   ],
-
-  stackTitle: 'Technologies',
-  footer: 'State University of Intelligent Technologies and Telecommunications, Odesa',
 };
 
 export const AUTH_TEXTS: Record<Lang, AuthTexts> = { uk, en };
-
-export const STACK = [
-  'ESP32 / ESP8266',
-  'MQTT · Mosquitto',
-  'Spring Boot',
-  'React',
-  'MySQL',
-  'XGBoost',
-  'Docker Swarm',
-];
 
 // texts of the language chosen in AuthLayout
 export function useAuthTexts() {
