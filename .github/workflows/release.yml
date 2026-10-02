@@ -176,5 +176,10 @@ jobs:
             sudo chown -R 1883:1883 /home/${{ secrets.SSH_USER }}/deploy/mosquitto
             sudo chown -R 1001:1001 /home/${{ secrets.SSH_USER }}/deploy/mysql
             set -a; . ./.env; set +a
-            sleep 20
+            # stack rm returns before the overlay network is gone; deploying earlier fails with "network not found"
+            for i in $(seq 1 60); do
+              [ -z "$(docker network ls -q --filter name=monitoring_stack_traefik-public)" ] && break
+              sleep 2
+            done
+            sleep 5
             docker stack deploy -c docker-compose.yml monitoring_stack
