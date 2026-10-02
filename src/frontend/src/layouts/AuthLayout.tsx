@@ -9,6 +9,7 @@ import {
   UNIVERSITY_URL,
 } from '@src/pages/auth/authTexts';
 import { SsoButtons } from '@src/pages/auth/SsoButtons';
+import Logo from '@src/components/logo/Logo';
 
 const LANG_KEY = 'auth-lang';
 
@@ -46,7 +47,12 @@ const AuthLayout = () => {
     <div className="min-h-dvh bg-[#fbfaf8] text-[#1c1c1a]">
       <header className="border-b border-black/10">
         <div className="mx-auto flex max-w-5xl items-baseline justify-between px-4 py-4 sm:px-6">
-          <span className="font-serif text-lg">{t.appName}</span>
+          <span className="flex items-center gap-2.5 self-center">
+            <span className="rounded-lg bg-[#1d4f91] p-1.5 text-white">
+              <Logo className="size-5" />
+            </span>
+            <span className="font-serif text-lg">{t.appName}</span>
+          </span>
           <div className="flex gap-3 text-sm">
             {(['uk', 'en'] as Lang[]).map(code => (
               <button
