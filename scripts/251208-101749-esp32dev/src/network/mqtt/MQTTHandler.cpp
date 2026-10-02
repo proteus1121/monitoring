@@ -85,9 +85,12 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length) {
     Serial.printf("[MQTT] Message on %s (%u bytes)\n", topic, length);
 
     if (topicStr == configTopic) {
-        if (DeviceManager::applyConfiguration(payload, length)) {
-            // tell the server which version is running; publishing from inside the callback would
-            // overwrite the buffer `payload` points to, so it is done in mqttLoop()
+        String before = DeviceManager::configVersion();
+        // only report a new version: answering repeats of the same configuration makes the server
+        // and the board echo each other when several changes are published in a row
+        if (DeviceManager::applyConfiguration(payload, length) && DeviceManager::configVersion() != before) {
+            // publishing from inside the callback would overwrite the buffer `payload` points to,
+            // so the hello is sent from mqttLoop()
             helloPending = true;
         }
         return;

@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import { useState } from 'react';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react';
@@ -16,6 +17,8 @@ import {
   useSyncControllerMutation,
   useUpdateControllerMutation,
 } from '@src/redux/generatedApi';
+
+dayjs.extend(utc);
 
 // boards say hello every minute, keep the list fresh
 const POLLING_INTERVAL_MS = 30000;
@@ -168,7 +171,8 @@ function ControllerCard({ controller }: { controller: Controller }) {
         {controller.platform?.toUpperCase()} · fw {controller.firmwareVersion}
         {controller.ipAddress && <> · {controller.ipAddress}</>}
         {controller.lastSeen && (
-          <> · seen {dayjs(controller.lastSeen).fromNow()}</>
+          // server sends UTC without a zone
+          <> · seen {dayjs.utc(controller.lastSeen).fromNow()}</>
         )}
       </div>
 
