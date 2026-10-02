@@ -79,6 +79,8 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.security:spring-security-core")
     implementation("org.springframework.security:spring-security-config")
+    // SSO (Google, GitHub)
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 
     // Logback Appender For Loki
     implementation("com.github.loki4j:loki-logback-appender:1.5.1")

@@ -1,6 +1,7 @@
 package org.proteus1121.service;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.entity.UserEntity;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -46,6 +48,27 @@ public class UserService implements UserDetailsService {
         String encodedPassword = passwordEncoder.encode(password);
         UserEntity user = new UserEntity(username, encodedPassword);
         userRepository.save(user);
+    }
+
+    /**
+     * Returns the account bound to the SSO identity, creating it on first sign-in. The preferred name
+     * (email / GitHub login) gets a numeric suffix when it is already taken by another account.
+     */
+    public User findOrCreateSsoUser(String provider, String subject, String preferredName) {
+        UserEntity user = userRepository.findByAuthProviderAndAuthSubject(provider, subject)
+                .orElseGet(() -> {
+                    String base = StringUtils.defaultIfBlank(preferredName, provider + "-" + subject);
+                    String name = base;
+                    for (int i = 2; userRepository.findByName(name).isPresent(); i++) {
+                        name = base + "-" + i;
+                    }
+                    // nobody knows this password, the account can only be used through SSO
+                    UserEntity created = new UserEntity(name, passwordEncoder.encode(UUID.randomUUID().toString()));
+                    created.setAuthProvider(provider);
+                    created.setAuthSubject(subject);
+                    return userRepository.save(created);
+                });
+        return new User(user.getId(), user.getName(), user.getPassword(), List.of(new SimpleGrantedAuthority("ROLE_USER")));
     }
 
     public List<User> getUsers() {

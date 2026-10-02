@@ -1,6 +1,7 @@
 package org.proteus1121.model.entity;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -24,6 +25,16 @@ public class UserEntity {
     private Long id;
     private String name;
     private String password;
+
+    /**
+     * SSO provider (google, github) and the user's id there; null for users with a password.
+     * Identity is matched by these, never by name, so a local account cannot be taken over via SSO.
+     */
+    @Column(name = "auth_provider", length = 32)
+    private String authProvider;
+
+    @Column(name = "auth_subject", length = 255)
+    private String authSubject;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserDeviceEntity> userDevices = new HashSet<>();

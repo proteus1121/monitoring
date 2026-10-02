@@ -3,40 +3,44 @@ import { Button } from '@src/components/Button';
 import { useAppForm } from '@src/components/Form';
 import { FieldGroup } from '@src/components/Field';
 import z from 'zod';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Card } from '@src/components/Card';
+import { useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
 import {
   useCreateUserMutation,
   useLoginMutation,
 } from '@src/redux/generatedApi';
 import { notification } from 'antd';
+import { AuthTexts, useAuthTexts } from './auth/authTexts';
 
-const SignUpSchema = z
-  .object({
-    username: z
-      .string()
-      .min(3, 'Username must be at least 3 characters long')
-      .refine(s => !/\s/.test(s), {
-        message: 'Cannot contain spaces.',
-      }),
-    password: z.string().min(3, 'Password must be at least 3 characters long'),
-    passwordConfirmation: z.string(),
-  })
-  .superRefine((val, ctx) => {
-    if (
-      val.passwordConfirmation !== val.password ||
-      val.password.length === 0
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        origin: 'string',
-        message: 'Passwords must match',
-        path: ['passwordConfirmation'],
-      });
-    }
-  });
+const signUpSchema = (t: AuthTexts) =>
+  z
+    .object({
+      username: z
+        .string()
+        .min(3, t.minLength)
+        .refine(s => !/\s/.test(s), {
+          message: t.noSpaces,
+        }),
+      password: z.string().min(3, t.minLength),
+      passwordConfirmation: z.string(),
+    })
+    .superRefine((val, ctx) => {
+      if (
+        val.passwordConfirmation !== val.password ||
+        val.password.length === 0
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          origin: 'string',
+          message: t.passwordsMustMatch,
+          path: ['passwordConfirmation'],
+        });
+      }
+    });
 
 export default function SignUpPage() {
+  const t = useAuthTexts();
+  const schema = useMemo(() => signUpSchema(t), [t]);
   const [register] = useCreateUserMutation();
   const [login] = useLoginMutation();
   const navigate = useNavigate();
@@ -48,10 +52,10 @@ export default function SignUpPage() {
       passwordConfirmation: '',
     },
     validators: {
-      onSubmit: SignUpSchema,
+      onSubmit: schema,
     },
     onSubmit: async ({ value }) => {
-      const parsed = SignUpSchema.safeParse(value);
+      const parsed = schema.safeParse(value);
 
       if (!parsed.success) {
         return;
@@ -67,8 +71,8 @@ export default function SignUpPage() {
       });
       if (Boolean(registerRes.error)) {
         notification.error({
-          message: 'Failed to register',
-          description: JSON.stringify(registerRes),
+          message: t.registerFailed,
+          description: JSON.stringify(registerRes.error),
         });
         return;
       }
@@ -76,7 +80,7 @@ export default function SignUpPage() {
       const loginRes = await login({ loginRequest: { username, password } });
       if (Boolean(loginRes.error)) {
         notification.error({
-          message: 'Failed to log in',
+          message: t.loginFailed,
           description: JSON.stringify(loginRes.error),
         });
         return;
@@ -87,66 +91,49 @@ export default function SignUpPage() {
   });
 
   return (
-    <Card className="m-auto flex w-[360px] flex-col gap-3">
-      <h1 className="mb-4 text-center text-2xl">Sign Up</h1>
-
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={e => {
-          e.preventDefault();
-          form.handleSubmit();
-        }}
-      >
-        <FieldGroup>
-          <form.AppField
-            name="username"
-            children={field => (
-              <field.TextField
-                label="Username"
-                placeholder="Enter your username"
-              />
-            )}
-          />
-          <form.AppField
-            name="password"
-            children={field => (
-              <field.PasswordField
-                label="Password"
-                placeholder="Enter your password"
-              />
-            )}
-          />
-          <form.AppField
-            name="passwordConfirmation"
-            children={field => (
-              <field.PasswordField
-                label="Confirm Password"
-                placeholder="Confirm your password"
-              />
-            )}
-          />
-        </FieldGroup>
-
-        <form.Subscribe
-          selector={state => [state.canSubmit, state.isSubmitting]}
-          children={([canSubmit, isSubmitting]) => (
-            <Button type="submit" disabled={!canSubmit}>
-              {isSubmitting && <Spinner />}
-              Submit
-            </Button>
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={e => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      <FieldGroup>
+        <form.AppField
+          name="username"
+          children={field => (
+            <field.TextField
+              label={t.username}
+              placeholder={t.usernamePlaceholder}
+            />
           )}
         />
-      </form>
+        <form.AppField
+          name="password"
+          children={field => (
+            <field.PasswordField label={t.password} placeholder="********" />
+          )}
+        />
+        <form.AppField
+          name="passwordConfirmation"
+          children={field => (
+            <field.PasswordField
+              label={t.passwordConfirmation}
+              placeholder="********"
+            />
+          )}
+        />
+      </FieldGroup>
 
-      <div className="mt-4 text-center">
-        Already have an account?
-        <NavLink
-          to={'/auth/login'}
-          className="ml-2 text-blue-700 hover:opacity-70"
-        >
-          Login now
-        </NavLink>
-      </div>
-    </Card>
+      <form.Subscribe
+        selector={state => [state.canSubmit, state.isSubmitting]}
+        children={([canSubmit, isSubmitting]) => (
+          <Button type="submit" disabled={!canSubmit}>
+            {isSubmitting && <Spinner />}
+            {t.submitSignUp}
+          </Button>
+        )}
+      />
+    </form>
   );
 }

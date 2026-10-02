@@ -1,6 +1,7 @@
 package org.proteus1121.config;
 
 import org.proteus1121.config.deserializer.StringToLocalDateTimeConverter;
+import org.proteus1121.config.properties.SsoProperties;
 import org.proteus1121.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -12,9 +13,9 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -43,7 +44,10 @@ public class WebConfig implements WebMvcConfigurer {
             "/swagger-resources/**",
             "/users/register",
             "/users/login",
-            "/webhook/telegram/**"
+            "/webhook/telegram/**",
+            "/users/sso-providers",
+            "/oauth2/**",
+            "/login/oauth2/**"
     };
 
     @Override
@@ -52,7 +56,8 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationManager authenticationManager,
+                                                   SsoConfig ssoConfig, SsoProperties ssoProperties) throws Exception {
 
         http
                 .sessionManagement()
@@ -76,11 +81,18 @@ public class WebConfig implements WebMvcConfigurer {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptionHandling ->
-                        exceptionHandling.defaultAuthenticationEntryPointFor(
-                                new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                new AntPathRequestMatcher("/**")
-                        )
+                        // the API answers 401, it never redirects to a login page (also with SSO enabled)
+                        exceptionHandling.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 );
+
+        ClientRegistrationRepository registrations = ssoConfig.clientRegistrationRepository();
+        if (registrations != null) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .clientRegistrationRepository(registrations)
+                    .loginPage(ssoProperties.getFrontendUrl() + "/auth/login")
+                    .successHandler(ssoConfig)
+                    .failureHandler(ssoConfig));
+        }
 
         return http.build();
     }

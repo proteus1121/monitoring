@@ -6,9 +6,11 @@ import { useApi } from '@src/lib/api/ApiProvider';
 import { notification } from 'antd';
 import { Form } from 'radix-ui';
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuthTexts } from './auth/authTexts';
 
 const SignInPage = () => {
+  const t = useAuthTexts();
   const [username, setUsername] = useState<string>('');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [password, setPassword] = useState<string>('');
@@ -27,7 +29,7 @@ const SignInPage = () => {
         const res = await api.login(username, password);
         if (res.ok === false) {
           notification.error({
-            message: 'Failed to login',
+            message: t.loginFailed,
             description: res.message,
           });
           setIsLoading(false);
@@ -37,16 +39,16 @@ const SignInPage = () => {
         setIsLoading(false);
         navigate('/dashboard');
       }}
-      className="flex w-full max-w-[320px] flex-col gap-3"
+      className="flex w-full flex-col gap-3"
     >
-      <h1 className="mx-auto text-2xl">Login</h1>
       <Form.Field name="username">
-        <Label>Username</Label>
+        <Label>{t.username}</Label>
         <Form.Control asChild>
           <Input
             minLength={3}
             required
-            placeholder="username"
+            placeholder={t.usernamePlaceholder}
+            autoComplete="username"
             PrefixIcon={
               <Icon
                 style={{ color: 'black' }}
@@ -55,7 +57,7 @@ const SignInPage = () => {
               />
             }
             onInvalidCapture={() => {
-              setUsernameError('Must be at least 3 characters long');
+              setUsernameError(t.minLength);
             }}
             value={username}
             onChange={e => setUsername(e.target.value)}
@@ -67,16 +69,17 @@ const SignInPage = () => {
       </Form.Field>
 
       <Form.Field name="password">
-        <Label>Password</Label>
+        <Label>{t.password}</Label>
         <Form.Control asChild>
           <Input
             placeholder="********"
             value={password}
             type="password"
+            autoComplete="current-password"
             minLength={3}
             required
             onInvalidCapture={() => {
-              setPasswordError('Must be at least 3 characters long');
+              setPasswordError(t.minLength);
             }}
             PrefixIcon={
               <Icon
@@ -95,18 +98,8 @@ const SignInPage = () => {
 
       <Button type="submit" className="mt-2 w-full" disabled={isLoading}>
         {isLoading && <Spinner />}
-        Submit
+        {t.submitSignIn}
       </Button>
-
-      <div className="flex flex-wrap gap-1">
-        Dont have an account?
-        <NavLink
-          to={'/auth/register'}
-          className="underscore text-blue-700 transition-all hover:opacity-70"
-        >
-          Register now{' '}
-        </NavLink>
-      </div>
     </Form.Root>
   );
 };

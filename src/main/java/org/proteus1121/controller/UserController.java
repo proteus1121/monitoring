@@ -1,5 +1,6 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.config.SsoConfig;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,6 +41,7 @@ public class UserController {
     
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
+    private final SsoConfig ssoConfig;
     private final SecurityContextRepository securityContextRepository = new HttpSessionSecurityContextRepository();
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
 
@@ -79,6 +81,12 @@ public class UserController {
         User principal = (User) authentication.getPrincipal();
         return new LoginResponse(principal.getId(), principal.getUsername(),
                 RequestContextHolder.currentRequestAttributes().getSessionId());
+    }
+
+    @GetMapping("/sso-providers")
+    @Operation(summary = "Get enabled SSO providers", description = "Providers to show on the login page; sign in by opening /oauth2/authorization/{provider}")
+    public List<String> getSsoProviders() {
+        return ssoConfig.enabledProviders();
     }
 
     @GetMapping("/me")
