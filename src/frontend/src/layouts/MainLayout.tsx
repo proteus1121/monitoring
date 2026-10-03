@@ -89,10 +89,6 @@ export const MainLayout = () => {
                 <Icon icon={'lucide:home'} className="size-5" />
                 Overview
               </Link>
-              <Link to={'/dashboard/map'}>
-                <Icon icon={'lucide:map'} className="size-5" />
-                Map
-              </Link>
             </Collapsible.Content>
           </Collapsible.Root>
           <Collapsible.Root open={isSettingsCollapsed} className="group">
@@ -126,10 +122,6 @@ export const MainLayout = () => {
               <Link to={'/settings/devices'}>
                 <Icon icon={'lucide:microchip'} className="size-5" />
                 Devices
-              </Link>
-              <Link to={'/settings/configurations'}>
-                <Icon icon={'lucide:wrench'} className="size-5" />
-                Configurations
               </Link>
               <Link to={'/settings/users'}>
                 <Icon icon={'lucide:users'} className="size-5" />

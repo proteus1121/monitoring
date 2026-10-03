@@ -22,7 +22,6 @@ import { ModalsProvider } from './redux/modals/ModalsProvider';
 import AlertsPage from './pages/AlertsPage';
 import { DashboardPage } from './pages/DashboardPage/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
-import { MapPage } from './pages/MapPage/MapPage';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
@@ -56,9 +55,10 @@ export const router = createBrowserRouter(
         <Route element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard/overview" />} />
           <Route path="dashboard/overview" element={<DashboardPage />} />
-          <Route path="dashboard/map" element={<MapPage />} />
+          {/* Map and Configurations were merged into Devices */}
+          <Route path="dashboard/map" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/devices" element={<DevicesPage />} />
-          <Route path="settings/configurations" element={<>configurations</>} />
+          <Route path="settings/configurations" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/users" element={<UsersPage />} />
           <Route path="settings/alerts" element={<AlertsPage />} />
           <Route path="*" element={<Navigate to="/dashboard/overview" />} />

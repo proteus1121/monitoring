@@ -1,104 +1,85 @@
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import { useState } from 'react';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Card } from '@src/components/Card';
 import { Input } from '@src/components/Input';
-import { H2 } from '@src/components/Text';
+import { fromNow } from '@src/lib/readings';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
+import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
 import {
   Controller,
+  Device,
+  SensorModelInfo,
   useDeleteControllerMutation,
-  useGetControllersQuery,
-  useGetUserQuery,
   useSyncControllerMutation,
   useUpdateControllerMutation,
 } from '@src/redux/generatedApi';
+import { BoardDiagram } from './BoardDiagram';
 
-dayjs.extend(utc);
-
-// boards say hello every minute, keep the list fresh
-const POLLING_INTERVAL_MS = 30000;
-
-export function ControllersSection() {
-  const { data: controllers } = useGetControllersQuery(undefined, {
-    pollingInterval: POLLING_INTERVAL_MS,
-  });
-  const { data: me } = useGetUserQuery();
-
+export function SetupHint({ userId }: { userId?: number }) {
+  const [open, setOpen] = useState(false);
   return (
-    <section className="mb-8 flex flex-col gap-4">
-      <div>
-        <H2>Controllers</H2>
-        <p className="text-sm text-slate-600">
-          Boards register themselves when they connect. Wire sensors to a board,
-          add them below with the board, module and pin, and the configuration is
-          sent to the board automatically.
-        </p>
-      </div>
-
-      <SetupHint userId={me?.userId} />
-
-      {controllers && controllers.length > 0 && (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
-          {controllers.map(controller => (
-            <ControllerCard key={controller.id} controller={controller} />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function SetupHint({ userId }: { userId?: number }) {
-  return (
-    <Card className="flex flex-col gap-2 border-blue-200 bg-blue-50 text-sm">
-      <div className="flex items-center gap-2 font-semibold">
+    <Card className="border-blue-200 bg-blue-50 text-sm">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 font-semibold"
+        onClick={() => setOpen(!open)}
+      >
         <Icon icon="lucide:info" className="size-4" />
         Connect a new board
-      </div>
-      <ol className="list-decimal space-y-1 pl-5 text-slate-700">
-        <li>Flash the monitoring firmware to the ESP32 / ESP8266.</li>
-        <li>
-          Connect to the board Wi-Fi <b>ESP32-Setup</b> / <b>ESP8266-Setup</b>{' '}
-          and open <b>http://192.168.4.1</b> (on ESP32 hold BOOT for 3 s to get
-          there again).
-        </li>
-        <li>
-          Enter your Wi-Fi and User ID{' '}
-          <span className="rounded bg-white px-2 py-0.5 font-mono font-semibold">
+        <span className="ml-2 font-normal text-slate-600">
+          Your User ID:{' '}
+          <span className="rounded bg-white px-2 py-0.5 font-mono font-semibold text-slate-900">
             {userId ?? '…'}
           </span>
-          , save.
-        </li>
-        <li>
-          The board shows up here; add devices for it with <b>Add Device</b>.
-        </li>
-      </ol>
+        </span>
+        <Icon
+          icon="lucide:chevron-down"
+          className={`ml-auto size-4 transition ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-slate-700">
+          <li>Flash the universal firmware to the board.</li>
+          <li>
+            Connect to the board Wi-Fi <b>ESP32-Setup</b> / <b>ESP8266-Setup</b> and open{' '}
+            <b>http://192.168.4.1</b>.
+          </li>
+          <li>Enter your Wi-Fi and User ID, save. The board appears below.</li>
+          <li>
+            Add devices with <b>Add Device</b>: choose the board, the module and the pin.
+          </li>
+        </ol>
+      )}
     </Card>
   );
 }
 
-function ControllerCard({ controller }: { controller: Controller }) {
+/**
+ * A board with its status, actions and wiring diagram.
+ */
+export function ControllerPanel(props: {
+  controller: Controller;
+  devices: Device[];
+  models: SensorModelInfo[] | undefined;
+}) {
+  const { controller } = props;
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(controller.name ?? '');
   const [updateController] = useUpdateControllerMutation();
   const [syncController, { isLoading: isSyncing }] = useSyncControllerMutation();
   const [deleteController] = useDeleteControllerMutation();
   const { setState: confirm } = useModal(AppAlertDialogModalId);
+  const { setState: editDevice } = useModal(DeviceUpdatingModalId);
 
   const id = controller.id!;
 
   const save = async () => {
-    const res = await updateController({
-      id,
-      controllerRequest: { name },
-    });
+    const res = await updateController({ id, controllerRequest: { name } });
     if (res.error) {
-      notification.error({ message: 'Failed to rename controller' });
+      notification.error({ message: 'Failed to rename board' });
       return;
     }
     setIsEditing(false);
@@ -114,106 +95,102 @@ function ControllerCard({ controller }: { controller: Controller }) {
   };
 
   return (
-    <Card className="flex flex-col gap-3">
-      <div className="flex items-center gap-3">
+    <Card className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
           <Icon icon="lucide:cpu" className="size-5" />
         </div>
         {isEditing ? (
           <form
-            className="flex flex-1 gap-2"
+            className="flex min-w-[200px] flex-1 gap-2"
             onSubmit={e => {
               e.preventDefault();
               save();
             }}
           >
-            <Input
-              value={name}
-              autoFocus
-              onChange={e => setName(e.target.value)}
-            />
+            <Input value={name} autoFocus onChange={e => setName(e.target.value)} />
             <Button size="icon" variant="ghost" type="submit">
               <Icon icon="lucide:check" />
             </Button>
           </form>
         ) : (
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <h3 className="truncate font-semibold">{controller.name}</h3>
             <p className="truncate font-mono text-xs text-slate-500">
-              {controller.hardwareId}
+              {controller.hardwareId} · {controller.platform?.toUpperCase()} · fw{' '}
+              {controller.firmwareVersion}
+              {controller.ipAddress && ` · ${controller.ipAddress}`}
             </p>
           </div>
         )}
+
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span
+            className={`rounded-full px-2 text-white ${controller.online ? 'bg-green-500' : 'bg-gray-700'}`}
+            title={controller.lastSeen ? `seen ${fromNow(controller.lastSeen)}` : undefined}
+          >
+            {controller.online ? 'ONLINE' : 'OFFLINE'}
+          </span>
+          <span
+            className={`rounded-full px-2 text-white ${controller.synced ? 'bg-blue-500' : 'bg-orange-500'}`}
+            title={
+              controller.synced
+                ? 'The board runs the current configuration'
+                : 'The board has not confirmed the latest configuration yet'
+            }
+          >
+            {controller.synced ? 'CONFIG APPLIED' : 'CONFIG PENDING'}
+          </span>
+        </div>
+
+        <div className="ml-auto flex gap-1">
+          <Button size="icon" variant="ghost" title="Send configuration again" disabled={isSyncing} onClick={sync}>
+            <Icon icon="lucide:refresh-cw" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Rename"
+            onClick={() => {
+              setName(controller.name ?? '');
+              setIsEditing(!isEditing);
+            }}
+          >
+            <Icon icon="lucide:edit" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            title="Delete board"
+            onClick={() =>
+              confirm({
+                description:
+                  'Devices of this board will be detached, not deleted. The board registers again when it reconnects.',
+                callback: async () => {
+                  await deleteController({ id });
+                },
+              })
+            }
+          >
+            <Icon icon="lucide:trash-2" />
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span
-          className={`rounded-full px-2 text-white ${controller.online ? 'bg-green-500' : 'bg-gray-700'}`}
-        >
-          {controller.online ? 'ONLINE' : 'OFFLINE'}
-        </span>
-        <span
-          className={`rounded-full px-2 text-white ${controller.synced ? 'bg-blue-500' : 'bg-orange-500'}`}
-          title={
-            controller.synced
-              ? 'The board runs the current configuration'
-              : 'The board has not confirmed the latest configuration yet'
-          }
-        >
-          {controller.synced ? 'CONFIG APPLIED' : 'CONFIG PENDING'}
-        </span>
-        <span className="rounded-full bg-gray-100 px-2 text-slate-700">
-          {controller.deviceCount ?? 0} devices
-        </span>
-      </div>
-
-      <div className="text-xs text-slate-600">
-        {controller.platform?.toUpperCase()} · fw {controller.firmwareVersion}
-        {controller.ipAddress && <> · {controller.ipAddress}</>}
-        {controller.lastSeen && (
-          // server sends UTC without a zone
-          <> · seen {dayjs.utc(controller.lastSeen).fromNow()}</>
-        )}
-      </div>
-
-      <div className="flex justify-end gap-1 border-t pt-2">
-        <Button
-          size="icon"
-          variant="ghost"
-          title="Send configuration again"
-          disabled={isSyncing}
-          onClick={sync}
-        >
-          <Icon icon="lucide:refresh-cw" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          title="Rename"
-          onClick={() => {
-            setName(controller.name ?? '');
-            setIsEditing(!isEditing);
-          }}
-        >
-          <Icon icon="lucide:edit" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          title="Delete"
-          onClick={() =>
-            confirm({
-              description:
-                'Devices of this controller will be detached. The board registers again when it reconnects.',
-              callback: async () => {
-                await deleteController({ id });
-              },
-            })
-          }
-        >
-          <Icon icon="lucide:trash-2" />
-        </Button>
-      </div>
+      {props.devices.length === 0 ? (
+        <p className="text-sm text-slate-500">
+          Nothing is wired to this board yet. Add a device and choose this board.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <BoardDiagram
+            controller={controller}
+            devices={props.devices}
+            models={props.models}
+            onDeviceClick={editDevice}
+          />
+        </div>
+      )}
     </Card>
   );
 }

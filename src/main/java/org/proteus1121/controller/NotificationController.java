@@ -1,5 +1,6 @@
 package org.proteus1121.controller;
 
+import java.util.Map;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,7 @@ public class NotificationController {
     @GetMapping("/{id}")
     @Operation(summary = "Get notification by ID", description = "Retrieve a specific Telegram notification by its ID")
     public ResponseEntity<TelegramNotification> getNotificationById(@PathVariable Long id) {
-        TelegramNotification notification = telegramService.getById(id);
+        TelegramNotification notification = telegramService.checkNotification(id);
         return ResponseEntity.ok(notification);
     }
 
@@ -57,9 +58,23 @@ public class NotificationController {
         return ResponseEntity.ok(updated);
     }
 
+    @GetMapping("/channels")
+    @Operation(summary = "Channel availability", description = "Whether Telegram and e-mail are configured on the server")
+    public Map<String, Boolean> getChannels() {
+        return telegramService.channelStatus();
+    }
+
+    @PostMapping("/{id}/test")
+    @Operation(summary = "Send a test message", description = "Sends a sample message through the notification channel")
+    public ResponseEntity<Void> testNotification(@PathVariable Long id) {
+        telegramService.sendTest(telegramService.checkNotification(id));
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a notification", description = "Delete a Telegram notification by its ID")
     public ResponseEntity<Void> deleteNotification(@PathVariable Long id) {
+        telegramService.checkNotification(id);
         telegramService.delete(id);
         return ResponseEntity.noContent().build();
     }

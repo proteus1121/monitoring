@@ -22,7 +22,6 @@ import org.proteus1121.service.ml.AnomalyDetectionService;
 import org.proteus1121.service.ml.FeatureBuilder;
 import org.proteus1121.service.ml.LocalLlmService;
 import org.proteus1121.service.ml.SensorReadingAggregationService;
-import org.proteus1121.service.network.NeuralNetwork;
 import org.proteus1121.service.notifications.TelegramNotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +45,6 @@ public class MetricService {
     private final PredictedSensorDataRepository predictedSensorDataRepository;
     private final DeviceService deviceService;
     private final SensorDataMapper sensorDataMapper;
-    private final NeuralNetwork network;
     private final TelegramNotificationService telegramNotificationService;
     private final IncidentService incidentService;
     private final AnomalyDetectionService anomalyDetectionService;
@@ -269,48 +267,6 @@ public class MetricService {
         return downsampled.stream()
                 .map(sensorDataMapper::toSensorData)
                 .toList();
-    }
-
-    public void predictMetrics(Long deviceId, LocalDateTime startTimestamp) {
-        List<SensorData> metrics = getMetrics(deviceId, startTimestamp, LocalDateTime.now(), LIVE, true);
-        if (metrics.isEmpty()) {
-            log.warn("No metrics available for device {} to train prediction model", deviceId);
-            return;
-        }
-
-        try {
-            // Train ensemble of models
-            network.trainEnsemble(metrics);
-        } catch (Exception e) {
-            log.error("Error training XGBoost ensemble", e);
-            return;
-        }
-
-        List<SensorData> hourlyFeatures = network.generateHourlyFeatures(LocalDateTime.now());
-
-        Map<LocalDateTime, Double> predictions = new HashMap<>();
-        for (SensorData sensorData : hourlyFeatures) {
-            double predictedValue;
-            try {
-                // Use ensemble prediction with uncertainty
-                NeuralNetwork.PredictionResult result = network.predictWithUncertainty(sensorData);
-                predictedValue = result.getPrediction();
-                log.info("Predicted value for device {} at {} (±{}): {}",
-                        deviceId,
-                        sensorData.getTimestamp(),
-                        String.format("%.2f", result.getUpperBound() - result.getLowerBound()),
-                        predictedValue);
-            } catch (Exception e) {
-                log.error("Error predicting value with XGBoost ensemble", e);
-                predictedValue = 0.0;
-            }
-            predictions.put(sensorData.getTimestamp(), predictedValue);
-        }
-
-        List<PredictedSensorDataEntity> predicted = predictions.entrySet().stream()
-                .map(a -> sensorDataMapper.toPredictedSensorDataEntity(a.getValue(), deviceId, a.getKey()))
-                .toList();
-        predictedSensorDataRepository.saveAll(predicted);
     }
 
     private <T> List<T> downsampleByPeriod(List<T> items,

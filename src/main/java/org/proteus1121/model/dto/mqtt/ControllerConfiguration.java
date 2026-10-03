@@ -15,7 +15,6 @@ import java.util.List;
 public record ControllerConfiguration(String v, List<Channel> devices) {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public record Channel(Long id, DeviceType type, SensorModel model, Integer pin, Integer pin2, Long delay,
-                          Double min, Double max) {
+    public record Channel(Long id, DeviceType type, SensorModel model, Integer pin, Integer pin2, Long delay) {
     }
 }

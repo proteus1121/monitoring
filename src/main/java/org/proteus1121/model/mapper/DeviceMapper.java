@@ -7,7 +7,6 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.proteus1121.model.dto.device.Device;
-import org.proteus1121.model.dto.mqtt.DeviceConfiguration;
 import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.model.request.DeviceRequest;
@@ -36,8 +35,6 @@ public interface DeviceMapper {
     @Mapping(target = "name", source = "device.name")
     DeviceEntity toDeviceEntity(Long id, Device device);
     
-    DeviceConfiguration toDeviceConfiguration(Device device);
-
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void toDevice(DeviceRequest deviceRequest, @MappingTarget Device device);
 

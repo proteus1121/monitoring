@@ -94,7 +94,7 @@ export function DeviceUpdatingModal() {
             <DialogTitle>Update Device</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
-            <DeviceFormFields form={form} />
+            <DeviceFormFields form={form} device={state} />
           </div>
           <DialogFooter>
             <DialogClose asChild>

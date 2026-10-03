@@ -1,10 +1,8 @@
-import { NOTIFICATION_TYPES, NotificationType } from '@src/lib/api/api.types';
-import z from 'zod';
+import { useEffect } from 'react';
+import { notification } from 'antd';
 import { SimpleModalState } from './modals.types';
 import { useModal } from './modals.hook';
-import { useApi } from '@src/lib/api/ApiProvider';
 import { useAppForm } from '@src/components/Form';
-import { notification } from 'antd';
 import {
   Dialog,
   DialogClose,
@@ -13,127 +11,75 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@src/components/Dialog';
-import { FieldGroup } from '@src/components/Field';
 import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
 import { useCreateNotificationMutation } from '../generatedApi';
+import {
+  NotificationFormFields,
+  NotificationSchema,
+  toNotificationFormValues,
+  toNotificationRequest,
+} from './NotificationFormFields';
 
 export const AlertTemplateCreationModalId = 'alert-template-creation-modal-id';
 export type AlertTemplateCreationModal = SimpleModalState<
   typeof AlertTemplateCreationModalId
 >;
 
-export const CreateAlertTemplateSchema = z.object({
-  telegramChatId: z.string(),
-  type: z.enum(NotificationType),
-  template: z.string(),
-});
-
-type CreateAlert = z.infer<typeof CreateAlertTemplateSchema>;
-
 export function AlertTemplateCreationModal() {
   const { state, setState } = useModal(AlertTemplateCreationModalId);
-
-  const [createAlertTemplate] = useCreateNotificationMutation();
+  const [createNotification] = useCreateNotificationMutation();
 
   const form = useAppForm({
-    defaultValues: {
-      telegramChatId: '',
-      template: '',
-      type: NotificationType.INFO,
-    } as CreateAlert,
-    validators: {
-      onSubmit: CreateAlertTemplateSchema as any,
-    },
+    defaultValues: toNotificationFormValues(),
+    validators: { onSubmit: NotificationSchema as any },
     onSubmit: async ({ value }) => {
-      const parsed = CreateAlertTemplateSchema.safeParse(value);
+      const parsed = NotificationSchema.safeParse(value);
+      if (!parsed.success) return;
 
-      if (!parsed.success) {
-        return;
-      }
-
-      const res = await createAlertTemplate({
-        telegramNotificationRequest: value,
+      const res = await createNotification({
+        telegramNotificationRequest: toNotificationRequest(parsed.data),
       });
       if (res.data) {
-        notification.success({
-          message: `alert template for chatId:${value.telegramChatId} created succesfully`,
-        });
+        notification.success({ message: 'Notification added' });
+        setState(false);
       } else {
         notification.error({
-          message: 'Failed to create alert template',
+          message: 'Failed to add notification',
           description: JSON.stringify(res.error),
         });
       }
-
-      form.reset();
-      setState(false);
     },
   });
 
+  useEffect(() => {
+    if (state) form.reset(toNotificationFormValues());
+  }, [state]);
+
   return (
     <Dialog open={state} onOpenChange={setState}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form
           className="contents"
-          id={AlertTemplateCreationModalId}
           onSubmit={e => {
             e.preventDefault();
             form.handleSubmit();
           }}
         >
           <DialogHeader>
-            <DialogTitle>Create Alert Template</DialogTitle>
+            <DialogTitle>Add notification</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4">
-            <FieldGroup>
-              <form.AppField
-                name="telegramChatId"
-                children={field => (
-                  <field.TextField
-                    label="Telegram chat id"
-                    placeholder="00000"
-                  />
-                )}
-              />
-
-              <form.AppField
-                name="template"
-                children={field => (
-                  <field.TextareaField
-                    label="Template"
-                    placeholder={`🚨 Critical Incident Notification
-
-Dear %{username}, 
-Your sensor **{{device_name}}** has reported a critical value`}
-                  />
-                )}
-              />
-
-              <form.AppField
-                name="type"
-                children={field => (
-                  <field.SelectField
-                    label="Critical value"
-                    options={NOTIFICATION_TYPES.map(i => ({
-                      label: i,
-                      value: i,
-                    }))}
-                  />
-                )}
-              />
-            </FieldGroup>
-          </div>
+          <NotificationFormFields form={form} />
           <DialogFooter>
             <DialogClose asChild>
-              <Button>Cancel</Button>
+              <Button variant="secondary">Cancel</Button>
             </DialogClose>
             <form.Subscribe
-              selector={state => [state.canSubmit, state.isSubmitting]}
+              selector={s => [s.canSubmit, s.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting && <Spinner />}
-                  Submit
+                  Save
                 </Button>
               )}
             />

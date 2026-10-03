@@ -13,6 +13,21 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      testNotification: build.mutation<
+        TestNotificationApiResponse,
+        TestNotificationApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/notifications/${queryArg.id}/test`,
+          method: "POST",
+        }),
+      }),
+      getNotificationChannels: build.query<
+        GetNotificationChannelsApiResponse,
+        GetNotificationChannelsApiArg
+      >({
+        query: () => ({ url: `/notifications/channels` }),
+      }),
       getNotificationById: build.query<
         GetNotificationByIdApiResponse,
         GetNotificationByIdApiArg
@@ -128,10 +143,9 @@ const injectedRtkApi = api
           method: "POST",
           params: {
             deviceId: queryArg.deviceId,
-            start: queryArg.start,
           },
         }),
-        invalidatesTags: ["Metrics"],
+        invalidatesTags: ["Metrics", "Device Management"],
       }),
       resolveIncident: build.mutation<
         ResolveIncidentApiResponse,
@@ -350,11 +364,39 @@ export type CreateNotificationApiResponse =
 export type CreateNotificationApiArg = {
   telegramNotificationRequest: TelegramNotificationRequest;
 };
-export type PredictMetricsApiResponse = unknown;
+export type PredictMetricsApiResponse = /** status 200 OK */ ForecastResult;
 export type PredictMetricsApiArg = {
   deviceId: number;
-  start: string;
 };
+export type ForecastModel = "NONE" | "XGBOOST" | "ARIMA" | "KALMAN";
+export type ForecastResult = {
+  model?: ForecastModel;
+  done?: boolean;
+  message?: string;
+  trainingHours?: number;
+  forecastHours?: number;
+  mae?: number;
+  rmse?: number;
+};
+export type ForecastSettingsFields = {
+  forecastModel?: ForecastModel;
+  forecastHorizonHours?: number;
+  forecastHistoryDays?: number;
+  arimaP?: number;
+  arimaD?: number;
+  arimaQ?: number;
+  kalmanProcessNoise?: number;
+  kalmanMeasurementNoise?: number;
+  xgbRounds?: number;
+  xgbMaxDepth?: number;
+};
+export type NotificationChannel = "TELEGRAM" | "EMAIL";
+export type TestNotificationApiResponse = unknown;
+export type TestNotificationApiArg = { id: number };
+export type GetNotificationChannelsApiResponse = /** status 200 OK */ {
+  [channel: string]: boolean;
+};
+export type GetNotificationChannelsApiArg = void;
 export type ResolveIncidentApiResponse = unknown;
 export type ResolveIncidentApiArg = {
   id: number;
@@ -466,11 +508,15 @@ export type User = {
 export type TelegramNotification = {
   id?: number;
   user?: User;
+  channel?: NotificationChannel;
+  email?: string;
   telegramChatId?: string;
   type?: "INFO" | "WARNING" | "CRITICAL";
   template?: string;
 };
 export type TelegramNotificationRequest = {
+  channel?: NotificationChannel;
+  email?: string;
   telegramChatId?: string;
   type?: "INFO" | "WARNING" | "CRITICAL";
   template?: string;
@@ -480,7 +526,10 @@ export type UserDevices = {
   username?: string;
   role?: "OWNER" | "EDITOR" | "VIEWER";
 };
-export type Device = {
+export type Device = ForecastSettingsFields & {
+  forecastMae?: number;
+  forecastRmse?: number;
+  forecastUpdatedAt?: string;
   id?: number;
   name?: string;
   description?: string;
@@ -496,7 +545,7 @@ export type Device = {
   secondaryPin?: number;
   userDevices?: UserDevices[];
 };
-export type DeviceRequest = {
+export type DeviceRequest = ForecastSettingsFields & {
   name: string;
   description?: string;
   criticalValue?: number;
@@ -602,6 +651,8 @@ export type Incident = {
   created?: string;
 };
 export const {
+  useTestNotificationMutation,
+  useGetNotificationChannelsQuery,
   useGetNotificationByIdQuery,
   useLazyGetNotificationByIdQuery,
   useUpdateNotificationMutation,

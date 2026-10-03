@@ -1,5 +1,6 @@
 package org.proteus1121.model.entity;
 
+import org.proteus1121.model.enums.ForecastModel;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -73,6 +74,50 @@ public class DeviceEntity {
      */
     @Column(name = "secondary_pin")
     private Integer secondaryPin;
+
+    // --- forecast configuration, see service.forecast ---
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "forecast_model", columnDefinition = "VARCHAR(16)")
+    private ForecastModel forecastModel;
+
+    @Column(name = "forecast_horizon_hours")
+    private Integer forecastHorizonHours;
+
+    @Column(name = "forecast_history_days")
+    private Integer forecastHistoryDays;
+
+    @Column(name = "arima_p")
+    private Integer arimaP;
+
+    @Column(name = "arima_d")
+    private Integer arimaD;
+
+    @Column(name = "arima_q")
+    private Integer arimaQ;
+
+    @Column(name = "kalman_process_noise")
+    private Double kalmanProcessNoise;
+
+    @Column(name = "kalman_measurement_noise")
+    private Double kalmanMeasurementNoise;
+
+    @Column(name = "xgb_rounds")
+    private Integer xgbRounds;
+
+    @Column(name = "xgb_max_depth")
+    private Integer xgbMaxDepth;
+
+    // --- result of the last forecast run: error on the held-out last hours ---
+
+    @Column(name = "forecast_mae")
+    private Double forecastMae;
+
+    @Column(name = "forecast_rmse")
+    private Double forecastRmse;
+
+    @Column(name = "forecast_updated_at")
+    private LocalDateTime forecastUpdatedAt;
 
     private LocalDateTime lastChecked = LocalDateTime.now();
 

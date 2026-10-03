@@ -1,5 +1,6 @@
 package org.proteus1121.model.request;
 
+import org.proteus1121.model.enums.ForecastModel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -33,6 +34,16 @@ public class DeviceRequest {
     private SensorModel sensorModel;
     private Integer pin;
     private Integer secondaryPin;
+    private ForecastModel forecastModel;
+    private Integer forecastHorizonHours;
+    private Integer forecastHistoryDays;
+    private Integer arimaP;
+    private Integer arimaD;
+    private Integer arimaQ;
+    private Double kalmanProcessNoise;
+    private Double kalmanMeasurementNoise;
+    private Integer xgbRounds;
+    private Integer xgbMaxDepth;
     
     private Set<Long> userIds;
 

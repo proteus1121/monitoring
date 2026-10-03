@@ -1,5 +1,6 @@
 package org.proteus1121.model.entity;
 
+import org.proteus1121.model.enums.NotificationChannel;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -28,8 +29,15 @@ public class NotificationEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @Column(name = "telegram_chat_id", nullable = false, length = 64)
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(16)")
+    private NotificationChannel channel = NotificationChannel.TELEGRAM;
+
+    @Column(name = "telegram_chat_id", length = 64)
     private String telegramChatId;
+
+    @Column(length = 255)
+    private String email;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

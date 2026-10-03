@@ -11,7 +11,6 @@ import org.proteus1121.model.enums.SensorModel;
 import org.proteus1121.model.mapper.DeviceMapper;
 import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.DeviceEntity;
-import org.proteus1121.mqtt.publisher.configuration.ConfigurationPublisher;
 import org.proteus1121.repository.DeviceRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,7 +33,6 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final DeviceMapper deviceMapper;
     private final UserDeviceService userDeviceService;
-    private final ConfigurationPublisher configurationPublisher;
     private final ControllerService controllerService;
 
     public Optional<Device> getDeviceById(Long id) {
@@ -47,8 +45,6 @@ public class DeviceService {
         DeviceEntity deviceEntity = deviceRepository.save(deviceMapper.toDeviceEntity(device));
         Set<DeviceUser> userDevices = userDeviceService.shareDevice(deviceEntity.getId(), Map.of(ownerId, DeviceRole.OWNER));
         Device createdDevice = deviceMapper.toDevice(deviceEntity, userDevices);
-        configurationPublisher.publish(ownerId, deviceEntity.getId(),
-                deviceMapper.toDeviceConfiguration(createdDevice));
         controllerService.publishConfiguration(deviceEntity.getControllerId());
         return createdDevice;
     }
@@ -67,8 +63,6 @@ public class DeviceService {
         deviceEntity.setSecondaryPin(device.getSecondaryPin());
         deviceEntity = deviceRepository.save(deviceEntity);
         Device updatedDevice = deviceMapper.toDevice(deviceEntity);
-        getUsersByDeviceId(id).forEach(user ->
-                configurationPublisher.publish(user.getUserId(), id, deviceMapper.toDeviceConfiguration(updatedDevice)));
         controllerService.publishConfiguration(deviceEntity.getControllerId());
         if (!Objects.equals(previousControllerId, deviceEntity.getControllerId())) {
             controllerService.publishConfiguration(previousControllerId);

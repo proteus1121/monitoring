@@ -140,9 +140,7 @@ public class ControllerService {
                         device.getSensorModel(),
                         device.getPin(),
                         device.getSecondaryPin(),
-                        device.getDelay(),
-                        device.getLowerValue(),
-                        device.getCriticalValue()))
+                        device.getDelay()))
                 .toList();
         return new ControllerConfiguration(version(channels), channels);
     }

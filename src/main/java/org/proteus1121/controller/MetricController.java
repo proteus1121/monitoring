@@ -7,7 +7,10 @@ import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.enums.Period;
 import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.service.MetricService;
-import org.proteus1121.service.MetricsPredictionScheduler;
+import org.proteus1121.service.DeviceService;
+import org.proteus1121.service.forecast.ForecastService;
+import org.proteus1121.model.enums.DeviceRole;
+import org.proteus1121.model.response.metric.ForecastResult;
 import org.proteus1121.util.SensorCleaner;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,7 +31,8 @@ import static org.proteus1121.util.SessionUtils.getCurrentUser;
 public class MetricController {
 
     private final MetricService metricService;
-    private final MetricsPredictionScheduler predictionScheduler;
+    private final ForecastService forecastService;
+    private final DeviceService deviceService;
 
     @GetMapping
     @Operation(summary = "Get metrics", description = "Retrieve sensor metrics for a device within a time range")
@@ -65,18 +69,9 @@ public class MetricController {
     }
 
     @PostMapping("/predict")
-    @Operation(summary = "Predict metrics", description = "Trigger prediction for future metrics based on historical data")
-    public void predictMetrics(@RequestParam("deviceId") Long deviceId,
-                               @RequestParam(value = "start", required = false) LocalDateTime startTimestamp) {
-        LocalDateTime startDate = (startTimestamp != null)
-                ? startTimestamp
-                : LocalDate.now().minusDays(365).atStartOfDay();
-        metricService.predictMetrics(deviceId, startDate);
-    }
-
-    @PostMapping("/predict-all")
-    @Operation(summary = "Predict ALL metrics", description = "Trigger prediction for all users and devices for the next day. TODO: Service endpoint, should be removed in production.")
-    public void predictAllMetrics() {
-        predictionScheduler.predictAllUsersDevicesForNextDay();
+    @Operation(summary = "Run forecast", description = "Fits the forecast model configured for the device and replaces its forecast")
+    public ForecastResult predictMetrics(@RequestParam("deviceId") Long deviceId) {
+        deviceService.checkDevice(deviceId, DeviceRole.EDITOR);
+        return forecastService.run(deviceId);
     }
 }

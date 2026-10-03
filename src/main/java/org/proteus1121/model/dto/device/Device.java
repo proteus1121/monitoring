@@ -1,5 +1,6 @@
 package org.proteus1121.model.dto.device;
 
+import org.proteus1121.model.enums.ForecastModel;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
@@ -29,5 +30,19 @@ public class Device {
     private SensorModel sensorModel;
     private Integer pin;
     private Integer secondaryPin;
+    private ForecastModel forecastModel;
+    private Integer forecastHorizonHours;
+    private Integer forecastHistoryDays;
+    private Integer arimaP;
+    private Integer arimaD;
+    private Integer arimaQ;
+    private Double kalmanProcessNoise;
+    private Double kalmanMeasurementNoise;
+    private Integer xgbRounds;
+    private Integer xgbMaxDepth;
+    private Double forecastMae;
+    private Double forecastRmse;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime forecastUpdatedAt;
     private Set<DeviceUser> userDevices;
 }

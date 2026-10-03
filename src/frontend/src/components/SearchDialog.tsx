@@ -19,10 +19,9 @@ import {
 
 const PAGES = [
   { label: 'Overview', icon: 'lucide:home', to: '/dashboard/overview' },
-  { label: 'Map', icon: 'lucide:map', to: '/dashboard/map' },
   { label: 'Devices', icon: 'lucide:microchip', to: '/settings/devices' },
   { label: 'Users', icon: 'lucide:users', to: '/settings/users' },
-  { label: 'Alert templates', icon: 'lucide:bell', to: '/settings/alerts' },
+  { label: 'Alerts & notifications', icon: 'lucide:bell', to: '/settings/alerts' },
 ];
 
 /**
@@ -104,7 +103,7 @@ export function SearchDialog() {
                 <CommandItem
                   key={controller.id}
                   value={`board ${controller.name} ${controller.hardwareId} ${controller.ipAddress ?? ''}`}
-                  onSelect={() => go('/dashboard/map')}
+                  onSelect={() => go('/settings/devices')}
                 >
                   <Icon icon="lucide:cpu" />
                   <span>{controller.name}</span>

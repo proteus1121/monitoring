@@ -26,6 +26,15 @@ public interface SensorDataRepository extends JpaRepository<SensorDataEntity, Lo
             @Param("endTimestamp") LocalDateTime endTimestamp
     );
 
+    /**
+     * Hourly averages since {@code from}: [hour as 'yyyy-MM-dd HH:00:00', average], oldest first.
+     * Aggregated in the database so forecasting never loads the raw readings.
+     */
+    @Query(value = "SELECT DATE_FORMAT(s.timestamp, '%Y-%m-%d %H:00:00') AS hour, AVG(s.value) AS value " +
+            "FROM sensor_data s WHERE s.device_id = :deviceId AND s.timestamp >= :from AND s.value IS NOT NULL " +
+            "GROUP BY hour ORDER BY hour", nativeQuery = true)
+    List<Object[]> findHourlyAverages(@Param("deviceId") Long deviceId, @Param("from") LocalDateTime from);
+
     @Query("SELECT COUNT(s) FROM SensorDataEntity s WHERE s.device.id = :deviceId AND s.timestamp >= :timestamp")
     long countByDeviceIdAndTimestampAfter(
             @Param("deviceId") Long deviceId,

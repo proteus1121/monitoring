@@ -27,6 +27,41 @@ public class SchemaMigration {
         // every measurement queries the last minutes of sensor_data; without these it is a full table scan
         createIndex("sensor_data", "idx_sensor_data_timestamp", "`timestamp`");
         createIndex("sensor_data", "idx_sensor_data_device_timestamp", "device_id, `timestamp`");
+        // e-mail notifications have no Telegram chat
+        makeNullable("notifications", "telegram_chat_id", "VARCHAR(64)");
+        enableDefaultForecasts();
+    }
+
+    /**
+     * Before forecast settings existed every device got an XGBoost forecast; keep that for numeric
+     * sensors once, when the column is still empty everywhere.
+     */
+    private void enableDefaultForecasts() {
+        try {
+            Integer configured = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM devices WHERE forecast_model IS NOT NULL", Integer.class);
+            if (configured != null && configured == 0) {
+                int updated = jdbcTemplate.update("UPDATE devices SET forecast_model = 'XGBOOST' WHERE type IN " +
+                        "('TEMPERATURE', 'HUMIDITY', 'PRESSURE', 'LPG', 'CH4', 'SMOKE')");
+                log.info("Enabled XGBoost forecast for {} existing devices", updated);
+            }
+        } catch (Exception e) {
+            log.error("Failed to enable default forecasts", e);
+        }
+    }
+
+    private void makeNullable(String table, String column, String type) {
+        try {
+            List<String> nullable = jdbcTemplate.queryForList(
+                    "SELECT IS_NULLABLE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+                    String.class, table, column);
+            if (!nullable.isEmpty() && "NO".equalsIgnoreCase(nullable.get(0))) {
+                log.info("Making {}.{} nullable", table, column);
+                jdbcTemplate.execute("ALTER TABLE " + table + " MODIFY COLUMN `" + column + "` " + type + " NULL");
+            }
+        } catch (Exception e) {
+            log.error("Failed to make {}.{} nullable", table, column, e);
+        }
     }
 
     private void createIndex(String table, String index, String columns) {
