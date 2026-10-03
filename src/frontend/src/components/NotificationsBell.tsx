@@ -3,6 +3,7 @@ import { Popover } from 'radix-ui';
 import { useNavigate } from 'react-router-dom';
 import { notification } from 'antd';
 import { fromNow } from '@src/lib/readings';
+import { AiExplanation } from './AiExplanation';
 import {
   Incident,
   useGetOpenIncidentCountQuery,
@@ -121,6 +122,7 @@ function AlertRow({ incident }: { incident: Incident }) {
       <span className={`mt-1.5 size-2 shrink-0 rounded-full ${severity.dot}`} />
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-snug">{incident.message}</p>
+        {incident.description && <AiExplanation text={incident.description} />}
         <p className="mt-1 text-xs text-slate-500">
           {incident.devices?.map(d => d.name).join(', ') || 'Unknown device'} ·{' '}
           {fromNow(incident.created)}

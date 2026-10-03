@@ -14,6 +14,7 @@ public class Incident {
 
     private Long id;
     private String message;
+    private String description;
     private List<Device> devices;
     private Resolution status;
     private Severity severity;

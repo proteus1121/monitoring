@@ -95,12 +95,21 @@ public class TelegramNotificationService {
     }
 
     public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value) {
+        sendCriticalNotifications(recipients, device, value, null);
+    }
+
+    /**
+     * @param description explanation from the language model; replaces {{description}} in the template or,
+     *                    when the template has no such placeholder, is added after the message
+     */
+    public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value, String description) {
 
         for (DeviceUser user : recipients) {
             getNotifications(user.getUserId()).stream()
                     .filter(n -> n.getType() == NotificationType.CRITICAL)
                     .forEach(n -> {
-                        String message = getMessage(n.getTemplate(), user, device, value);
+                        String message = withDescription(getMessage(n.getTemplate(), user, device, value),
+                                n.getTemplate(), description);
                         String subject = "Critical alert: " + (device != null ? device.getName() : "device");
                         sender.submit(() -> {
                             try {
@@ -118,8 +127,17 @@ public class TelegramNotificationService {
      */
     public void sendTest(TelegramNotification notification) {
         String message = "Test notification from Smart Sensor Network.\n\n"
-                + getMessage(notification.getTemplate(), null, null, null);
+                + withDescription(getMessage(notification.getTemplate(), null, null, null), notification.getTemplate(),
+                "[the explanation written by the language model appears here]");
         deliver(notification, "Test notification", message);
+    }
+
+    private static String withDescription(String message, String template, String description) {
+        boolean hasPlaceholder = template != null && template.contains("{{description}}");
+        if (description == null || description.isBlank()) {
+            return hasPlaceholder ? message.replace("{{description}}", "") : message;
+        }
+        return hasPlaceholder ? message.replace("{{description}}", description) : message + "\n\n" + description;
     }
 
     public Map<String, Boolean> channelStatus() {

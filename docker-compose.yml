@@ -110,6 +110,7 @@ services:
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       MAIL_FROM: ${MAIL_FROM}
+      GEMINI_KEY: ${GEMINI_KEY}
       GRAFANA_KEY: ${GRAFANA_KEY}
     depends_on:
       - mysql-db

@@ -1,5 +1,6 @@
 package org.proteus1121.service;
 
+import org.proteus1121.service.llm.AlertPipeline;
 import java.util.Objects;
 import org.proteus1121.model.response.metric.LatestReading;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,6 @@ import org.proteus1121.service.ml.AnomalyDetectionService;
 import org.proteus1121.service.ml.FeatureBuilder;
 import org.proteus1121.service.ml.LocalLlmService;
 import org.proteus1121.service.ml.SensorReadingAggregationService;
-import org.proteus1121.service.notifications.TelegramNotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import static org.proteus1121.model.enums.Period.LIVE;
-import static org.proteus1121.model.enums.Severity.CRITICAL;
 
 @Slf4j
 @Service
@@ -45,8 +44,8 @@ public class MetricService {
     private final PredictedSensorDataRepository predictedSensorDataRepository;
     private final DeviceService deviceService;
     private final SensorDataMapper sensorDataMapper;
-    private final TelegramNotificationService telegramNotificationService;
     private final IncidentService incidentService;
+    private final AlertPipeline alertPipeline;
     private final AnomalyDetectionService anomalyDetectionService;
     private final LocalLlmService localLlmService;
     private final FeatureBuilder featureBuilder;
@@ -184,12 +183,7 @@ public class MetricService {
             // 6) Create incident and send notifications
             String incidentTitle = message.title().isEmpty() ? 
                 "Anomaly: " + device.getName() : message.title();
-            incidentService.createIncident(incidentTitle, CRITICAL, List.of(device));
-            telegramNotificationService.sendCriticalNotifications(
-                deviceService.getUsersByDeviceId(device.getId()), 
-                device, 
-                currentValue
-            );
+            alertPipeline.raise(incidentTitle, device, currentValue);
 
             return true;
         }
@@ -217,10 +211,7 @@ public class MetricService {
             }
             
             log.warn("Critical alert triggered for device {}: value = {}", device.getId(), value);
-            incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
-                    CRITICAL,
-                    List.of(device));
-            telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(device.getId()), device, value);
+            alertPipeline.raise("%s is above %s: %s".formatted(device.getName(), criticalValue, value), device, value);
             return true;
         } else if (lowerValue != null && value <= lowerValue) {
             // Check if there's already an unresolved incident for this device
@@ -233,10 +224,7 @@ public class MetricService {
             }
             
             log.warn("Lower alert triggered for device {}: value = {}", device.getId(), value);
-            telegramNotificationService.sendCriticalNotifications(deviceService.getUsersByDeviceId(device.getId()), device, value);
-            incidentService.createIncident("Critical alert for device " + device.getName() + ": value = " + value,
-                    CRITICAL,
-                    List.of(device));
+            alertPipeline.raise("%s is below %s: %s".formatted(device.getName(), lowerValue, value), device, value);
             return true;
         }
         

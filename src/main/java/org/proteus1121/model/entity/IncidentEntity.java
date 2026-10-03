@@ -1,5 +1,6 @@
 package org.proteus1121.model.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -31,6 +32,12 @@ public class IncidentEntity {
     private Long id;
 
     private String message;
+
+    /**
+     * Explanation written by the language model, null when it is disabled or failed.
+     */
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Enumerated(EnumType.STRING)
     private Resolution status = Resolution.UNRESOLVED;

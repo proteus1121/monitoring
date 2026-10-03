@@ -2,6 +2,7 @@ import { useState } from 'react';
 import clsx from 'clsx';
 import z from 'zod';
 import { notification } from 'antd';
+import { Icon } from '@iconify/react';
 import { FieldGroup } from '@src/components/Field';
 import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
@@ -21,6 +22,8 @@ import {
   useGetControllersQuery,
   useGetSensorModelsQuery,
   usePredictMetricsMutation,
+  useGetLlmStatusQuery,
+  useDescribeDeviceMutation,
 } from '../generatedApi';
 
 // value of the controller select when the device is not wired to a board
@@ -214,6 +217,7 @@ function GeneralFields({ form }: { form: any }) {
           <field.TextareaField label="Description" placeholder="Where it is, what it measures" />
         )}
       />
+      <GenerateDescription form={form} />
 
       <form.Subscribe
         selector={(state: any) => [state.values.controllerId, state.values.sensorModel]}
@@ -337,6 +341,42 @@ function GeneralFields({ form }: { form: any }) {
         How often the board sends the value. The device is shown offline after three missed intervals.
       </p>
     </FieldGroup>
+  );
+}
+
+/**
+ * Asks the language model for a description from the current form values. Hidden when the server has no
+ * model configured; a device saved with an empty description gets one generated automatically.
+ */
+function GenerateDescription({ form }: { form: any }) {
+  const { data: status } = useGetLlmStatusQuery();
+  const [describe, { isLoading }] = useDescribeDeviceMutation();
+
+  if (!status?.enabled) return null;
+
+  const generate = async () => {
+    const values = form.state.values;
+    const parsed = DeviceSchema.safeParse({ ...values, name: values.name || 'Sensor' });
+    if (!parsed.success) {
+      notification.warning({ message: 'Fill in the name, board and module first' });
+      return;
+    }
+    const res = await describe({ deviceRequest: toDeviceRequest(parsed.data) });
+    if ('error' in res) {
+      notification.error({ message: 'Could not generate a description', description: JSON.stringify(res.error) });
+      return;
+    }
+    form.setFieldValue('description', res.data.text);
+  };
+
+  return (
+    <div className="-mt-3 flex items-center gap-2 text-xs text-slate-500">
+      <Button type="button" size="sm" variant="secondary" disabled={isLoading} onClick={generate}>
+        {isLoading ? <Spinner /> : <Icon icon="lucide:sparkles" />}
+        Generate
+      </Button>
+      Written by AI from the name, module and pin. Left empty, it is generated after saving.
+    </div>
   );
 }
 

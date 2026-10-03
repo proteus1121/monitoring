@@ -13,6 +13,16 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      getLlmStatus: build.query<GetLlmStatusApiResponse, GetLlmStatusApiArg>({
+        query: () => ({ url: `/llm/status` }),
+      }),
+      describeDevice: build.mutation<DescribeDeviceApiResponse, DescribeDeviceApiArg>({
+        query: (queryArg) => ({
+          url: `/llm/device-description`,
+          method: "POST",
+          body: queryArg.deviceRequest,
+        }),
+      }),
       testNotification: build.mutation<
         TestNotificationApiResponse,
         TestNotificationApiArg
@@ -390,6 +400,13 @@ export type ForecastSettingsFields = {
   xgbRounds?: number;
   xgbMaxDepth?: number;
 };
+export type GetLlmStatusApiResponse = /** status 200 OK */ {
+  enabled: boolean;
+  model?: string;
+};
+export type GetLlmStatusApiArg = void;
+export type DescribeDeviceApiResponse = /** status 200 OK */ { text: string };
+export type DescribeDeviceApiArg = { deviceRequest: DeviceRequest };
 export type NotificationChannel = "TELEGRAM" | "EMAIL";
 export type TestNotificationApiResponse = unknown;
 export type TestNotificationApiArg = { id: number };
@@ -645,12 +662,15 @@ export type SensorData = {
 export type Incident = {
   id?: number;
   message?: string;
+  description?: string;
   devices?: Device[];
   status?: "UNRESOLVED" | "ACKNOWLEDGED" | "RESOLVED" | "RESOLVED_MANUALLY";
   severity?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
   created?: string;
 };
 export const {
+  useGetLlmStatusQuery,
+  useDescribeDeviceMutation,
   useTestNotificationMutation,
   useGetNotificationChannelsQuery,
   useGetNotificationByIdQuery,

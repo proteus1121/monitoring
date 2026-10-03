@@ -10,8 +10,9 @@ export const DEFAULT_TEMPLATE = `Critical alert
 
 Sensor {{device_name}} reported {{current_value}}
 Thresholds: {{lower_value}} … {{critical_value}}
-Location: {{device_location}}
-Time: {{timestamp}}`;
+Time: {{timestamp}}
+
+{{description}}`;
 
 export const NotificationSchema = z
   .object({
@@ -120,7 +121,8 @@ export function NotificationFormFields({ form }: { form: any }) {
       />
       <p className="-mt-3 text-xs text-slate-500">
         Placeholders: {'{{device_name}}'}, {'{{current_value}}'}, {'{{lower_value}}'},{' '}
-        {'{{critical_value}}'}, {'{{device_location}}'}, {'{{timestamp}}'}, {'%{username}'}
+        {'{{critical_value}}'}, {'{{device_location}}'}, {'{{timestamp}}'}, {'%{username}'},{' '}
+        {'{{description}}'} — explanation written by the AI (added at the end when the placeholder is missing)
       </p>
     </FieldGroup>
   );

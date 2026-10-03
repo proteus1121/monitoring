@@ -1,5 +1,6 @@
 package org.proteus1121.service;
 
+import org.proteus1121.service.llm.DeviceDescriptionService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public class DeviceService {
     private final DeviceMapper deviceMapper;
     private final UserDeviceService userDeviceService;
     private final ControllerService controllerService;
+    private final DeviceDescriptionService deviceDescriptionService;
 
     public Optional<Device> getDeviceById(Long id) {
         Optional<DeviceEntity> deviceEntity = deviceRepository.findByIdWithUsers(id);
@@ -46,6 +48,7 @@ public class DeviceService {
         Set<DeviceUser> userDevices = userDeviceService.shareDevice(deviceEntity.getId(), Map.of(ownerId, DeviceRole.OWNER));
         Device createdDevice = deviceMapper.toDevice(deviceEntity, userDevices);
         controllerService.publishConfiguration(deviceEntity.getControllerId());
+        deviceDescriptionService.fillMissingAsync(deviceEntity.getId());
         return createdDevice;
     }
 

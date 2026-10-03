@@ -111,12 +111,19 @@ public class IncidentService {
                 .anyMatch(deviceUserId -> Objects.equals(deviceUserId, userId));
     }
 
-    public void createIncident(String message, Severity severity, List<Device> devices) {
+    public IncidentEntity createIncident(String message, Severity severity, List<Device> devices) {
         List<DeviceEntity> deviceEntities = devices.stream()
                 .map(device -> deviceMapper.toDeviceEntity(device.getId(), device))
                 .toList();
         IncidentEntity incidentEntity = new IncidentEntity(message, severity, deviceEntities);
-        incidentRepository.save(incidentEntity);
+        return incidentRepository.save(incidentEntity);
+    }
+
+    public void setDescription(Long incidentId, String description) {
+        incidentRepository.findById(incidentId).ifPresent(incident -> {
+            incident.setDescription(description);
+            incidentRepository.save(incident);
+        });
     }
 
     /**
