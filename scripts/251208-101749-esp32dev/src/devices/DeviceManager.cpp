@@ -1,5 +1,6 @@
 #include "DeviceManager.h"
 #include "../display/DisplayManager.h"
+#include "../display/Screens.h"
 #include "../network/mqtt/MQTTHandler.h"
 #include "../sensors/ISensor.h"
 #include "../sensors/analog/AnalogInputSensor.h"
@@ -149,42 +150,66 @@ void clearDevices() {
     drivers.clear();
 }
 
-String shortLabel(const String &type) {
+// names and units as on the site (src/frontend/src/lib/readings.ts)
+String tileLabel(const String &type) {
     if (type == "TEMPERATURE")
-        return "T";
+        return "Temperature";
     if (type == "HUMIDITY")
-        return "H";
+        return "Humidity";
     if (type == "PRESSURE")
-        return "P";
+        return "Pressure";
     if (type == "SMOKE")
-        return "Smk";
+        return "Smoke";
     if (type == "FLAME")
-        return "Flm";
+        return "Flame";
     if (type == "LIGHT")
-        return "Lgt";
+        return "Light";
     if (type == "MOTION")
-        return "Mot";
+        return "Motion";
     if (type == "DIGITAL")
-        return "In";
+        return "Input";
     if (type == "ANALOG")
-        return "A";
+        return "Analog";
     if (type == "RELAY")
-        return "Rly";
-    return type; // LPG, CH4
+        return "Relay";
+    if (type == "CH4")
+        return "Methane";
+    return type; // LPG
 }
 
-String formatValue(const Channel &c) {
-    if (!c.hasValue)
-        return "--";
-    if (c.type == "FLAME" || c.type == "MOTION" || c.type == "DIGITAL" || c.type == "RELAY" ||
-        (c.type == "LIGHT" && c.model == "LIGHT_DIGITAL")) {
-        if (c.type == "RELAY")
-            return c.lastValue > 0.5f ? "ON" : "OFF";
-        return c.lastValue > 0.5f ? "YES" : "NO";
+Screens::Tile toTile(const Channel &c) {
+    Screens::Tile t{tileLabel(c.type), "--", "", false};
+    bool binary = c.type == "FLAME" || c.type == "MOTION" || c.type == "DIGITAL" || c.type == "RELAY" ||
+                  (c.type == "LIGHT" && c.model == "LIGHT_DIGITAL");
+    if (binary) {
+        if (!c.hasValue)
+            return t;
+        bool high = c.lastValue > 0.5f;
+        if (c.type == "FLAME")
+            t.value = high ? "FLAME!" : "none";
+        else if (c.type == "MOTION")
+            t.value = high ? "motion" : "still";
+        else if (c.type == "LIGHT")
+            t.value = high ? "light" : "dark";
+        else if (c.type == "RELAY")
+            t.value = high ? "ON" : "OFF";
+        else
+            t.value = high ? "high" : "low";
+        // things worth noticing from across the room
+        t.alert = high && (c.type == "FLAME" || c.type == "MOTION");
+        return t;
     }
-    if (c.type == "PRESSURE" || c.type == "LPG" || c.type == "CH4" || c.type == "SMOKE" || c.type == "ANALOG")
-        return String(c.lastValue, 0);
-    return String(c.lastValue, 1);
+    if (c.type == "TEMPERATURE")
+        t.unit = "\xC2\xB0" "C";
+    else if (c.type == "HUMIDITY")
+        t.unit = "%";
+    else if (c.type == "PRESSURE")
+        t.unit = "hPa";
+    else if (c.type == "LPG" || c.type == "CH4" || c.type == "SMOKE")
+        t.unit = "ppm";
+    if (c.hasValue)
+        t.value = String(c.lastValue, fabsf(c.lastValue) >= 100 ? 0 : 1);
+    return t;
 }
 
 } // namespace
@@ -344,42 +369,18 @@ void loop() {
 void render() {
     if (!oled.isInitialized())
         return;
-
-    std::vector<String> items;
-    for (Channel &c : channels) {
-        items.push_back(shortLabel(c.type) + ":" + formatValue(c));
-    }
-
-    bool online = WiFi.status() == WL_CONNECTED && mqttConnected();
-    String status = String(online ? "+ " : "- ") + (channels.empty() ? "no config" : String(channels.size()) + " dev");
-
-    oled.clear();
     if (isPairing()) {
-        oled.printLine(0, "Link to account:");
-        oled.printLine(1, SITE_HOST "/pair");
-        oled.printLine(2, pairingCode().length() ? "Code: " + pairingCode() : String("Getting code..."));
-        oled.printLine(4, status);
-        oled.show();
+        Screens::pairing(pairingCode(), SITE_HOST);
         return;
     }
-    if (items.empty()) {
-        oled.printLine(0, "Waiting config");
-        oled.printLine(1, "Add devices in UI");
-        oled.printLine(2, hardwareId());
-        oled.printLine(4, status);
-        oled.show();
+    if (channels.empty()) {
+        Screens::waitingForDevices(SITE_HOST, hardwareId());
         return;
     }
-
-    // two columns, the last line shows connection state
-    const int rows = 4;
-    for (size_t i = 0; i < items.size() && i < (size_t)rows * 2; i++) {
-        size_t row = i % rows;
-        bool right = i >= (size_t)rows;
-        oled.printAt(right ? 64 : 0, row, items[i]);
-    }
-    oled.printAt(0, rows, status);
-    oled.show();
+    std::vector<Screens::Tile> tiles;
+    for (Channel &c : channels)
+        tiles.push_back(toTile(c));
+    Screens::devices(tiles);
 }
 
 size_t deviceCount() {

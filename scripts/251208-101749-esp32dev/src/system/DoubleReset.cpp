@@ -10,10 +10,7 @@
 namespace {
 
 const uint32_t FLAG = 0xD0B1E5E7;
-const unsigned long WINDOW_MS = 3000;
-
 bool armed = false;
-unsigned long armedAt = 0;
 
 #if defined(ESP8266)
 // RTC user memory offset in 4-byte blocks, far from the area OTA / the SDK use
@@ -52,17 +49,15 @@ namespace DoubleReset {
 bool detect() {
     if (readFlag() == FLAG) {
         writeFlag(0);
-        Serial.println("[RESET] Double reset detected, opening setup");
         return true;
     }
     writeFlag(FLAG);
     armed = true;
-    armedAt = millis();
     return false;
 }
 
-void loop() {
-    if (armed && millis() - armedAt > WINDOW_MS) {
+void finish() {
+    if (armed) {
         writeFlag(0);
         armed = false;
     }

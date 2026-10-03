@@ -1,0 +1,36 @@
+#pragma once
+#include <Arduino.h>
+#include <vector>
+
+/**
+ * Everything the board shows on its display, 128 x 64. Every screen but the splash has a status bar:
+ * logo and name or title on the left, server link and Wi-Fi signal on the right.
+ */
+namespace Screens {
+
+struct Tile {
+    String label; // "Temp"
+    String value; // "28.1", "--" before the first reading
+    String unit;  // "°C", empty for on / off values
+    bool alert;   // shown inverted, e.g. flame or motion detected
+};
+
+// logo with a short spin, the name and the firmware version
+void splash(const char *version);
+
+void connecting(const String &ssid);
+
+// access point of the setup page
+void setupMode(const String &ssid, const String &pass, const String &ip);
+
+// code to enter on the site, empty while it is being requested
+void pairing(const String &code, const char *site);
+
+void waitingForDevices(const char *site, const String &hardwareId);
+
+// readings; more than four are shown in pages that switch every few seconds
+void devices(const std::vector<Tile> &tiles);
+
+void ota(int percent, const char *state);
+
+} // namespace Screens

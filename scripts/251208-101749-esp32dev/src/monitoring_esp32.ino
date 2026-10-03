@@ -4,6 +4,8 @@
 #include "network/setup-server/ServerManager.h"
 #include "storage/Storage.h"
 #include "system/DoubleReset.h"
+#include "system/Ota.h"
+#include "display/Screens.h"
 #include <Arduino.h>
 
 // include the appropriate WiFi header for each platform
@@ -20,43 +22,59 @@
 // on the Devices page (controller + sensor model + GPIO) and the server sends
 // the configuration over MQTT. See devices/DeviceManager.h.
 //
-// Setup page: press RST twice (or hold BOOT for 3 s on ESP32), join the
+// Setup page: press RST twice, or press BOOT / FLASH twice (or hold it 3 s); join the
 // ESP32-Setup / ESP8266-Setup Wi-Fi and open http://192.168.4.1. The board is
 // linked to an account with a code shown on its display, no user id is typed.
 //
 // Only the display and the BOOT button are fixed:
 //   ESP32   - SSD1306 on I2C SDA 27 / SCL 14, BOOT button GPIO0
-//   ESP8266 - ST7565 over SPI on D5, D6, D2, D7, D4 (see DisplayManager.h)
+//   ESP8266 - ST7565 over SPI on D5, D6, D2, D7, D4 (see DisplayManager.h), FLASH button GPIO0 (D3)
 //----------------------------------------------------------------------
 
-#if defined(ESP32)
-const uint8_t PIN_BOOT = 0; // BOOT button on GPIO0
-#endif
+// BOOT (ESP32) / FLASH (ESP8266 NodeMCU) button, GPIO0 on both. Only read after boot, when the pin is a
+// plain input: pressed at power-on it selects the flashing mode instead.
+const uint8_t PIN_BOOT = 0;
 
 static const unsigned long DISPLAY_REFRESH_MS = 1000;
 static const unsigned long SETUP_INFO_INTERVAL_MS = 5000;
 
-// BOOT button debounce and hold detection
-static unsigned long bootButtonPressTime = 0;
-const unsigned long BOOT_HOLD_TIME = 3000; // 3 seconds to trigger setup mode
+// Setup page from the button: two short presses within a second, or holding it for 3 s
+const unsigned long BOOT_HOLD_TIME = 3000;
+const unsigned long DOUBLE_PRESS_WINDOW = 1000;
+const unsigned long DEBOUNCE_MS = 30;
 
 void checkBootButton() {
-#if defined(ESP32)
-    bool bootPressed = (digitalRead(PIN_BOOT) == LOW);
+    static bool pressed = false;
+    static unsigned long changedAt = 0;
+    static unsigned long pressedAt = 0;
+    static unsigned long lastReleaseAt = 0;
 
-    if (bootPressed) {
-        if (bootButtonPressTime == 0) {
-            bootButtonPressTime = millis();
-            Serial.println("[BOOT] Button pressed - starting count");
-        } else if (millis() - bootButtonPressTime >= BOOT_HOLD_TIME) {
-            Serial.println("[BOOT] 3 seconds reached - ENTERING SETUP MODE!");
-            bootButtonPressTime = 0;
-            ServerManager::enterSetupMode();
+    bool down = digitalRead(PIN_BOOT) == LOW;
+    unsigned long now = millis();
+    if (down != pressed) {
+        if (now - changedAt < DEBOUNCE_MS)
+            return;
+        changedAt = now;
+        pressed = down;
+        if (down) {
+            pressedAt = now;
+            if (lastReleaseAt != 0 && now - lastReleaseAt <= DOUBLE_PRESS_WINDOW) {
+                Serial.println("[BOOT] Double press - entering setup mode");
+                lastReleaseAt = 0;
+                pressedAt = 0;
+                ServerManager::enterSetupMode();
+            }
+        } else if (pressedAt != 0) {
+            lastReleaseAt = now;
         }
-    } else {
-        bootButtonPressTime = 0;
+        return;
     }
-#endif
+    if (pressed && pressedAt != 0 && now - pressedAt >= BOOT_HOLD_TIME) {
+        Serial.println("[BOOT] Held for 3 s - entering setup mode");
+        pressedAt = 0;
+        lastReleaseAt = 0;
+        ServerManager::enterSetupMode();
+    }
 }
 
 void showSetupInfo() {
@@ -75,12 +93,7 @@ void showSetupInfo() {
     Serial.println("Open: http://" + ip);
     Serial.println("Hardware ID: " + hardwareId());
 
-    oled.clear();
-    oled.printLine(0, "Setup mode");
-    oled.printLine(1, "SSID: " + ssid);
-    oled.printLine(2, "Pass: " + pass);
-    oled.printLine(3, "http://" + ip);
-    oled.show();
+    Screens::setupMode(ssid, pass, ip);
 }
 
 void setup() {
@@ -90,30 +103,22 @@ void setup() {
     delay(500);
     Serial.println();
     Serial.println("Monitoring firmware " FIRMWARE_VERSION);
+    if (openSetup)
+        Serial.println("[RESET] Double reset detected, opening setup");
 
-#if defined(ESP32)
     pinMode(PIN_BOOT, INPUT_PULLUP);
-#endif
 
     oled.begin();
     Serial.println(oled.isInitialized() ? "[SETUP] Display initialized" : "[SETUP] Display not found");
+    Screens::splash(FIRMWARE_VERSION);
+    DoubleReset::finish();
 
     Storage::begin();
     ServerManager::begin();
     Serial.println("Hardware ID: " + hardwareId());
     Serial.println("User ID: " + Storage::loadUserId());
 
-    oled.clear();
-    String ssid = ServerManager::getSavedSsid();
-    if (ssid.length() > 0) {
-        oled.printLine(0, "Connecting to:");
-        oled.printLine(1, ssid);
-    } else {
-        oled.printLine(0, "No saved WiFi");
-        oled.printLine(1, "Setup mode active");
-    }
-    oled.printLine(3, hardwareId());
-    oled.show();
+    Screens::connecting(ServerManager::getSavedSsid());
 
     if (openSetup) {
         // double RST press: settings page even when Wi-Fi works
@@ -135,7 +140,11 @@ void setup() {
 }
 
 void loop() {
-    DoubleReset::loop();
+    Ota::loop();
+    if (Ota::inProgress()) {
+        // nothing else while the new firmware is written
+        return;
+    }
     checkBootButton();
     ServerManager::loop();
 

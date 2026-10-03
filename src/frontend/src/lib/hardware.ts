@@ -32,7 +32,7 @@ const ESP8266_PINS: PinSpec[] = [
   { gpio: 12, label: 'D6 (GPIO12) - display', reserved: true },
   { gpio: 13, label: 'D7 (GPIO13) - display', reserved: true },
   { gpio: 15, label: 'D8 (GPIO15) - must be LOW at boot' },
-  { gpio: 3, label: 'RX (GPIO3)' },
+  { gpio: 3, label: 'RX (GPIO3) - unplug to flash over USB' },
   { gpio: 1, label: 'TX (GPIO1) - serial log', reserved: true },
   { gpio: 17, label: 'A0 (analog)', analog: true },
 ];

@@ -103,7 +103,7 @@ export function SetupHint() {
           <li>
             Add devices with <b>Add Device</b>: choose the board, the module and the pin.
           </li>
-          <li>Settings page again later: press RST twice, or hold BOOT for 3 s on ESP32.</li>
+          <li>Settings page again later: press FLASH / BOOT twice (or hold it 3 s), or press RST twice.</li>
         </ol>
       )}
     </Card>
