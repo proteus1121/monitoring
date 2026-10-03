@@ -3,7 +3,6 @@
 #include "network/mqtt/MQTTHandler.h"
 #include "network/setup-server/ServerManager.h"
 #include "storage/Storage.h"
-#include "system/DoubleReset.h"
 #include "system/Ota.h"
 #include "display/Screens.h"
 #include <Arduino.h>
@@ -22,7 +21,7 @@
 // on the Devices page (controller + sensor model + GPIO) and the server sends
 // the configuration over MQTT. See devices/DeviceManager.h.
 //
-// Setup page: press RST twice, or hold BOOT / FLASH for 3 s (a short press flips pages); join the
+// Setup page: hold BOOT / FLASH for 3 s (a short press flips pages, or leaves the setup page); join the
 // ESP32-Setup / ESP8266-Setup Wi-Fi and open http://192.168.4.1. The board is
 // linked to an account with a code shown on its display, no user id is typed.
 //
@@ -38,8 +37,8 @@ const uint8_t PIN_BOOT = 0;
 static const unsigned long DISPLAY_REFRESH_MS = 1000;
 static const unsigned long SETUP_INFO_INTERVAL_MS = 5000;
 
-// Short press: next page of readings. Holding it 3 s opens the setup page (a double press would clash
-// with flipping pages quickly).
+// Short press: next page of readings, or back to work from the setup page. Holding it 3 s opens the setup
+// page (a double press would clash with flipping pages quickly).
 const unsigned long BOOT_HOLD_TIME = 3000;
 const unsigned long DEBOUNCE_MS = 30;
 
@@ -59,6 +58,13 @@ void checkBootButton() {
             pressedAt = now;
         } else if (pressedAt != 0) {
             pressedAt = 0;
+            if (!ServerManager::isConfigured() && ServerManager::getSavedSsid().length() > 0) {
+                // setup page opened by mistake: restart to connect to the saved Wi-Fi again
+                Serial.println("[BOOT] Short press - leaving setup mode");
+                delay(100);
+                ESP.restart();
+                return;
+            }
             Serial.println("[BOOT] Short press - next page");
             Screens::nextPage();
             if (ServerManager::isConfigured())
@@ -94,21 +100,16 @@ void showSetupInfo() {
 }
 
 void setup() {
-    // first thing: a second RST press during the display splash must still be seen
-    bool openSetup = DoubleReset::detect();
     Serial.begin(115200);
     delay(500);
     Serial.println();
     Serial.println("Monitoring firmware " FIRMWARE_VERSION);
-    if (openSetup)
-        Serial.println("[RESET] Double reset detected, opening setup");
 
     pinMode(PIN_BOOT, INPUT_PULLUP);
 
     oled.begin();
     Serial.println(oled.isInitialized() ? "[SETUP] Display initialized" : "[SETUP] Display not found");
     Screens::splash(FIRMWARE_VERSION);
-    DoubleReset::finish();
 
     Storage::begin();
     ServerManager::begin();
@@ -116,12 +117,6 @@ void setup() {
     Serial.println("User ID: " + Storage::loadUserId());
 
     Screens::connecting(ServerManager::getSavedSsid());
-
-    if (openSetup) {
-        // double RST press: settings page even when Wi-Fi works
-        ServerManager::enterSetupMode();
-        return;
-    }
 
     ServerManager::connect();
 

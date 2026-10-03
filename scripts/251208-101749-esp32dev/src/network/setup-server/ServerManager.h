@@ -6,10 +6,10 @@
  *
  * The page has three states:
  *  - setup:   Wi-Fi (and, folded away, MQTT) settings; shown when Wi-Fi is not configured or does not
- *             connect, and after a double RST press;
+ *             connect, and after holding BOOT / FLASH for 3 s;
  *  - pairing: Wi-Fi works but the board has no account; the access point stays up next to the Wi-Fi
  *             connection and the page shows the code to enter on the site;
- *  - paired:  reached by a double RST press; Wi-Fi settings plus "unlink from account".
+ *  - paired:  reached by holding BOOT / FLASH for 3 s; Wi-Fi settings plus "unlink from account".
  */
 class ServerManager {
 public:
