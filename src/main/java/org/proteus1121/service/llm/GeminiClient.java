@@ -1,5 +1,6 @@
 package org.proteus1121.service.llm;
 
+import org.springframework.web.client.HttpStatusCodeException;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.config.properties.LlmProperties;
@@ -25,6 +26,8 @@ public class GeminiClient {
 
     private final LlmProperties properties;
     private final RestTemplate restTemplate;
+    // last failure (status and Google's message, never the key) for the status endpoint
+    private volatile String lastError;
 
     public GeminiClient(LlmProperties properties, RestTemplateBuilder builder) {
         this.properties = properties;
@@ -38,6 +41,10 @@ public class GeminiClient {
 
     public String model() {
         return properties.getGemini().getModel();
+    }
+
+    public String lastError() {
+        return lastError;
     }
 
     public Optional<String> generate(String systemInstruction, String prompt) {
@@ -68,12 +75,22 @@ public class GeminiClient {
             }
             String result = text.toString().trim();
             if (result.isEmpty()) {
-                log.warn("Gemini returned no text: {}", response == null ? null : response.path("candidates").path(0).path("finishReason"));
+                lastError = "No text in the answer, finishReason "
+                        + (response == null ? null : response.path("candidates").path(0).path("finishReason").asText())
+                        + ", promptFeedback " + (response == null ? null : response.path("promptFeedback"));
+                log.warn("Gemini returned no text: {}", lastError);
                 return Optional.empty();
             }
+            lastError = null;
             return Optional.of(result);
+        } catch (HttpStatusCodeException e) {
+            String error = e.getResponseBodyAsString();
+            lastError = e.getStatusCode() + " " + (error.length() > 500 ? error.substring(0, 500) : error);
+            log.warn("Gemini request failed: {}", lastError);
+            return Optional.empty();
         } catch (Exception e) {
-            log.warn("Gemini request failed: {}", e.getMessage());
+            lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            log.warn("Gemini request failed: {}", lastError);
             return Optional.empty();
         }
     }

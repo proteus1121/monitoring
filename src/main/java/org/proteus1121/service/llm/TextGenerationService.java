@@ -33,6 +33,10 @@ public class TextGenerationService {
         return client.model();
     }
 
+    public String lastError() {
+        return client.lastError();
+    }
+
     /**
      * Facts about one sensor for the prompts.
      */
