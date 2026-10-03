@@ -354,6 +354,14 @@ void render() {
     String status = String(online ? "+ " : "- ") + (channels.empty() ? "no config" : String(channels.size()) + " dev");
 
     oled.clear();
+    if (isPairing()) {
+        oled.printLine(0, "Link to account:");
+        oled.printLine(1, SITE_HOST "/pair");
+        oled.printLine(2, pairingCode().length() ? "Code: " + pairingCode() : String("Getting code..."));
+        oled.printLine(4, status);
+        oled.show();
+        return;
+    }
     if (items.empty()) {
         oled.printLine(0, "Waiting config");
         oled.printLine(1, "Add devices in UI");

@@ -78,10 +78,13 @@ export type DeviceFormValues = Partial<z.input<typeof DeviceSchema>>;
 const str = (v?: number | null, fallback?: string) =>
   v === undefined || v === null ? fallback : String(v);
 
+// the API sends null for empty fields, zod's optional() only accepts undefined
+const opt = <T,>(v?: T | null) => (v === null ? undefined : v);
+
 export function toDeviceFormValues(device: Device | null): DeviceFormValues {
   return {
     name: device?.name ?? '',
-    description: device?.description,
+    description: device?.description ?? '',
     criticalValue: str(device?.criticalValue),
     lowerValue: str(device?.lowerValue),
     delaySeconds: String(Math.max(1, Math.round((device?.delay ?? 10000) / 1000))),
@@ -92,7 +95,7 @@ export function toDeviceFormValues(device: Device | null): DeviceFormValues {
     controllerId: device?.controllerId
       ? String(device.controllerId)
       : NO_CONTROLLER,
-    sensorModel: device?.sensorModel,
+    sensorModel: opt(device?.sensorModel),
     pin: str(device?.pin),
     secondaryPin: str(device?.secondaryPin),
     forecastModel: device?.forecastModel ?? 'NONE',
@@ -162,6 +165,36 @@ const FORECAST_MODELS: { value: ForecastModel; label: string; hint: string }[] =
 ];
 
 type Tab = 'general' | 'alerts' | 'forecast';
+
+const FIELD_LABELS: Record<string, string> = {
+  name: 'Device name',
+  description: 'Description',
+  criticalValue: 'Upper threshold',
+  lowerValue: 'Lower threshold',
+  delaySeconds: 'Send interval',
+  type: 'Measurement',
+  controllerId: 'Board',
+  sensorModel: 'Sensor module',
+  pin: 'Pin',
+  secondaryPin: 'Second pin',
+};
+
+/**
+ * Fields are spread over tabs, so a failed submit names the invalid fields instead of failing silently.
+ */
+export function notifyInvalidDevice(value: unknown) {
+  const parsed = DeviceSchema.safeParse(value);
+  if (parsed.success) return;
+  const byField = new Map<string, string>();
+  for (const issue of parsed.error.issues) {
+    const field = String(issue.path[0] ?? '');
+    if (!byField.has(field)) byField.set(field, `${FIELD_LABELS[field] ?? field}: ${issue.message}`);
+  }
+  notification.error({
+    message: 'Check the device settings',
+    description: [...byField.values()].join('. '),
+  });
+}
 
 // TanStack form instance created with useAppForm in the parent modal
 export function DeviceFormFields({ form, device }: { form: any; device?: Device | null }) {
@@ -358,7 +391,7 @@ function GenerateDescription({ form }: { form: any }) {
     const values = form.state.values;
     const parsed = DeviceSchema.safeParse({ ...values, name: values.name || 'Sensor' });
     if (!parsed.success) {
-      notification.warning({ message: 'Fill in the name, board and module first' });
+      notifyInvalidDevice({ ...values, name: values.name || 'Sensor' });
       return;
     }
     const res = await describe({ deviceRequest: toDeviceRequest(parsed.data) });

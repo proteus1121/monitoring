@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
@@ -6,6 +6,7 @@ import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { useModal } from '@src/redux/modals/modals.hook';
+import { errorMessage } from '@src/redux/helpers';
 import { Button } from '@src/components/Button';
 import { Card } from '@src/components/Card';
 import {
@@ -27,12 +28,12 @@ import {
   useGetControllersQuery,
   useGetLatestReadingsQuery,
   useGetSensorModelsQuery,
-  useGetUserQuery,
   useSendCommandMutation,
 } from '@src/redux/generatedApi';
 import { ControllerPanel, SetupHint } from './ControllersSection';
 
 const POLLING_INTERVAL_MS = 30000;
+const PENDING_POLLING_INTERVAL_MS = 3000;
 
 const FORECAST_LABELS: Record<string, string> = {
   ARIMA: 'ARIMA',
@@ -44,14 +45,18 @@ const DevicesPage = () => {
   const { data: devices, isLoading, error } = useGetAllDevicesQuery(undefined, {
     pollingInterval: POLLING_INTERVAL_MS,
   });
+  // an online board confirms a new configuration within seconds, poll faster until it does
+  const [waitingForBoard, setWaitingForBoard] = useState(false);
   const { data: controllers } = useGetControllersQuery(undefined, {
-    pollingInterval: POLLING_INTERVAL_MS,
+    pollingInterval: waitingForBoard ? PENDING_POLLING_INTERVAL_MS : POLLING_INTERVAL_MS,
   });
+  useEffect(() => {
+    setWaitingForBoard(Boolean(controllers?.some(c => c.online && !c.synced)));
+  }, [controllers]);
   const { data: models } = useGetSensorModelsQuery();
   const { data: readings } = useGetLatestReadingsQuery(undefined, {
     pollingInterval: POLLING_INTERVAL_MS,
   });
-  const { data: me } = useGetUserQuery();
   const { setState: openCreation } = useModal(DeviceCreationModalId);
 
   useEffect(() => {
@@ -86,7 +91,7 @@ const DevicesPage = () => {
         </Button>
       </PageHeader>
 
-      <SetupHint userId={me?.userId} />
+      <SetupHint />
 
       <section className="space-y-4">
         <h2 className="font-semibold">Boards</h2>
@@ -103,7 +108,7 @@ const DevicesPage = () => {
           ))
         ) : (
           <Card className="text-sm text-slate-500">
-            No boards yet. Follow “Connect a new board” above.
+            No boards yet. Enter the code the board shows in “Connect a new board” above.
           </Card>
         )}
       </section>
@@ -257,7 +262,12 @@ function DevicesTable(props: {
                           description: `Delete ${device.name} with its history?`,
                           callback: async () => {
                             const res = await deleteDevice({ id: device.id! });
-                            if (!('error' in res)) {
+                            if ('error' in res) {
+                              notification.error({
+                                message: `Failed to delete ${device.name}`,
+                                description: errorMessage(res.error),
+                              });
+                            } else {
                               notification.success({ message: `Deleted ${device.name}` });
                             }
                           },

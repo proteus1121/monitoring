@@ -1,5 +1,12 @@
 package org.proteus1121.service;
 
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import org.proteus1121.repository.ControllerShareRepository;
+import org.proteus1121.model.enums.DeviceRole;
+import org.proteus1121.model.entity.ControllerShareEntity;
+import org.proteus1121.model.dto.controller.ControllerShare;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
@@ -16,6 +23,8 @@ import org.proteus1121.repository.DeviceRepository;
 import org.proteus1121.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
@@ -45,6 +54,8 @@ public class ControllerService {
     private final UserRepository userRepository;
     private final ControllerPublisher controllerPublisher;
     private final ObjectMapper objectMapper;
+    private final ControllerShareRepository controllerShareRepository;
+    private final UserDeviceService userDeviceService;
 
     @Transactional
     public void handleHello(Long userId, String hardwareId, ControllerHello hello) {
@@ -60,12 +71,8 @@ public class ControllerService {
             controller.setHardwareId(hardwareId);
             controller.setName(hardwareId);
             log.info("Registering new controller {} for user {}", hardwareId, userId);
-        } else if (!Objects.equals(controller.getUserId(), userId)) {
-            // the board was provisioned with another account: devices of the previous owner are no longer wired to it
-            log.info("Controller {} moved from user {} to user {}", hardwareId, controller.getUserId(), userId);
-            unbindDevices(controller.getId());
-            controllerPublisher.clearConfiguration(controller.getUserId(), hardwareId);
-            controller.setUserId(userId);
+        } else {
+            changeOwner(controller, userId);
         }
 
         controller.setPlatform(hello.platform());
@@ -82,10 +89,106 @@ public class ControllerService {
         }
     }
 
+    /**
+     * Boards of the user and boards shared with them (with their role).
+     */
     public List<Controller> getControllers(Long userId) {
-        return controllerRepository.findByUserIdOrderByIdAsc(userId).stream()
-                .map(this::toController)
+        List<Controller> result = new ArrayList<>(controllerRepository.findByUserIdOrderByIdAsc(userId).stream()
+                .map(entity -> toController(entity, DeviceRole.OWNER))
+                .toList());
+        for (ControllerShareEntity share : controllerShareRepository.findByUserId(userId)) {
+            controllerRepository.findById(share.getControllerId())
+                    .ifPresent(entity -> result.add(toController(entity, share.getRole())));
+        }
+        return result;
+    }
+
+    /**
+     * Binds a board that showed a pairing code to the user who entered it.
+     */
+    @Transactional
+    public Controller claim(Long userId, String hardwareId, String platform, String firmwareVersion) {
+        ControllerEntity controller = controllerRepository.findByHardwareId(hardwareId).orElseGet(() -> {
+            ControllerEntity created = new ControllerEntity();
+            created.setUserId(userId);
+            created.setHardwareId(hardwareId);
+            created.setName(hardwareId);
+            return created;
+        });
+        changeOwner(controller, userId);
+        if (platform != null) controller.setPlatform(platform);
+        if (firmwareVersion != null) controller.setFirmwareVersion(firmwareVersion);
+        controller = controllerRepository.save(controller);
+        // replaces a retained "unpair" left from deleting the board earlier
+        publishConfiguration(controller.getId());
+        log.info("Controller {} paired with user {}", hardwareId, userId);
+        return toController(controller, DeviceRole.OWNER);
+    }
+
+    /**
+     * A board provisioned with another account: devices and shares of the previous owner no longer apply.
+     */
+    private void changeOwner(ControllerEntity controller, Long userId) {
+        if (controller.getId() == null || Objects.equals(controller.getUserId(), userId)) {
+            controller.setUserId(userId);
+            return;
+        }
+        log.info("Controller {} moved from user {} to user {}", controller.getHardwareId(), controller.getUserId(), userId);
+        unbindDevices(controller.getId());
+        controllerShareRepository.deleteByControllerId(controller.getId());
+        controllerPublisher.clearConfiguration(controller.getUserId(), controller.getHardwareId());
+        controller.setUserId(userId);
+    }
+
+    // --- sharing a whole board ---
+
+    @Transactional
+    public void share(Long controllerId, Long ownerId, Long userId, DeviceRole role) {
+        checkController(controllerId, ownerId);
+        if (Objects.equals(ownerId, userId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The board already belongs to this user");
+        }
+        if (role == DeviceRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A board can be shared as EDITOR or VIEWER");
+        }
+        ControllerShareEntity share = controllerShareRepository.findByControllerIdAndUserId(controllerId, userId)
+                .orElseGet(() -> new ControllerShareEntity(controllerId, userId, role));
+        share.setRole(role);
+        controllerShareRepository.save(share);
+        deviceRepository.findByControllerId(controllerId).forEach(device ->
+                userDeviceService.shareDevice(device.getId(), Map.of(userId, role)));
+    }
+
+    @Transactional
+    public void unshare(Long controllerId, Long ownerId, Long userId) {
+        checkController(controllerId, ownerId);
+        controllerShareRepository.findByControllerIdAndUserId(controllerId, userId)
+                .ifPresent(controllerShareRepository::delete);
+        deviceRepository.findByControllerId(controllerId).forEach(device ->
+                userDeviceService.unshareDevice(device.getId(), userId));
+    }
+
+    public List<ControllerShare> getShares(Long ownerId) {
+        List<ControllerEntity> owned = controllerRepository.findByUserIdOrderByIdAsc(ownerId);
+        Map<Long, String> names = new HashMap<>();
+        owned.forEach(c -> names.put(c.getId(), c.getName()));
+        return controllerShareRepository.findByControllerIdIn(owned.stream().map(ControllerEntity::getId).toList()).stream()
+                .map(share -> new ControllerShare(share.getControllerId(), names.get(share.getControllerId()),
+                        share.getUserId(),
+                        userRepository.findById(share.getUserId()).map(u -> u.getName()).orElse("?"),
+                        share.getRole()))
                 .toList();
+    }
+
+    /**
+     * A device put on a shared board is shared with everyone the board is shared with.
+     */
+    public void applyBoardShares(Long deviceId, Long controllerId) {
+        if (controllerId == null) {
+            return;
+        }
+        controllerShareRepository.findByControllerId(controllerId).forEach(share ->
+                userDeviceService.shareDevice(deviceId, Map.of(share.getUserId(), share.getRole())));
     }
 
     public ControllerEntity checkController(Long controllerId, Long userId) {
@@ -108,7 +211,9 @@ public class ControllerService {
     public void delete(Long controllerId, Long userId) {
         ControllerEntity controller = checkController(controllerId, userId);
         unbindDevices(controllerId);
-        controllerPublisher.clearConfiguration(controller.getUserId(), controller.getHardwareId());
+        controllerShareRepository.deleteByControllerId(controllerId);
+        // otherwise the board's next hello registers it again right away
+        controllerPublisher.publishUnpair(controller.getUserId(), controller.getHardwareId());
         controllerRepository.delete(controller);
     }
 
@@ -119,6 +224,21 @@ public class ControllerService {
         if (controllerId == null) {
             return;
         }
+        // inside a transaction wait for the commit: the board answers within milliseconds and its hello must
+        // see the new devices, otherwise the server sends the old configuration back and the board stays pending
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    doPublishConfiguration(controllerId);
+                }
+            });
+        } else {
+            doPublishConfiguration(controllerId);
+        }
+    }
+
+    private void doPublishConfiguration(Long controllerId) {
         controllerRepository.findById(controllerId).ifPresent(controller ->
                 controllerPublisher.publishConfiguration(controller.getUserId(), controller.getHardwareId(),
                         buildConfiguration(controllerId)));
@@ -162,7 +282,12 @@ public class ControllerService {
     }
 
     private Controller toController(ControllerEntity entity) {
+        return toController(entity, DeviceRole.OWNER);
+    }
+
+    private Controller toController(ControllerEntity entity, DeviceRole role) {
         Controller controller = new Controller();
+        controller.setRole(role);
         controller.setId(entity.getId());
         controller.setUserId(entity.getUserId());
         controller.setHardwareId(entity.getHardwareId());

@@ -15,3 +15,15 @@ export const useActions = <T extends ActionCreatorsMapObject>(
     {} as { [key in keyof T]: (...args: Parameters<T[key]>) => void }
   );
 };
+
+/**
+ * Readable text of an RTK Query error: the server's message when it sent one.
+ */
+export const errorMessage = (error: unknown): string => {
+  const e = error as { status?: unknown; data?: { message?: string; error?: string } | string };
+  if (e?.data && typeof e.data === 'object' && (e.data.message || e.data.error)) {
+    return e.data.message || e.data.error!;
+  }
+  if (typeof e?.data === 'string' && e.data) return e.data;
+  return e?.status ? `Request failed (${String(e.status)})` : JSON.stringify(error);
+};

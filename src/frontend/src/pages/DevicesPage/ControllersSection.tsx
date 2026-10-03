@@ -5,6 +5,9 @@ import { Button } from '@src/components/Button';
 import { Card } from '@src/components/Card';
 import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
+import { Spinner } from '@src/components/Spinner';
+import { errorMessage } from '@src/redux/helpers';
+import { usePairControllerMutation } from '@src/redux/controllersApi';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
@@ -18,39 +21,89 @@ import {
 } from '@src/redux/generatedApi';
 import { BoardDiagram } from './BoardDiagram';
 
-export function SetupHint({ userId }: { userId?: number }) {
+/**
+ * Code input that links the board showing it to the current user. Used on the Devices page and on /pair,
+ * the page the board's display and setup page link to.
+ */
+export function PairBoardForm(props: { initialCode?: string; onPaired?: (controller: Controller) => void }) {
+  const [code, setCode] = useState(props.initialCode ?? '');
+  const [pair, { isLoading }] = usePairControllerMutation();
+
+  const submit = async () => {
+    const res = await pair({ code: code.trim() });
+    if ('error' in res) {
+      notification.error({ message: 'Could not link the board', description: errorMessage(res.error) });
+      return;
+    }
+    notification.success({
+      message: `Board ${res.data.name ?? res.data.hardwareId} linked`,
+      description: 'It restarts and comes online in a few seconds.',
+    });
+    setCode('');
+    props.onPaired?.(res.data);
+  };
+
+  return (
+    <form
+      className="flex flex-wrap items-center gap-2"
+      onSubmit={e => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <Input
+        value={code}
+        onChange={e => setCode(e.target.value.toUpperCase())}
+        placeholder="Code from the board, e.g. 4F7K2Q"
+        maxLength={12}
+        autoComplete="off"
+        className="w-[240px] font-mono tracking-widest"
+      />
+      <Button type="submit" disabled={isLoading || code.trim().length < 4}>
+        {isLoading ? <Spinner /> : <Icon icon="lucide:link" />}
+        Link board
+      </Button>
+    </form>
+  );
+}
+
+export function SetupHint() {
   const [open, setOpen] = useState(false);
   return (
     <Card className="border-blue-200 bg-blue-50 text-sm">
-      <button
-        type="button"
-        className="flex w-full items-center gap-2 font-semibold"
-        onClick={() => setOpen(!open)}
-      >
-        <Icon icon="lucide:info" className="size-4" />
-        Connect a new board
-        <span className="ml-2 font-normal text-slate-600">
-          Your User ID:{' '}
-          <span className="rounded bg-white px-2 py-0.5 font-mono font-semibold text-slate-900">
-            {userId ?? '…'}
-          </span>
-        </span>
-        <Icon
-          icon="lucide:chevron-down"
-          className={`ml-auto size-4 transition ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 font-semibold">
+          <Icon icon="lucide:cpu" className="size-4" />
+          Connect a new board
+        </div>
+        <div className="flex-1">
+          <PairBoardForm />
+        </div>
+        <button
+          type="button"
+          className="flex items-center gap-1 text-slate-600 hover:text-slate-900"
+          onClick={() => setOpen(!open)}
+        >
+          How
+          <Icon icon="lucide:chevron-down" className={`size-4 transition ${open ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
       {open && (
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-slate-700">
           <li>Flash the universal firmware to the board.</li>
           <li>
-            Connect to the board Wi-Fi <b>ESP32-Setup</b> / <b>ESP8266-Setup</b> and open{' '}
-            <b>http://192.168.4.1</b>.
+            Join the board Wi-Fi <b>ESP32-Setup</b> / <b>ESP8266-Setup</b>, open <b>http://192.168.4.1</b> and
+            enter your home Wi-Fi.
           </li>
-          <li>Enter your Wi-Fi and User ID, save. The board appears below.</li>
+          <li>
+            The board connects and shows a code on its display and setup page. Open the link next to it (or
+            enter the code here) and sign in: with a password, Google or GitHub. The board appears below
+            right away.
+          </li>
           <li>
             Add devices with <b>Add Device</b>: choose the board, the module and the pin.
           </li>
+          <li>Settings page again later: press RST twice, or hold BOOT for 3 s on ESP32.</li>
         </ol>
       )}
     </Card>
@@ -79,7 +132,7 @@ export function ControllerPanel(props: {
   const save = async () => {
     const res = await updateController({ id, controllerRequest: { name } });
     if (res.error) {
-      notification.error({ message: 'Failed to rename board' });
+      notification.error({ message: 'Failed to rename board', description: errorMessage(res.error) });
       return;
     }
     setIsEditing(false);
@@ -165,9 +218,14 @@ export function ControllerPanel(props: {
             onClick={() =>
               confirm({
                 description:
-                  'Devices of this board will be detached, not deleted. The board registers again when it reconnects.',
+                  'Devices of this board are detached, not deleted. The board is unlinked from your account and shows a new pairing code.',
                 callback: async () => {
-                  await deleteController({ id });
+                  const res = await deleteController({ id });
+                  if ('error' in res) {
+                    notification.error({ message: 'Failed to delete board', description: errorMessage(res.error) });
+                  } else {
+                    notification.success({ message: `Deleted ${controller.name}` });
+                  }
                 },
               })
             }

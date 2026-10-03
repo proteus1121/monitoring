@@ -20,6 +20,7 @@ public class MqttConfig {
     private static final String[] TOPICS = new String[]{
             "users/+/devices/+/measurements",
             "users/+/controllers/+/hello",
+            "pairing/+/request",
     };
 
     @Bean

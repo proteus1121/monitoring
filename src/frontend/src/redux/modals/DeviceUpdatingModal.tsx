@@ -12,11 +12,13 @@ import {
 } from '@src/components/Dialog';
 import { useAppForm } from '@src/components/Form';
 import { notification } from 'antd';
+import { errorMessage } from '../helpers';
 import { Device, useUpdateDeviceMutation } from '../generatedApi';
 import { useEffect } from 'react';
 import {
   DeviceFormFields,
   DeviceSchema,
+  notifyInvalidDevice,
   toDeviceFormValues,
   toDeviceRequest,
 } from './DeviceFormFields';
@@ -36,10 +38,12 @@ export function DeviceUpdatingModal() {
     validators: {
       onSubmit: DeviceSchema as any,
     },
+    onSubmitInvalid: ({ value }) => notifyInvalidDevice(value),
     onSubmit: async ({ value }) => {
       const parsed = DeviceSchema.safeParse(value);
 
       if (!parsed.success) {
+        notifyInvalidDevice(value);
         return;
       }
       const id = state?.id;
@@ -60,7 +64,7 @@ export function DeviceUpdatingModal() {
       } else {
         notification.error({
           message: 'Failed to update device',
-          description: JSON.stringify(res.error),
+          description: errorMessage(res.error),
         });
         return;
       }

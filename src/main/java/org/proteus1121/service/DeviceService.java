@@ -14,6 +14,7 @@ import org.proteus1121.model.dto.device.Device;
 import org.proteus1121.model.entity.DeviceEntity;
 import org.proteus1121.repository.DeviceRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -36,6 +37,7 @@ public class DeviceService {
     private final UserDeviceService userDeviceService;
     private final ControllerService controllerService;
     private final DeviceDescriptionService deviceDescriptionService;
+    private final JdbcTemplate jdbcTemplate;
 
     public Optional<Device> getDeviceById(Long id) {
         Optional<DeviceEntity> deviceEntity = deviceRepository.findByIdWithUsers(id);
@@ -48,6 +50,7 @@ public class DeviceService {
         Set<DeviceUser> userDevices = userDeviceService.shareDevice(deviceEntity.getId(), Map.of(ownerId, DeviceRole.OWNER));
         Device createdDevice = deviceMapper.toDevice(deviceEntity, userDevices);
         controllerService.publishConfiguration(deviceEntity.getControllerId());
+        controllerService.applyBoardShares(deviceEntity.getId(), deviceEntity.getControllerId());
         deviceDescriptionService.fillMissingAsync(deviceEntity.getId());
         return createdDevice;
     }
@@ -69,12 +72,22 @@ public class DeviceService {
         controllerService.publishConfiguration(deviceEntity.getControllerId());
         if (!Objects.equals(previousControllerId, deviceEntity.getControllerId())) {
             controllerService.publishConfiguration(previousControllerId);
+            controllerService.applyBoardShares(id, deviceEntity.getControllerId());
         }
         return updatedDevice;
     }
 
+    /**
+     * Deletes the device with its readings, forecasts and incident links: they reference the device by a
+     * foreign key, so deleting the row alone fails as soon as the device has sent anything.
+     */
+    @Transactional
     public void deleteDevice(Long id) {
         Long controllerId = deviceRepository.findById(id).map(DeviceEntity::getControllerId).orElse(null);
+        jdbcTemplate.update("DELETE FROM incident_devices WHERE dev_id = ?", id);
+        jdbcTemplate.update("DELETE FROM incidents WHERE NOT EXISTS (SELECT 1 FROM incident_devices d WHERE d.inc_id = incidents.id)");
+        jdbcTemplate.update("DELETE FROM predicted_sensor_data WHERE device_id = ?", id);
+        jdbcTemplate.update("DELETE FROM sensor_data WHERE device_id = ?", id);
         deviceRepository.deleteById(id);
         controllerService.publishConfiguration(controllerId);
     }

@@ -3,6 +3,7 @@
 #include "network/mqtt/MQTTHandler.h"
 #include "network/setup-server/ServerManager.h"
 #include "storage/Storage.h"
+#include "system/DoubleReset.h"
 #include <Arduino.h>
 
 // include the appropriate WiFi header for each platform
@@ -18,6 +19,10 @@
 // Sensors are NOT configured here. Wire the modules to the board, add them
 // on the Devices page (controller + sensor model + GPIO) and the server sends
 // the configuration over MQTT. See devices/DeviceManager.h.
+//
+// Setup page: press RST twice (or hold BOOT for 3 s on ESP32), join the
+// ESP32-Setup / ESP8266-Setup Wi-Fi and open http://192.168.4.1. The board is
+// linked to an account with a code shown on its display, no user id is typed.
 //
 // Only the display and the BOOT button are fixed:
 //   ESP32   - SSD1306 on I2C SDA 27 / SCL 14, BOOT button GPIO0
@@ -79,6 +84,8 @@ void showSetupInfo() {
 }
 
 void setup() {
+    // first thing: a second RST press during the display splash must still be seen
+    bool openSetup = DoubleReset::detect();
     Serial.begin(115200);
     delay(500);
     Serial.println();
@@ -108,16 +115,27 @@ void setup() {
     oled.printLine(3, hardwareId());
     oled.show();
 
+    if (openSetup) {
+        // double RST press: settings page even when Wi-Fi works
+        ServerManager::enterSetupMode();
+        return;
+    }
+
     ServerManager::connect();
 
     if (ServerManager::isConfigured()) {
         initMQTT();
+        if (isPairing()) {
+            // keep the access point so the setup page can show the pairing code
+            ServerManager::startPairingPortal();
+        }
     } else {
         Serial.println("Device not configured - skipping MQTT initialization");
     }
 }
 
 void loop() {
+    DoubleReset::loop();
     checkBootButton();
     ServerManager::loop();
 

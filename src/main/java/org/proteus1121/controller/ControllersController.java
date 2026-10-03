@@ -1,5 +1,10 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.service.UserService;
+import org.proteus1121.service.PairingService;
+import org.proteus1121.model.request.ShareControllerRequest;
+import org.proteus1121.model.request.PairControllerRequest;
+import org.proteus1121.model.dto.controller.ControllerShare;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -31,6 +36,8 @@ import static org.proteus1121.util.SessionUtils.getCurrentUser;
 public class ControllersController {
 
     private final ControllerService controllerService;
+    private final PairingService pairingService;
+    private final UserService userService;
 
     @GetMapping
     @Operation(summary = "Get controllers of current user", description = "Boards appear here after they connect to MQTT with the user id")
@@ -42,6 +49,33 @@ public class ControllersController {
     @Operation(summary = "Get supported sensor models", description = "Hardware modules the firmware can drive and measurements they provide")
     public ResponseEntity<List<SensorModelInfo>> getSensorModels() {
         return ResponseEntity.ok(Arrays.stream(SensorModel.values()).map(SensorModelInfo::of).toList());
+    }
+
+    @PostMapping("/pair")
+    @Operation(summary = "Pair a board", description = "Binds the board that shows this code on its display to the current user")
+    public ResponseEntity<Controller> pair(@Valid @RequestBody PairControllerRequest request) {
+        return ResponseEntity.ok(pairingService.claim(getCurrentUser().getId(), request.getCode()));
+    }
+
+    @GetMapping("/shares")
+    @Operation(summary = "Shares of own boards", description = "Users each board of the current user is shared with")
+    public ResponseEntity<List<ControllerShare>> getShares() {
+        return ResponseEntity.ok(controllerService.getShares(getCurrentUser().getId()));
+    }
+
+    @PutMapping("/{id}/share")
+    @Operation(summary = "Share a whole board", description = "Shares every device of the board, including ones added later")
+    public ResponseEntity<Void> share(@PathVariable Long id, @Valid @RequestBody ShareControllerRequest request) {
+        Long userId = userService.loadUserByUsername(request.getUsername()).getId();
+        controllerService.share(id, getCurrentUser().getId(), userId, request.getRole());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/share/{userId}")
+    @Operation(summary = "Stop sharing a board")
+    public ResponseEntity<Void> unshare(@PathVariable Long id, @PathVariable Long userId) {
+        controllerService.unshare(id, getCurrentUser().getId(), userId);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}")

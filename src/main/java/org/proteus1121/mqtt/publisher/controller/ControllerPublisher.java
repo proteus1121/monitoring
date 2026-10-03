@@ -16,6 +16,7 @@ public class ControllerPublisher {
 
     private static final String CONFIGURATION_TOPIC = "users/%d/controllers/%s/configuration";
     private static final String COMMAND_TOPIC = "users/%d/devices/%d/command";
+    private static final String PAIRING_TOPIC = "pairing/%s/%s";
 
     private final MessagePublisher publisher;
     private final ObjectMapper objectMapper;
@@ -41,6 +42,28 @@ public class ControllerPublisher {
         } catch (Exception e) {
             log.error("Failed to clear controller configuration on {}", topic, e);
         }
+    }
+
+    /**
+     * Retained so a board that is offline while it is deleted unlinks itself when it comes back. Pairing the
+     * board again publishes a configuration over it.
+     */
+    public void publishUnpair(Long userId, String hardwareId) {
+        String topic = CONFIGURATION_TOPIC.formatted(userId, hardwareId);
+        try {
+            publisher.publishMessage(topic, "{\"unpair\":true}", true);
+        } catch (Exception e) {
+            log.error("Failed to unpair controller on {}", topic, e);
+        }
+    }
+
+    /**
+     * Not retained: a board only listens while it waits for pairing, an old result must not pair it again.
+     */
+    public void publishPairing(String hardwareId, String subtopic, String payload) {
+        String topic = PAIRING_TOPIC.formatted(hardwareId, subtopic);
+        log.info("Publishing pairing {} to {}", subtopic, topic);
+        publisher.publishMessage(topic, payload, false);
     }
 
     /**

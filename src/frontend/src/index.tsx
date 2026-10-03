@@ -22,6 +22,7 @@ import { ModalsProvider } from './redux/modals/ModalsProvider';
 import AlertsPage from './pages/AlertsPage';
 import { DashboardPage } from './pages/DashboardPage/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
+import { PairPage } from './pages/PairPage';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
@@ -58,6 +59,8 @@ export const router = createBrowserRouter(
           {/* Map and Configurations were merged into Devices */}
           <Route path="dashboard/map" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/devices" element={<DevicesPage />} />
+          {/* the board links here with its pairing code */}
+          <Route path="pair" element={<PairPage />} />
           <Route path="settings/configurations" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/users" element={<UsersPage />} />
           <Route path="settings/alerts" element={<AlertsPage />} />

@@ -12,11 +12,13 @@ import {
 } from '@src/components/Dialog';
 import { useAppForm } from '@src/components/Form';
 import { notification } from 'antd';
+import { errorMessage } from '../helpers';
 import { useEffect } from 'react';
 import { useCreateDeviceMutation } from '../generatedApi';
 import {
   DeviceFormFields,
   DeviceSchema,
+  notifyInvalidDevice,
   toDeviceFormValues,
   toDeviceRequest,
 } from './DeviceFormFields';
@@ -35,10 +37,12 @@ export function DeviceCreationModal() {
     validators: {
       onSubmit: DeviceSchema as any,
     },
+    onSubmitInvalid: ({ value }) => notifyInvalidDevice(value),
     onSubmit: async ({ value }) => {
       const parsed = DeviceSchema.safeParse(value);
 
       if (!parsed.success) {
+        notifyInvalidDevice(value);
         return;
       }
 
@@ -52,7 +56,7 @@ export function DeviceCreationModal() {
       } else {
         notification.error({
           message: 'Failed to create device',
-          description: JSON.stringify(res.error),
+          description: errorMessage(res.error),
         });
         return;
       }

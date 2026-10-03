@@ -18,6 +18,7 @@ import { DeviceIcon } from './DevicesPage/DevicesPage';
 import { capitalizeFirstLetter } from '@src/lib/capitalizeFirstLetter';
 import { DeviceSharingCreationModalId } from '@src/redux/modals/DeviceSharingCreationModal';
 import { DeviceSharingUpdatingModalId } from '@src/redux/modals/DeviceSharingUpdatingModal';
+import { BoardSharingCard } from './BoardSharingCard';
 
 export type FlatUserWithDevices = {
   username: string;
@@ -67,17 +68,20 @@ export const UsersPage = () => {
             <PageHeaderTitle>
               <H1>User Management</H1>
             </PageHeaderTitle>
-            <H3>Share devices with users and manage access permissions</H3>
+            <H3>Share boards or single devices with users and manage access permissions</H3>
           </div>
 
           <Button
+            variant="secondary"
             onClick={() => showDeviceSharingCreationModal(true)}
             className="ml-2 shrink-0"
           >
             <Icon icon="lucide:user-plus" className="size-4" />
-            Share Device
+            Share single devices
           </Button>
         </PageHeader>
+
+        <BoardSharingCard />
 
         <Card className="space-y-4">
           <div className="flex items-center justify-between pb-6 text-xl font-semibold">

@@ -1,5 +1,6 @@
 package org.proteus1121.service;
 
+import org.proteus1121.repository.ControllerShareRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,8 @@ class ControllerServiceTest {
         userRepository = mock(UserRepository.class);
         controllerPublisher = mock(ControllerPublisher.class);
         controllerService = new ControllerService(controllerRepository, deviceRepository, userRepository,
-                controllerPublisher, new ObjectMapper());
+                controllerPublisher, new ObjectMapper(), mock(ControllerShareRepository.class),
+                mock(UserDeviceService.class));
 
         when(userRepository.existsById(1L)).thenReturn(true);
         when(controllerRepository.save(any())).thenAnswer(invocation -> {
