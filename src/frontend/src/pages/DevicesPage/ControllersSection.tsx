@@ -103,7 +103,7 @@ export function SetupHint() {
           <li>
             Add devices with <b>Add Device</b>: choose the board, the module and the pin.
           </li>
-          <li>Settings page again later: press FLASH / BOOT twice (or hold it 3 s), or press RST twice.</li>
+          <li>Settings page again later: hold FLASH / BOOT for 3 s, or press RST twice. A short FLASH press flips the pages of readings on the display.</li>
         </ol>
       )}
     </Card>

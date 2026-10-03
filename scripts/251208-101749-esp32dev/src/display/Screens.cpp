@@ -12,8 +12,10 @@
 namespace {
 
 const int BAR_HEIGHT = 11;
-const unsigned long PAGE_MS = 4000;
 const int TILES_PER_PAGE = 4;
+
+// counts presses, wrapped to the number of pages when drawing
+unsigned int pageCounter = 0;
 
 /**
  * The site logo: a camera aperture. A disc with a hexagonal opening whose edges run on to the rim as the
@@ -225,7 +227,7 @@ void devices(const std::vector<Tile> &tiles) {
         return;
     int count = tiles.size();
     int pages = (count + TILES_PER_PAGE - 1) / TILES_PER_PAGE;
-    int page = pages > 1 ? (millis() / PAGE_MS) % pages : 0;
+    int page = pages > 1 ? pageCounter % pages : 0;
 
     oled.clear();
     statusBar("SSN");
@@ -259,6 +261,10 @@ void devices(const std::vector<Tile> &tiles) {
     if (!wide)
         dottedVertical(SCREEN_WIDTH / 2, top, SCREEN_HEIGHT - 1);
     oled.show();
+}
+
+void nextPage() {
+    pageCounter++;
 }
 
 void ota(int percent, const char *state) {

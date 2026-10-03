@@ -28,8 +28,11 @@ void pairing(const String &code, const char *site);
 
 void waitingForDevices(const char *site, const String &hardwareId);
 
-// readings; more than four are shown in pages that switch every few seconds
+// readings; more than four are shown in pages, switched with nextPage()
 void devices(const std::vector<Tile> &tiles);
+
+// next page of readings, called on a short press of the FLASH / BOOT button
+void nextPage();
 
 void ota(int percent, const char *state);
 

@@ -22,7 +22,7 @@
 // on the Devices page (controller + sensor model + GPIO) and the server sends
 // the configuration over MQTT. See devices/DeviceManager.h.
 //
-// Setup page: press RST twice, or press BOOT / FLASH twice (or hold it 3 s); join the
+// Setup page: press RST twice, or hold BOOT / FLASH for 3 s (a short press flips pages); join the
 // ESP32-Setup / ESP8266-Setup Wi-Fi and open http://192.168.4.1. The board is
 // linked to an account with a code shown on its display, no user id is typed.
 //
@@ -38,16 +38,15 @@ const uint8_t PIN_BOOT = 0;
 static const unsigned long DISPLAY_REFRESH_MS = 1000;
 static const unsigned long SETUP_INFO_INTERVAL_MS = 5000;
 
-// Setup page from the button: two short presses within a second, or holding it for 3 s
+// Short press: next page of readings. Holding it 3 s opens the setup page (a double press would clash
+// with flipping pages quickly).
 const unsigned long BOOT_HOLD_TIME = 3000;
-const unsigned long DOUBLE_PRESS_WINDOW = 1000;
 const unsigned long DEBOUNCE_MS = 30;
 
 void checkBootButton() {
     static bool pressed = false;
     static unsigned long changedAt = 0;
     static unsigned long pressedAt = 0;
-    static unsigned long lastReleaseAt = 0;
 
     bool down = digitalRead(PIN_BOOT) == LOW;
     unsigned long now = millis();
@@ -58,21 +57,19 @@ void checkBootButton() {
         pressed = down;
         if (down) {
             pressedAt = now;
-            if (lastReleaseAt != 0 && now - lastReleaseAt <= DOUBLE_PRESS_WINDOW) {
-                Serial.println("[BOOT] Double press - entering setup mode");
-                lastReleaseAt = 0;
-                pressedAt = 0;
-                ServerManager::enterSetupMode();
-            }
         } else if (pressedAt != 0) {
-            lastReleaseAt = now;
+            pressedAt = 0;
+            Serial.println("[BOOT] Short press - next page");
+            Screens::nextPage();
+            if (ServerManager::isConfigured())
+                DeviceManager::render();
         }
         return;
     }
     if (pressed && pressedAt != 0 && now - pressedAt >= BOOT_HOLD_TIME) {
         Serial.println("[BOOT] Held for 3 s - entering setup mode");
+        // the release after a hold is not a page flip
         pressedAt = 0;
-        lastReleaseAt = 0;
         ServerManager::enterSetupMode();
     }
 }
