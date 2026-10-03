@@ -25,9 +25,10 @@
 // ESP32-Setup / ESP8266-Setup Wi-Fi and open http://192.168.4.1. The board is
 // linked to an account with a code shown on its display, no user id is typed.
 //
-// Only the display and the BOOT button are fixed:
-//   ESP32   - SSD1306 on I2C SDA 27 / SCL 14, BOOT button GPIO0
-//   ESP8266 - ST7565 over SPI on D5, D6, D2, D7, D4 (see DisplayManager.h), FLASH button GPIO0 (D3)
+// Only the BOOT / FLASH button on GPIO0 is fixed. The display is configured on the site as well
+// (ST7565 SPI, SSD1306 / SH1106 I2C) and saved to flash; until then the board uses the one it shipped with:
+//   ESP32   - SSD1306 on I2C SDA 27 / SCL 14
+//   ESP8266 - ST7565 over SPI on D5, D6, D2, D7, D4
 //----------------------------------------------------------------------
 
 // BOOT (ESP32) / FLASH (ESP8266 NodeMCU) button, GPIO0 on both. Only read after boot, when the pin is a
@@ -107,11 +108,14 @@ void setup() {
 
     pinMode(PIN_BOOT, INPUT_PULLUP);
 
-    oled.begin();
-    Serial.println(oled.isInitialized() ? "[SETUP] Display initialized" : "[SETUP] Display not found");
+    Storage::begin();
+    DisplayConfig display = DisplayConfig::defaultFor();
+    if (!Storage::loadDisplay(display)) {
+        Serial.println("[SETUP] No display saved, using the default one");
+    }
+    oled.begin(display);
     Screens::splash(FIRMWARE_VERSION);
 
-    Storage::begin();
     ServerManager::begin();
     Serial.println("Hardware ID: " + hardwareId());
     Serial.println("User ID: " + Storage::loadUserId());
@@ -147,6 +151,10 @@ void loop() {
     }
 
     mqttLoop();
+    if (DeviceManager::restartRequested()) {
+        delay(200);
+        ESP.restart();
+    }
     DeviceManager::loop();
 
     static unsigned long lastRender = 0;

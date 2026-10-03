@@ -1,5 +1,8 @@
 package org.proteus1121.model.entity;
 
+import org.proteus1121.model.enums.DisplayModel;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -49,6 +52,29 @@ public class ControllerEntity {
     private String appliedConfigVersion;
 
     private LocalDateTime lastSeen;
+
+    /**
+     * Display wired to the board, null until configured on the site: then the platform default is used,
+     * see DisplaySettings.defaultFor.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "display_model", columnDefinition = "VARCHAR(16)")
+    private DisplayModel displayModel;
+
+    /**
+     * GPIO numbers of the display, comma separated in the order of the model's pin names.
+     */
+    @Column(name = "display_pins", length = 64)
+    private String displayPins;
+
+    @Column(name = "display_flip")
+    private Boolean displayFlip;
+
+    /**
+     * Whether the board found the display at its last hello, null when the firmware does not report it.
+     */
+    @Column(name = "display_found")
+    private Boolean displayFound;
 
     private LocalDateTime created = LocalDateTime.now();
 }

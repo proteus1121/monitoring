@@ -1,5 +1,8 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.model.request.DisplayRequest;
+import org.proteus1121.model.enums.DisplayModel;
+import org.proteus1121.model.dto.controller.DisplayModelInfo;
 import org.proteus1121.service.UserService;
 import org.proteus1121.service.PairingService;
 import org.proteus1121.model.request.ShareControllerRequest;
@@ -49,6 +52,19 @@ public class ControllersController {
     @Operation(summary = "Get supported sensor models", description = "Hardware modules the firmware can drive and measurements they provide")
     public ResponseEntity<List<SensorModelInfo>> getSensorModels() {
         return ResponseEntity.ok(Arrays.stream(SensorModel.values()).map(SensorModelInfo::of).toList());
+    }
+
+    @GetMapping("/display-models")
+    @Operation(summary = "Get supported displays", description = "Display modules the firmware can drive and their pins")
+    public ResponseEntity<List<DisplayModelInfo>> getDisplayModels() {
+        return ResponseEntity.ok(Arrays.stream(DisplayModel.values()).map(DisplayModelInfo::of).toList());
+    }
+
+    @PutMapping("/{id}/display")
+    @Operation(summary = "Configure the display", description = "Model, pins and rotation; the board restarts to apply it")
+    public ResponseEntity<Controller> updateDisplay(@PathVariable Long id, @Valid @RequestBody DisplayRequest request) {
+        return ResponseEntity.ok(controllerService.updateDisplay(id, getCurrentUser().getId(), request.getModel(),
+                request.getPins(), request.isFlip()));
     }
 
     @PostMapping("/pair")

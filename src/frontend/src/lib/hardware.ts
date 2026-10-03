@@ -3,6 +3,7 @@ import type {
   DeviceTypeValue,
   SensorModelInfo,
 } from '@src/redux/generatedApi';
+import type { DisplayModelValue, DisplaySettings } from '@src/redux/controllersApi';
 
 export type PinOption = {
   value: string;
@@ -15,29 +16,27 @@ type PinSpec = {
   label: string;
   analog?: boolean;
   inputOnly?: boolean;
-  // occupied by the on-board display or serial log, firmware rejects it
+  // FLASH / BOOT button or serial log, firmware rejects it
   reserved?: boolean;
-  // only usable by I2C modules sharing the display bus
-  i2cOnly?: boolean;
 };
 
-// NodeMCU v2; the ST7565 display is wired to D2, D4, D5, D6, D7
+// NodeMCU v2; display pins depend on the board's display settings
 const ESP8266_PINS: PinSpec[] = [
   { gpio: 16, label: 'D0 (GPIO16)' },
   { gpio: 5, label: 'D1 (GPIO5)' },
-  { gpio: 4, label: 'D2 (GPIO4) - display', reserved: true },
-  { gpio: 0, label: 'D3 (GPIO0) - must be HIGH at boot' },
-  { gpio: 2, label: 'D4 (GPIO2) - display', reserved: true },
-  { gpio: 14, label: 'D5 (GPIO14) - display', reserved: true },
-  { gpio: 12, label: 'D6 (GPIO12) - display', reserved: true },
-  { gpio: 13, label: 'D7 (GPIO13) - display', reserved: true },
+  { gpio: 4, label: 'D2 (GPIO4)' },
+  { gpio: 0, label: 'D3 (GPIO0) - FLASH button', reserved: true },
+  { gpio: 2, label: 'D4 (GPIO2) - must be HIGH at boot' },
+  { gpio: 14, label: 'D5 (GPIO14)' },
+  { gpio: 12, label: 'D6 (GPIO12)' },
+  { gpio: 13, label: 'D7 (GPIO13)' },
   { gpio: 15, label: 'D8 (GPIO15) - must be LOW at boot' },
   { gpio: 3, label: 'RX (GPIO3) - unplug to flash over USB' },
   { gpio: 1, label: 'TX (GPIO1) - serial log', reserved: true },
   { gpio: 17, label: 'A0 (analog)', analog: true },
 ];
 
-// ESP32 DevKit; the SSD1306 display uses I2C on GPIO27 (SDA) / GPIO14 (SCL)
+// ESP32 DevKit
 const ESP32_PINS: PinSpec[] = [
   { gpio: 0, label: 'GPIO0 - BOOT button', reserved: true },
   { gpio: 2, label: 'GPIO2 - must be LOW at boot' },
@@ -45,7 +44,7 @@ const ESP32_PINS: PinSpec[] = [
   { gpio: 5, label: 'GPIO5' },
   { gpio: 12, label: 'GPIO12 - must be LOW at boot' },
   { gpio: 13, label: 'GPIO13' },
-  { gpio: 14, label: 'GPIO14 - display SCL', i2cOnly: true },
+  { gpio: 14, label: 'GPIO14' },
   { gpio: 15, label: 'GPIO15' },
   { gpio: 16, label: 'GPIO16' },
   { gpio: 17, label: 'GPIO17' },
@@ -56,7 +55,7 @@ const ESP32_PINS: PinSpec[] = [
   { gpio: 23, label: 'GPIO23' },
   { gpio: 25, label: 'GPIO25' },
   { gpio: 26, label: 'GPIO26' },
-  { gpio: 27, label: 'GPIO27 - display SDA', i2cOnly: true },
+  { gpio: 27, label: 'GPIO27' },
   { gpio: 32, label: 'GPIO32 (ADC)', analog: true },
   { gpio: 33, label: 'GPIO33 (ADC)', analog: true },
   { gpio: 34, label: 'GPIO34 (ADC, input only)', analog: true, inputOnly: true },
@@ -69,23 +68,68 @@ function pinSpecs(platform?: string) {
   return platform === 'esp8266' ? ESP8266_PINS : ESP32_PINS;
 }
 
+// pin names of each display, in the order of DisplaySettings.pins (same as DisplayModel on the server)
+export const DISPLAY_PIN_NAMES: Record<DisplayModelValue, string[]> = {
+  NONE: [],
+  ST7565: ['CLK', 'DIN', 'CS', 'DC', 'RST'],
+  SSD1306: ['SDA', 'SCL'],
+  SH1106: ['SDA', 'SCL'],
+};
+
+export const isI2cDisplay = (display?: DisplaySettings) =>
+  display?.model === 'SSD1306' || display?.model === 'SH1106';
+
+// "display SDA" when the display uses the pin
+export function displayPinName(display: DisplaySettings | undefined, gpio?: number) {
+  if (!display || gpio === undefined) return undefined;
+  const index = display.pins.indexOf(gpio);
+  return index < 0 ? undefined : `display ${DISPLAY_PIN_NAMES[display.model]?.[index] ?? ''}`.trim();
+}
+
 export function getPinOptions(
   platform: string | undefined,
-  model: SensorModelInfo | undefined
+  model: SensorModelInfo | undefined,
+  display?: DisplaySettings
 ): PinOption[] {
-  const isI2c = model?.model === 'BMP180';
+  // a BMP180 may share the bus of an I2C display
+  const sharesDisplayBus = model?.model === 'BMP180' && isI2cDisplay(display);
   return pinSpecs(platform)
     .filter(pin => (model?.analog ? pin.analog : true))
     .filter(pin => !(model?.output && pin.inputOnly))
-    .map(pin => ({
-      value: String(pin.gpio),
-      label: pin.label,
-      disabled:
-        pin.reserved ||
-        (pin.i2cOnly && !isI2c) ||
-        // ESP8266 A0 is analog only
-        (platform === 'esp8266' && pin.analog && !model?.analog),
-    }));
+    .map(pin => {
+      const displayPin = displayPinName(display, pin.gpio);
+      return {
+        value: String(pin.gpio),
+        label: displayPin ? `${pin.label.split(' - ')[0]} - ${displayPin}` : pin.label,
+        disabled:
+          pin.reserved ||
+          (!!displayPin && !sharesDisplayBus) ||
+          // ESP8266 A0 is analog only
+          (platform === 'esp8266' && pin.analog && !model?.analog),
+      };
+    });
+}
+
+/**
+ * Pins for a display: not the reserved ones, not analog-only or input-only, and not the pins of
+ * devices (except a BMP180 on the bus of an I2C display).
+ */
+export function getDisplayPinOptions(
+  platform: string | undefined,
+  usedBy: Map<number, { name: string; i2cShareable: boolean }>,
+  i2c: boolean
+): PinOption[] {
+  return pinSpecs(platform)
+    .filter(pin => !pin.inputOnly && !(platform === 'esp8266' && pin.analog))
+    .map(pin => {
+      const user = usedBy.get(pin.gpio);
+      const busy = !!user && !(i2c && user.i2cShareable);
+      return {
+        value: String(pin.gpio),
+        label: user ? `${pin.label.split(' - ')[0]} - ${user.name}` : pin.label,
+        disabled: pin.reserved || busy,
+      };
+    });
 }
 
 export function getPinLabel(platform: string | undefined, pin?: number) {
@@ -213,9 +257,11 @@ export function boardLayout(platform?: string): BoardLayout {
 }
 
 // What the pin is taken by on this board (display, serial, ...), undefined when free
-export function reservedPinNote(platform: string | undefined, gpio?: number) {
+export function reservedPinNote(platform: string | undefined, gpio?: number, display?: DisplaySettings) {
   if (gpio === undefined) return undefined;
+  const displayPin = displayPinName(display, gpio);
+  if (displayPin) return displayPin;
   const spec = pinSpecs(platform).find(pin => pin.gpio === gpio);
-  if (!spec || !(spec.reserved || spec.i2cOnly)) return undefined;
+  if (!spec || !spec.reserved) return undefined;
   return spec.label.split(' - ')[1];
 }

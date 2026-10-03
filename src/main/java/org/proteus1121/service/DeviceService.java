@@ -142,6 +142,8 @@ public class DeviceService {
         if (model.getPins().size() == 1) {
             device.setSecondaryPin(null);
         }
+        controllerService.checkDisplayConflict(controllerService.displayOf(device.getControllerId()), model,
+                device.getPin(), device.getSecondaryPin(), device.getName());
     }
 
     public List<Device> getAllDevices(Long userId) {

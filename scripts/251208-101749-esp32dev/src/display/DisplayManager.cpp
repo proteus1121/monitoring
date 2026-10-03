@@ -1,67 +1,152 @@
 #include "DisplayManager.h"
+#include <Wire.h>
 
 DisplayManager oled;
 
-DisplayManager::DisplayManager()
-#ifdef USE_U8G2
-    : _u8g2(nullptr)
+// =========================
+//  DisplayConfig
+// =========================
+DisplayConfig DisplayConfig::defaultFor() {
+#if defined(ESP8266)
+    // NodeMCU with the ST7565 module: CLK D5, DIN D6, CS D2, DC D7, RST D4, mounted upside down
+    return DisplayConfig{ST7565, {14, 12, 4, 13, 2}, true};
 #else
-    : _display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire)
+    // ESP32 DevKit with an SSD1306 on SDA 27 / SCL 14
+    return DisplayConfig{SSD1306, {27, 14, 0, 0, 0}, false};
 #endif
-{
 }
 
-void DisplayManager::begin() {
-#ifdef USE_U8G2
-    _u8g2 = new U8G2_ST7565_NHD_C12864_F_4W_SW_SPI(U8G2_R2, U8G2_CLK_PIN, U8G2_DATA_PIN, U8G2_CS_PIN,
-                                                   U8G2_DC_PIN, U8G2_RST_PIN);
+DisplayConfig::Model DisplayConfig::modelFromName(const String &name) {
+    if (name == "ST7565")
+        return ST7565;
+    if (name == "SSD1306")
+        return SSD1306;
+    if (name == "SH1106")
+        return SH1106;
+    return NONE;
+}
+
+const char *DisplayConfig::modelName(Model model) {
+    switch (model) {
+    case ST7565:
+        return "ST7565";
+    case SSD1306:
+        return "SSD1306";
+    case SH1106:
+        return "SH1106";
+    default:
+        return "NONE";
+    }
+}
+
+uint8_t DisplayConfig::pinCount() const {
+    switch (model) {
+    case ST7565:
+        return 5;
+    case SSD1306:
+    case SH1106:
+        return 2;
+    default:
+        return 0;
+    }
+}
+
+bool DisplayConfig::isI2c() const {
+    return model == SSD1306 || model == SH1106;
+}
+
+bool DisplayConfig::operator==(const DisplayConfig &other) const {
+    if (model != other.model || flip != other.flip)
+        return false;
+    for (uint8_t i = 0; i < pinCount(); i++) {
+        if (pins[i] != other.pins[i])
+            return false;
+    }
+    return true;
+}
+
+// =========================
+//  DisplayManager
+// =========================
+static int findI2cAddress(uint8_t sda, uint8_t scl) {
+    Wire.begin(sda, scl);
+    for (uint8_t address : {0x3C, 0x3D}) {
+        Wire.beginTransmission(address);
+        if (Wire.endTransmission() == 0)
+            return address;
+    }
+    return -1;
+}
+
+void DisplayManager::begin(const DisplayConfig &config) {
+    _config = config;
+    _initialized = false;
+    const u8g2_cb_t *rotation = config.flip ? U8G2_R2 : U8G2_R0;
+    const uint8_t *p = config.pins;
+
+    switch (config.model) {
+    case DisplayConfig::ST7565:
+        // SPI has no answer to wait for: the module is driven blind
+        _u8g2 = new U8G2_ST7565_NHD_C12864_F_4W_SW_SPI(rotation, p[0], p[1], p[2], p[3], p[4]);
+        break;
+    case DisplayConfig::SSD1306:
+    case DisplayConfig::SH1106: {
+        int address = findI2cAddress(p[0], p[1]);
+        if (address < 0) {
+            Serial.printf("[DISPLAY] %s not found on SDA %u / SCL %u, check wiring\n",
+                          DisplayConfig::modelName(config.model), p[0], p[1]);
+            return;
+        }
+        if (config.model == DisplayConfig::SSD1306)
+            _u8g2 = new U8G2_SSD1306_128X64_NONAME_F_HW_I2C(rotation, U8X8_PIN_NONE, p[1], p[0]);
+        else
+            _u8g2 = new U8G2_SH1106_128X64_NONAME_F_HW_I2C(rotation, U8X8_PIN_NONE, p[1], p[0]);
+        _u8g2->setI2CAddress(address * 2);
+        Serial.printf("[DISPLAY] %s at 0x%02X on SDA %u / SCL %u\n", DisplayConfig::modelName(config.model), address,
+                      p[0], p[1]);
+        break;
+    }
+    default:
+        Serial.println("[DISPLAY] No display configured");
+        return;
+    }
+
     _u8g2->begin();
-    _u8g2->setContrast(200);
+    if (config.model == DisplayConfig::ST7565)
+        _u8g2->setContrast(200);
     _u8g2->enableUTF8Print();
     _u8g2->setFontPosTop();
     _u8g2->setFontMode(1); // transparent text, so it can be drawn on inverted areas
     _initialized = true;
-    Serial.println("[DISPLAY] U8G2 initialized successfully");
-#else
-    Wire.begin(DISPLAY_I2C_SDA, DISPLAY_I2C_SCL);
-    if (!_display.begin(SSD1306_SWITCHCAPVCC, 0x3C) && !_display.begin(SSD1306_SWITCHCAPVCC, 0x3D)) {
-        Serial.println("[DISPLAY] SSD1306 not found at 0x3C or 0x3D, check I2C wiring");
-        _initialized = false;
-        return;
-    }
-    _display.cp437(true); // 0xF8 is the degree sign
-    _display.setTextWrap(false);
-    _display.clearDisplay();
-    _initialized = true;
-    Serial.println("[DISPLAY] SSD1306 initialized successfully");
-#endif
+    Serial.printf("[DISPLAY] %s initialized\n", DisplayConfig::modelName(config.model));
 }
 
 bool DisplayManager::isInitialized() {
     return _initialized;
 }
 
+const DisplayConfig &DisplayManager::config() const {
+    return _config;
+}
+
+bool DisplayManager::usesPin(uint8_t pin) const {
+    for (uint8_t i = 0; i < _config.pinCount(); i++) {
+        if (_config.pins[i] == pin)
+            return true;
+    }
+    return false;
+}
+
 void DisplayManager::clear() {
-    if (!_initialized)
-        return;
-#ifdef USE_U8G2
-    _u8g2->clearBuffer();
-#else
-    _display.clearDisplay();
-#endif
+    if (_initialized)
+        _u8g2->clearBuffer();
 }
 
 void DisplayManager::show() {
-    if (!_initialized)
-        return;
-#ifdef USE_U8G2
-    _u8g2->sendBuffer();
-#else
-    _display.display();
-#endif
+    if (_initialized)
+        _u8g2->sendBuffer();
 }
 
-#ifdef USE_U8G2
 void DisplayManager::setFont(Font font) {
     switch (font) {
     case SMALL:
@@ -78,33 +163,18 @@ void DisplayManager::setFont(Font font) {
         break;
     }
 }
-#else
-static uint8_t textScale(DisplayManager::Font font) {
-    return font == DisplayManager::LARGE || font == DisplayManager::HUGE ? 2 : 1;
-}
 
-// the built-in font is CP437: the UTF-8 degree sign becomes 0xF8
-static String toCp437(const String &text) {
-    String out = text;
-    out.replace("\xC2\xB0", "\xF8");
-    return out;
+void DisplayManager::color(bool on) {
+    _u8g2->setDrawColor(on ? 1 : 0);
 }
-#endif
 
 void DisplayManager::text(int x, int y, const String &text, Font font, bool on) {
     if (!_initialized)
         return;
-#ifdef USE_U8G2
     setFont(font);
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawUTF8(x, y, text.c_str());
-    _u8g2->setDrawColor(1);
-#else
-    _display.setTextSize(textScale(font));
-    _display.setTextColor(on ? SSD1306_WHITE : SSD1306_BLACK);
-    _display.setCursor(x, y);
-    _display.print(toCp437(text));
-#endif
+    color(true);
 }
 
 void DisplayManager::textCentered(int y, const String &value, Font font, bool on) {
@@ -114,16 +184,11 @@ void DisplayManager::textCentered(int y, const String &value, Font font, bool on
 int DisplayManager::textWidth(const String &text, Font font) {
     if (!_initialized)
         return 0;
-#ifdef USE_U8G2
     setFont(font);
     return _u8g2->getUTF8Width(text.c_str());
-#else
-    return toCp437(text).length() * 6 * textScale(font);
-#endif
 }
 
 int DisplayManager::fontHeight(Font font) {
-#ifdef USE_U8G2
     switch (font) {
     case SMALL:
         return 7;
@@ -134,103 +199,68 @@ int DisplayManager::fontHeight(Font font) {
     default:
         return 16;
     }
-#else
-    return 7 * textScale(font);
-#endif
 }
 
 void DisplayManager::box(int x, int y, int w, int h, bool on) {
     if (!_initialized || w <= 0 || h <= 0)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawBox(x, y, w, h);
-    _u8g2->setDrawColor(1);
-#else
-    _display.fillRect(x, y, w, h, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::frame(int x, int y, int w, int h, bool on) {
     if (!_initialized || w <= 0 || h <= 0)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawFrame(x, y, w, h);
-    _u8g2->setDrawColor(1);
-#else
-    _display.drawRect(x, y, w, h, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::roundFrame(int x, int y, int w, int h, int r, bool on) {
     if (!_initialized || w <= 0 || h <= 0)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawRFrame(x, y, w, h, r);
-    _u8g2->setDrawColor(1);
-#else
-    _display.drawRoundRect(x, y, w, h, r, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::line(int x0, int y0, int x1, int y1, bool on) {
     if (!_initialized)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawLine(x0, y0, x1, y1);
-    _u8g2->setDrawColor(1);
-#else
-    _display.drawLine(x0, y0, x1, y1, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::pixel(int x, int y, bool on) {
     if (!_initialized)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawPixel(x, y);
-    _u8g2->setDrawColor(1);
-#else
-    _display.drawPixel(x, y, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::disc(int x, int y, int r, bool on) {
     if (!_initialized)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawDisc(x, y, r);
-    _u8g2->setDrawColor(1);
-#else
-    _display.fillCircle(x, y, r, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::circle(int x, int y, int r, bool on) {
     if (!_initialized)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawCircle(x, y, r);
-    _u8g2->setDrawColor(1);
-#else
-    _display.drawCircle(x, y, r, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }
 
 void DisplayManager::triangle(int x0, int y0, int x1, int y1, int x2, int y2, bool on) {
     if (!_initialized)
         return;
-#ifdef USE_U8G2
-    _u8g2->setDrawColor(on ? 1 : 0);
+    color(on);
     _u8g2->drawTriangle(x0, y0, x1, y1, x2, y2);
-    _u8g2->setDrawColor(1);
-#else
-    _display.fillTriangle(x0, y0, x1, y1, x2, y2, on ? SSD1306_WHITE : SSD1306_BLACK);
-#endif
+    color(true);
 }

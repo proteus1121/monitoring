@@ -8,6 +8,9 @@
 #define EEPROM_MQTT_PORT_ADDR 128
 #define EEPROM_MQTT_USER_ADDR 132
 #define EEPROM_MQTT_PASS_ADDR 164
+// marker, model, 5 pins, flip
+#define EEPROM_DISPLAY_ADDR 200
+#define DISPLAY_MARKER 0xD5
 #else
 #include <Preferences.h>
 #endif
@@ -207,6 +210,47 @@ uint16_t Storage::loadMqttPort() {
     String s = prefs.getString("mqtt_port", "0");
     return (uint16_t)s.toInt();
 #endif
+}
+
+// =============================
+//          DISPLAY
+// =============================
+void Storage::saveDisplay(const DisplayConfig &config) {
+#if defined(ESP8266)
+    EEPROM.write(EEPROM_DISPLAY_ADDR, DISPLAY_MARKER);
+    EEPROM.write(EEPROM_DISPLAY_ADDR + 1, config.model);
+    for (int i = 0; i < 5; i++) {
+        EEPROM.write(EEPROM_DISPLAY_ADDR + 2 + i, config.pins[i]);
+    }
+    EEPROM.write(EEPROM_DISPLAY_ADDR + 7, config.flip ? 1 : 0);
+#else
+    uint8_t data[7] = {config.model, config.pins[0], config.pins[1], config.pins[2], config.pins[3], config.pins[4],
+                       (uint8_t)(config.flip ? 1 : 0)};
+    prefs.putBytes("display", data, sizeof(data));
+#endif
+}
+
+bool Storage::loadDisplay(DisplayConfig &config) {
+    uint8_t data[7];
+#if defined(ESP8266)
+    // erased EEPROM reads 0xFF: no marker, nothing saved
+    if (EEPROM.read(EEPROM_DISPLAY_ADDR) != DISPLAY_MARKER)
+        return false;
+    for (int i = 0; i < 7; i++) {
+        data[i] = EEPROM.read(EEPROM_DISPLAY_ADDR + 1 + i);
+    }
+#else
+    if (!prefs.isKey("display") || prefs.getBytes("display", data, sizeof(data)) != sizeof(data))
+        return false;
+#endif
+    if (data[0] > DisplayConfig::SH1106)
+        return false;
+    config.model = (DisplayConfig::Model)data[0];
+    for (int i = 0; i < 5; i++) {
+        config.pins[i] = data[1 + i];
+    }
+    config.flip = data[6] != 0;
+    return true;
 }
 
 void Storage::sync() {

@@ -3,14 +3,14 @@
 
 #include <Arduino.h>
 
-#define FIRMWARE_VERSION "2.1.0"
+#define FIRMWARE_VERSION "2.2.0"
 
 // site where the user signs in and enters the pairing code
 #define SITE_HOST "ssn.pp.ua"
 
 /*
  * Topics (userId is entered in the setup portal, hardwareId is derived from the chip):
- *   publish   users/<userId>/controllers/<hardwareId>/hello          {"platform","fw","ip","v"}
+ *   publish   users/<userId>/controllers/<hardwareId>/hello          {"platform","fw","ip","v","disp"}
  *   subscribe users/<userId>/controllers/<hardwareId>/configuration  devices to run (retained)
  *             {"unpair":true} instead when the board was deleted on the site
  *   subscribe users/<userId>/devices/+/command                       value for an output device

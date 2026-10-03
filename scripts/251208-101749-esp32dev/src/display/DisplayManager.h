@@ -1,55 +1,48 @@
 #pragma once
 #include <Arduino.h>
-
-// ESP8266 boards use an ST7565 over SPI through U8g2, ESP32 boards an SSD1306 over I2C through Adafruit
-#if defined(ESP8266)
-#define USE_U8G2
-#endif
-
-#ifdef USE_U8G2
 #include <U8g2lib.h>
-// 4-wire SPI ST7565; any pin may be overridden by defining it before including this header
-#ifndef U8G2_CLK_PIN
-#define U8G2_CLK_PIN D5
-#endif
-#ifndef U8G2_DATA_PIN
-#define U8G2_DATA_PIN D6
-#endif
-#ifndef U8G2_CS_PIN
-#define U8G2_CS_PIN D2
-#endif
-#ifndef U8G2_DC_PIN
-#define U8G2_DC_PIN D7
-#endif
-#ifndef U8G2_RST_PIN
-#define U8G2_RST_PIN D4
-#endif
-#else
-#include <Adafruit_SSD1306.h>
-// I2C bus of the SSD1306; a BMP180 can share it
-#ifndef DISPLAY_I2C_SDA
-#define DISPLAY_I2C_SDA 27
-#endif
-#ifndef DISPLAY_I2C_SCL
-#define DISPLAY_I2C_SCL 14
-#endif
-#endif
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
 /**
- * Drawing primitives shared by both display backends. Coordinates are pixels, text is positioned by its
- * top-left corner. `on` = lit pixel, false draws in background color (used on inverted areas).
- * The screens themselves are in Screens.h.
+ * Display wired to the board, configured on the site and kept in flash (Storage) so the screen works from
+ * power-on. Without a saved one the board uses the display it shipped with, see defaultFor().
+ */
+struct DisplayConfig {
+    enum Model : uint8_t { NONE = 0, ST7565 = 1, SSD1306 = 2, SH1106 = 3 };
+
+    Model model;
+    // ST7565: CLK, DIN, CS, DC, RST; SSD1306 / SH1106: SDA, SCL
+    uint8_t pins[5];
+    // rotate by 180 degrees
+    bool flip;
+
+    static DisplayConfig defaultFor();
+    // "ST7565", "SSD1306", ... as the server sends it; NONE for anything unknown
+    static Model modelFromName(const String &name);
+    static const char *modelName(Model model);
+    uint8_t pinCount() const;
+    bool isI2c() const;
+    bool operator==(const DisplayConfig &other) const;
+};
+
+/**
+ * Drawing primitives over U8g2, the same for every supported display. Coordinates are pixels, text is
+ * positioned by its top-left corner; `on` = lit pixel, false draws in background color (used on inverted
+ * areas). The screens themselves are in Screens.h.
  */
 class DisplayManager {
 public:
     enum Font { SMALL, NORMAL, LARGE, HUGE };
 
-    DisplayManager();
-    void begin();
+    void begin(const DisplayConfig &config);
+    // display answered (I2C) or is driven blind (SPI); false without a display
     bool isInitialized();
+    const DisplayConfig &config() const;
+
+    // pin taken by the display; an I2C display lets a BMP180 share its bus pins
+    bool usesPin(uint8_t pin) const;
 
     void clear();
     void show();
@@ -69,13 +62,12 @@ public:
     void triangle(int x0, int y0, int x1, int y1, int x2, int y2, bool on = true);
 
 private:
-    bool _initialized = false;
-#ifdef USE_U8G2
     void setFont(Font font);
-    U8G2_ST7565_NHD_C12864_F_4W_SW_SPI *_u8g2 = nullptr;
-#else
-    Adafruit_SSD1306 _display;
-#endif
+    void color(bool on);
+
+    bool _initialized = false;
+    DisplayConfig _config{DisplayConfig::NONE, {0, 0, 0, 0, 0}, false};
+    U8G2 *_u8g2 = nullptr;
 };
 
 extern DisplayManager oled;

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
+import type { ControllerWithRole } from '@src/redux/controllersApi';
 import {
   BoardPin,
   DEVICE_TYPE_LABELS,
+  DISPLAY_PIN_NAMES,
   boardLayout,
   reservedPinNote,
 } from '@src/lib/hardware';
@@ -59,7 +61,11 @@ type Module = {
   side: Side;
   y: number;
   height: number;
+  // the board's display: no device rows, the pins are listed in the body
+  display?: boolean;
 };
+
+const DISPLAY_COLOR = '#334155';
 
 function pinY(row: number) {
   return BOARD_TOP + row * PIN_STEP + PIN_STEP / 2;
@@ -72,6 +78,7 @@ export function BoardDiagram(props: {
   onDeviceClick: (device: Device) => void;
 }) {
   const { controller, devices, models, onDeviceClick } = props;
+  const display = (controller as ControllerWithRole).display;
   const layout = boardLayout(controller.platform);
 
   const findPin = (gpio?: number): PinRef | undefined => {
@@ -112,6 +119,24 @@ export function BoardDiagram(props: {
       };
     });
 
+    if (display && display.model !== 'NONE' && display.pins.length) {
+      const pins = display.pins.map(findPin);
+      list.push({
+        key: 'display',
+        label: `Display · ${display.model}`,
+        pinNames: DISPLAY_PIN_NAMES[display.model],
+        pins,
+        gpios: display.pins,
+        devices: [],
+        color: DISPLAY_COLOR,
+        side: pins[0]?.side ?? 'right',
+        y: 0,
+        // wires end 10 px apart below the header line
+        height: Math.max(MODULE_HEADER + 26, MODULE_HEADER / 2 + display.pins.length * 10 + 8),
+        display: true,
+      });
+    }
+
     // stack modules next to their pins without overlapping
     for (const side of ['left', 'right'] as Side[]) {
       let bottom = 0;
@@ -125,7 +150,7 @@ export function BoardDiagram(props: {
         });
     }
     return list;
-  }, [devices, models, controller.platform]);
+  }, [devices, models, controller.platform, display]);
 
   const rows = Math.max(layout.left.length, layout.right.length);
   const boardH = BOARD_TOP + rows * PIN_STEP + BOARD_BOTTOM;
@@ -141,7 +166,7 @@ export function BoardDiagram(props: {
       const x = side === 'left' ? boardX : boardX + BOARD_W;
       const y = pinY(row);
       const used = pin.gpio !== undefined && usedGpios.has(pin.gpio);
-      const note = reservedPinNote(controller.platform, pin.gpio);
+      const note = reservedPinNote(controller.platform, pin.gpio, (controller as ControllerWithRole).display);
       const power = pin.gpio === undefined;
       return (
         <g key={`${side}-${row}`}>
@@ -213,7 +238,8 @@ export function BoardDiagram(props: {
         const pin = findPin(gpio);
         return `${module.pinNames[i] ?? 'pin'}→${pin?.pin.label ?? `GPIO${gpio}`}`;
       })
-      .join('  ');
+      // five display pins only fit with single spaces
+      .join(module.display ? ' ' : '  ');
     return (
       <g key={module.key}>
         <rect
@@ -239,10 +265,10 @@ export function BoardDiagram(props: {
           {module.label}
         </text>
         <text
-          x={x + MODULE_W - 10}
-          y={module.y + 17}
+          x={module.display ? x + 10 : x + MODULE_W - 10}
+          y={module.display ? module.y + MODULE_HEADER + 14 : module.y + 17}
           fontSize={10}
-          textAnchor="end"
+          textAnchor={module.display ? 'start' : 'end'}
           fontFamily="ui-monospace, monospace"
           fill="#475569"
         >

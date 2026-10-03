@@ -1,6 +1,7 @@
 #include "DeviceManager.h"
 #include "../display/DisplayManager.h"
 #include "../display/Screens.h"
+#include "../storage/Storage.h"
 #include "../network/mqtt/MQTTHandler.h"
 #include "../sensors/ISensor.h"
 #include "../sensors/analog/AnalogInputSensor.h"
@@ -70,6 +71,15 @@ bool isAnalogPin(uint8_t pin) {
 
 // Pins that cannot be used for devices on this board, the reason is written to `reason`.
 bool isReservedPin(uint8_t pin, const String &model, const char *&reason) {
+    if (pin == 0) {
+        reason = "BOOT / FLASH button";
+        return true;
+    }
+    // a BMP180 may share the bus of an I2C display
+    if (oled.usesPin(pin) && !(model == "BMP180" && oled.config().isI2c())) {
+        reason = "used by display";
+        return true;
+    }
 #if defined(ESP8266)
     if (pin == A0)
         return false;
@@ -81,12 +91,6 @@ bool isReservedPin(uint8_t pin, const String &model, const char *&reason) {
         reason = "connected to flash";
         return true;
     }
-#ifdef USE_U8G2
-    if (pin == U8G2_CLK_PIN || pin == U8G2_DATA_PIN || pin == U8G2_CS_PIN || pin == U8G2_DC_PIN || pin == U8G2_RST_PIN) {
-        reason = "used by display";
-        return true;
-    }
-#endif
 #else
     if (pin > 39 || pin == 20 || pin == 24 || (pin >= 28 && pin <= 31)) {
         reason = "no such GPIO";
@@ -96,16 +100,36 @@ bool isReservedPin(uint8_t pin, const String &model, const char *&reason) {
         reason = "connected to flash";
         return true;
     }
-    if ((pin == DISPLAY_I2C_SDA || pin == DISPLAY_I2C_SCL) && model != "BMP180") {
-        reason = "used by display I2C bus";
-        return true;
-    }
     if (pin >= 34 && pin <= 39 && model == "RELAY") {
         reason = "input only";
         return true;
     }
 #endif
     return false;
+}
+
+bool restartPending = false;
+
+// Display from the configuration; true when it differs from the running one and was saved for a restart.
+bool applyDisplay(JsonObject display) {
+    if (display.isNull())
+        return false;
+    DisplayConfig config{DisplayConfig::modelFromName(display["model"] | ""), {0, 0, 0, 0, 0}, display["flip"] | false};
+    JsonArray pins = display["pins"].as<JsonArray>();
+    if (pins.size() != config.pinCount()) {
+        Serial.println("[CONFIG] Display ignored: wrong number of pins");
+        return false;
+    }
+    for (uint8_t i = 0; i < config.pinCount(); i++) {
+        config.pins[i] = pins[i] | 0;
+    }
+    if (config == oled.config())
+        return false;
+    Serial.printf("[CONFIG] New display %s, restarting to apply it\n", DisplayConfig::modelName(config.model));
+    Storage::saveDisplay(config);
+    Storage::sync();
+    restartPending = true;
+    return true;
 }
 
 ISensor *createSensor(const String &model, uint8_t pin, uint8_t pin2) {
@@ -235,6 +259,11 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
     String version = doc["v"] | "";
     if (version.length() > 0 && version == appliedVersion) {
         Serial.println("[CONFIG] Configuration " + version + " already applied");
+        return true;
+    }
+
+    // devices may need the pins of the old display: they are applied after the restart
+    if (applyDisplay(doc["display"].as<JsonObject>())) {
         return true;
     }
 
@@ -381,6 +410,10 @@ void render() {
     for (Channel &c : channels)
         tiles.push_back(toTile(c));
     Screens::devices(tiles);
+}
+
+bool restartRequested() {
+    return restartPending;
 }
 
 size_t deviceCount() {

@@ -13,11 +13,37 @@ export type ControllerShare = {
   role: DeviceRoleValue;
 };
 
-// role of the current user: OWNER for own boards, EDITOR / VIEWER for boards shared with them
-export type ControllerWithRole = Controller & { role?: DeviceRoleValue };
+export type DisplayModelValue = 'NONE' | 'ST7565' | 'SSD1306' | 'SH1106';
+
+// pins are GPIO numbers in the order of the model's pin names
+export type DisplaySettings = { model: DisplayModelValue; pins: number[]; flip: boolean };
+
+export type DisplayModelInfo = {
+  model: DisplayModelValue;
+  label: string;
+  description: string;
+  pins: string[];
+  bus?: 'SPI' | 'I2C' | null;
+};
+
+// role of the current user: OWNER for own boards, EDITOR / VIEWER for boards shared with them;
+// displayFound is false when the board did not find its display, undefined with older firmware
+export type ControllerWithRole = Controller & {
+  role?: DeviceRoleValue;
+  display?: DisplaySettings;
+  displayFound?: boolean | null;
+};
 
 export const controllersApi = generatedApi.injectEndpoints({
   endpoints: build => ({
+    getDisplayModels: build.query<DisplayModelInfo[], void>({
+      query: () => ({ url: `/controllers/display-models` }),
+      providesTags: ['Controller Management'],
+    }),
+    updateDisplay: build.mutation<ControllerWithRole, { id: number } & DisplaySettings>({
+      query: ({ id, ...body }) => ({ url: `/controllers/${id}/display`, method: 'PUT', body }),
+      invalidatesTags: ['Controller Management'],
+    }),
     pairController: build.mutation<Controller, { code: string }>({
       query: body => ({ url: `/controllers/pair`, method: 'POST', body }),
       invalidatesTags: ['Controller Management'],
@@ -38,6 +64,8 @@ export const controllersApi = generatedApi.injectEndpoints({
 });
 
 export const {
+  useGetDisplayModelsQuery,
+  useUpdateDisplayMutation,
   usePairControllerMutation,
   useGetControllerSharesQuery,
   useShareControllerMutation,

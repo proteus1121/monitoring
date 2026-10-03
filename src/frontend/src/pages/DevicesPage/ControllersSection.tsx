@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
@@ -7,7 +8,7 @@ import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
 import { Spinner } from '@src/components/Spinner';
 import { errorMessage } from '@src/redux/helpers';
-import { usePairControllerMutation } from '@src/redux/controllersApi';
+import { ControllerWithRole, usePairControllerMutation } from '@src/redux/controllersApi';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
@@ -20,6 +21,7 @@ import {
   useUpdateControllerMutation,
 } from '@src/redux/generatedApi';
 import { BoardDiagram } from './BoardDiagram';
+import { DisplaySettingsPanel } from './DisplaySettingsPanel';
 
 /**
  * Code input that links the board showing it to the current user. Used on the Devices page and on /pair,
@@ -101,7 +103,9 @@ export function SetupHint() {
             right away.
           </li>
           <li>
-            Add devices with <b>Add Device</b>: choose the board, the module and the pin.
+            Add devices with <b>Add Device</b>: choose the board, the module and the pin (see{' '}
+            <Link to="/settings/modules" className="underline">supported modules</Link>). The display is set on
+            the board card.
           </li>
           <li>Settings page again later: hold FLASH / BOOT for 3 s, a short press leaves it. On the readings screen a short press flips the pages.</li>
         </ol>
@@ -109,6 +113,8 @@ export function SetupHint() {
     </Card>
   );
 }
+
+const hasDisplay = (model?: string) => !!model && model !== 'NONE';
 
 /**
  * A board with its status, actions and wiring diagram.
@@ -235,11 +241,18 @@ export function ControllerPanel(props: {
         </div>
       </div>
 
-      {props.devices.length === 0 ? (
+      <DisplaySettingsPanel
+        controller={controller as ControllerWithRole}
+        devices={props.devices}
+        models={props.models}
+      />
+
+      {props.devices.length === 0 && (
         <p className="text-sm text-slate-500">
-          Nothing is wired to this board yet. Add a device and choose this board.
+          No sensors on this board yet. Add a device and choose this board.
         </p>
-      ) : (
+      )}
+      {(props.devices.length > 0 || hasDisplay((controller as ControllerWithRole).display?.model)) && (
         <div className="overflow-x-auto">
           <BoardDiagram
             controller={controller}

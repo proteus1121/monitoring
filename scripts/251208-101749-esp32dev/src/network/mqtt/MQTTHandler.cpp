@@ -1,5 +1,6 @@
 #include "MQTTHandler.h"
 #include "../../devices/DeviceManager.h"
+#include "../../display/DisplayManager.h"
 #include "../../storage/Storage.h"
 #include "network/setup-server/ServerManager.h" // needed for AP fallback
 #include <ArduinoJson.h>
@@ -79,6 +80,8 @@ static void publishHello() {
     doc["fw"] = FIRMWARE_VERSION;
     doc["ip"] = WiFi.localIP().toString();
     doc["v"] = DeviceManager::configVersion();
+    // the site warns when the configured display does not answer
+    doc["disp"] = oled.config().model == DisplayConfig::NONE || oled.isInitialized();
 
     String payload;
     serializeJson(doc, payload);

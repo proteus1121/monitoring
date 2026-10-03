@@ -28,4 +28,9 @@ public class Controller {
      */
     private boolean synced;
     private int deviceCount;
+    private DisplaySettings display;
+    /**
+     * false when the board did not find the configured display (wiring or model), null when unknown.
+     */
+    private Boolean displayFound;
 }

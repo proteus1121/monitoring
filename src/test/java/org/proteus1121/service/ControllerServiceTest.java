@@ -1,5 +1,9 @@
 package org.proteus1121.service;
 
+import org.springframework.web.server.ResponseStatusException;
+import org.proteus1121.model.enums.DisplayModel;
+import org.proteus1121.model.dto.controller.DisplaySettings;
+import org.proteus1121.model.dto.controller.Controller;
 import org.proteus1121.repository.ControllerShareRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +23,8 @@ import org.proteus1121.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -65,7 +71,7 @@ class ControllerServiceTest {
                 device(11L, DeviceType.TEMPERATURE, SensorModel.DHT11, 16),
                 device(13L, DeviceType.LIGHT, null, null)));
 
-        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.0.0", "10.0.0.2", ""));
+        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.0.0", "10.0.0.2", "", true));
 
         ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
         verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
@@ -89,15 +95,72 @@ class ControllerServiceTest {
                 device(11L, DeviceType.RELAY, SensorModel.RELAY, 4)));
 
         String version = controllerService.buildConfiguration(5L).v();
-        controllerService.handleHello(1L, "esp32-1", new ControllerHello("esp32", "2.0.0", "10.0.0.3", version));
+        controllerService.handleHello(1L, "esp32-1", new ControllerHello("esp32", "2.0.0", "10.0.0.3", version, true));
 
         verify(controllerPublisher, never()).publishConfiguration(any(), anyString(), any());
         assertEquals(version, controller.getAppliedConfigVersion());
     }
 
     @Test
+    void configurationCarriesThePlatformDefaultDisplay() {
+        when(controllerRepository.findByHardwareId("esp8266-abc")).thenReturn(Optional.empty());
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of());
+
+        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.1.0", "10.0.0.2", "", true));
+
+        ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
+        verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
+        assertEquals(DisplayModel.ST7565, captor.getValue().display().model());
+        assertEquals(List.of(14, 12, 4, 13, 2), captor.getValue().display().pins());
+    }
+
+    @Test
+    void displayIsSavedAndPublished() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setHardwareId("esp8266-abc");
+        controller.setPlatform("esp8266");
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of(
+                device(11L, DeviceType.TEMPERATURE, SensorModel.DHT11, 16)));
+
+        Controller result = controllerService.updateDisplay(5L, 1L, DisplayModel.SSD1306, List.of(4, 14), false);
+
+        assertEquals(DisplayModel.SSD1306, controller.getDisplayModel());
+        assertEquals("4,14", controller.getDisplayPins());
+        assertEquals(new DisplaySettings(DisplayModel.SSD1306, List.of(4, 14), false), result.getDisplay());
+        ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
+        verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
+        assertEquals(List.of(4, 14), captor.getValue().display().pins());
+    }
+
+    @Test
+    void displayCannotTakeAPinOfADevice() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of(
+                device(11L, DeviceType.FLAME, SensorModel.FLAME_IR, 5)));
+
+        assertThrows(ResponseStatusException.class,
+                () -> controllerService.updateDisplay(5L, 1L, DisplayModel.SSD1306, List.of(4, 5), false));
+        verify(controllerRepository, never()).save(any());
+    }
+
+    @Test
+    void bmp180MayShareTheDisplayI2cBus() {
+        DisplaySettings display = new DisplaySettings(DisplayModel.SSD1306, List.of(27, 14), false);
+
+        assertDoesNotThrow(() -> controllerService.checkDisplayConflict(display, SensorModel.BMP180, 27, 14, "Barometer"));
+        assertThrows(ResponseStatusException.class,
+                () -> controllerService.checkDisplayConflict(display, SensorModel.DHT11, 27, null, "Thermometer"));
+    }
+
+    @Test
     void helloForUnknownUserIsIgnored() {
-        controllerService.handleHello(99L, "esp32-x", new ControllerHello("esp32", "2.0.0", null, null));
+        controllerService.handleHello(99L, "esp32-x", new ControllerHello("esp32", "2.0.0", null, null, true));
 
         verify(controllerRepository, never()).save(any());
         verify(controllerPublisher, never()).publishConfiguration(any(), anyString(), any());

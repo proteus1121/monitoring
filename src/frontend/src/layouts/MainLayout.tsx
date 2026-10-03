@@ -123,6 +123,10 @@ export const MainLayout = () => {
                 <Icon icon={'lucide:microchip'} className="size-5" />
                 Devices
               </Link>
+              <Link to={'/settings/modules'}>
+                <Icon icon={'lucide:boxes'} className="size-5" />
+                Modules
+              </Link>
               <Link to={'/settings/users'}>
                 <Icon icon={'lucide:users'} className="size-5" />
                 Users

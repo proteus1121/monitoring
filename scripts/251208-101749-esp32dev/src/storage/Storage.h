@@ -1,6 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <EEPROM.h>
+#include "../display/DisplayManager.h"
 
 class Storage {
 public:
@@ -24,6 +25,10 @@ public:
 
     static void saveMqttPort(uint16_t port);
     static uint16_t loadMqttPort();
+
+    // display configured on the site; false when none was saved yet
+    static void saveDisplay(const DisplayConfig &config);
+    static bool loadDisplay(DisplayConfig &config);
 
     // Ensure preferences are flushed/closed before reboot
     static void sync();

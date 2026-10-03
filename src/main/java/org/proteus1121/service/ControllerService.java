@@ -1,5 +1,10 @@
 package org.proteus1121.service;
 
+import java.util.stream.Collectors;
+import java.util.Arrays;
+import org.proteus1121.model.enums.SensorModel;
+import org.proteus1121.model.enums.DisplayModel;
+import org.proteus1121.model.dto.controller.DisplaySettings;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -79,10 +84,11 @@ public class ControllerService {
         controller.setFirmwareVersion(hello.fw());
         controller.setIpAddress(hello.ip());
         controller.setAppliedConfigVersion(hello.v());
+        controller.setDisplayFound(hello.disp());
         controller.setLastSeen(LocalDateTime.now());
         controller = controllerRepository.save(controller);
 
-        ControllerConfiguration configuration = buildConfiguration(controller.getId());
+        ControllerConfiguration configuration = buildConfiguration(controller);
         if (!Objects.equals(configuration.v(), hello.v())) {
             log.info("Controller {} has configuration {} but {} is expected, sending it", hardwareId, hello.v(), configuration.v());
             controllerPublisher.publishConfiguration(userId, hardwareId, configuration);
@@ -200,6 +206,73 @@ public class ControllerService {
         return controller;
     }
 
+    // --- display ---
+
+    /**
+     * Display of the board: what was configured on the site, otherwise the one the platform ships with.
+     */
+    public DisplaySettings displayOf(ControllerEntity controller) {
+        if (controller.getDisplayModel() == null) {
+            return DisplaySettings.defaultFor(controller.getPlatform());
+        }
+        List<Integer> pins = controller.getDisplayPins() == null || controller.getDisplayPins().isBlank()
+                ? List.of()
+                : Arrays.stream(controller.getDisplayPins().split(",")).map(String::trim).map(Integer::valueOf).toList();
+        return new DisplaySettings(controller.getDisplayModel(), pins, Boolean.TRUE.equals(controller.getDisplayFlip()));
+    }
+
+    public DisplaySettings displayOf(Long controllerId) {
+        return controllerRepository.findById(controllerId).map(this::displayOf).orElse(null);
+    }
+
+    @Transactional
+    public Controller updateDisplay(Long controllerId, Long userId, DisplayModel model, List<Integer> pins, boolean flip) {
+        ControllerEntity controller = checkController(controllerId, userId);
+        List<Integer> displayPins = pins == null ? List.of() : pins;
+        if (displayPins.size() != model.getPins().size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    model.getLabel() + " needs pins " + String.join(", ", model.getPins()));
+        }
+        if (displayPins.stream().anyMatch(pin -> pin == null || pin < 0 || pin > 39)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Select every display pin");
+        }
+        if (displayPins.stream().distinct().count() != displayPins.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Display pins must be different");
+        }
+        DisplaySettings display = new DisplaySettings(model, displayPins, flip);
+        for (DeviceEntity device : deviceRepository.findByControllerId(controllerId)) {
+            checkDisplayConflict(display, device.getSensorModel(), device.getPin(), device.getSecondaryPin(), device.getName());
+        }
+        controller.setDisplayModel(model);
+        controller.setDisplayPins(displayPins.stream().map(String::valueOf).collect(Collectors.joining(",")));
+        controller.setDisplayFlip(flip);
+        controller = controllerRepository.save(controller);
+        publishConfiguration(controllerId);
+        return toController(controller);
+    }
+
+    /**
+     * A device must not use display pins; a BMP180 may share the I2C bus of an I2C display.
+     */
+    public void checkDisplayConflict(DisplaySettings display, SensorModel model, Integer pin, Integer secondaryPin,
+                                     String deviceName) {
+        if (display == null || display.pins().isEmpty()) {
+            return;
+        }
+        List<Integer> devicePins = new ArrayList<>();
+        if (pin != null) devicePins.add(pin);
+        if (secondaryPin != null) devicePins.add(secondaryPin);
+        if (devicePins.stream().noneMatch(display.pins()::contains)) {
+            return;
+        }
+        boolean sharedI2c = model == SensorModel.BMP180 && display.model().isI2c() && devicePins.equals(display.pins());
+        if (!sharedI2c) {
+            int busy = devicePins.stream().filter(display.pins()::contains).findFirst().orElseThrow();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "GPIO" + busy + " is used by both the display and " + (deviceName == null ? "a device" : deviceName));
+        }
+    }
+
     @Transactional
     public Controller rename(Long controllerId, Long userId, String name) {
         ControllerEntity controller = checkController(controllerId, userId);
@@ -241,7 +314,7 @@ public class ControllerService {
     private void doPublishConfiguration(Long controllerId) {
         controllerRepository.findById(controllerId).ifPresent(controller ->
                 controllerPublisher.publishConfiguration(controller.getUserId(), controller.getHardwareId(),
-                        buildConfiguration(controllerId)));
+                        buildConfiguration(controller)));
     }
 
     public void sendCommand(Long controllerId, Long deviceId, double value) {
@@ -251,6 +324,16 @@ public class ControllerService {
     }
 
     ControllerConfiguration buildConfiguration(Long controllerId) {
+        return buildConfiguration(controllerId, controllerRepository.findById(controllerId)
+                .map(this::displayOf)
+                .orElse(DisplaySettings.defaultFor(null)));
+    }
+
+    ControllerConfiguration buildConfiguration(ControllerEntity controller) {
+        return buildConfiguration(controller.getId(), displayOf(controller));
+    }
+
+    private ControllerConfiguration buildConfiguration(Long controllerId, DisplaySettings display) {
         List<ControllerConfiguration.Channel> channels = deviceRepository.findByControllerId(controllerId).stream()
                 .filter(device -> device.getSensorModel() != null && device.getPin() != null && device.getType() != null)
                 .sorted(Comparator.comparing(DeviceEntity::getId))
@@ -262,13 +345,16 @@ public class ControllerService {
                         device.getSecondaryPin(),
                         device.getDelay()))
                 .toList();
-        return new ControllerConfiguration(version(channels), channels);
+        ControllerConfiguration.Display payload =
+                new ControllerConfiguration.Display(display.model(), display.pins(), display.flip());
+        return new ControllerConfiguration(version(channels, payload), channels, payload);
     }
 
-    private String version(List<ControllerConfiguration.Channel> channels) {
+    private String version(List<ControllerConfiguration.Channel> channels, ControllerConfiguration.Display display) {
         try {
             CRC32 crc = new CRC32();
             crc.update(objectMapper.writeValueAsString(channels).getBytes(StandardCharsets.UTF_8));
+            crc.update(objectMapper.writeValueAsString(display).getBytes(StandardCharsets.UTF_8));
             return "%08x".formatted(crc.getValue());
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Cannot serialize controller configuration", e);
@@ -298,7 +384,9 @@ public class ControllerService {
         controller.setLastSeen(entity.getLastSeen());
         controller.setOnline(entity.getLastSeen() != null
                 && entity.getLastSeen().isAfter(LocalDateTime.now().minus(ONLINE_TIMEOUT)));
-        ControllerConfiguration configuration = buildConfiguration(entity.getId());
+        ControllerConfiguration configuration = buildConfiguration(entity);
+        controller.setDisplay(displayOf(entity));
+        controller.setDisplayFound(entity.getDisplayFound());
         controller.setSynced(Objects.equals(configuration.v(), entity.getAppliedConfigVersion()));
         controller.setDeviceCount(configuration.devices().size());
         return controller;
