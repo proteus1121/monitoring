@@ -68,13 +68,36 @@ bool DisplayConfig::operator==(const DisplayConfig &other) const {
 // =========================
 //  DisplayManager
 // =========================
-static int findI2cAddress(uint8_t sda, uint8_t scl) {
+// Line levels and every address that answers, logged when the display is not found
+static void logI2cDiagnostics(uint8_t sda, uint8_t scl) {
+    // an idle bus is HIGH through the module's pull-ups: LOW means no power, no pull-ups or a short
+    pinMode(sda, INPUT);
+    pinMode(scl, INPUT);
+    delay(2);
+    Serial.printf("[DISPLAY] Idle lines without internal pull-ups: SDA %s, SCL %s\n",
+                  digitalRead(sda) ? "HIGH" : "LOW", digitalRead(scl) ? "HIGH" : "LOW");
     Wire.begin(sda, scl);
-    for (uint8_t address : {0x3C, 0x3D}) {
+    String found;
+    for (uint8_t address = 0x08; address < 0x78; address++) {
         Wire.beginTransmission(address);
         if (Wire.endTransmission() == 0)
-            return address;
+            found += String(found.length() ? ", 0x" : "0x") + String(address, HEX);
     }
+    Serial.println("[DISPLAY] I2C devices on these pins: " + (found.length() ? found : String("none")));
+}
+
+static int findI2cAddress(uint8_t sda, uint8_t scl) {
+    Wire.begin(sda, scl);
+    // the module may still be powering up right after a cold start
+    for (int attempt = 0; attempt < 3; attempt++) {
+        for (uint8_t address : {0x3C, 0x3D}) {
+            Wire.beginTransmission(address);
+            if (Wire.endTransmission() == 0)
+                return address;
+        }
+        delay(50);
+    }
+    logI2cDiagnostics(sda, scl);
     return -1;
 }
 
