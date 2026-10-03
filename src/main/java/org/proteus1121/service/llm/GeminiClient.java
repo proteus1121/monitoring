@@ -47,13 +47,15 @@ public class GeminiClient {
         return lastError;
     }
 
+    /**
+     * Tries the configured model, then the fallback model; overload (503) and rate limit (429) errors are
+     * retried once after a pause, as the free tier often answers "high demand" for a few seconds.
+     */
     public Optional<String> generate(String systemInstruction, String prompt) {
         if (!isEnabled()) {
             return Optional.empty();
         }
         LlmProperties.Gemini gemini = properties.getGemini();
-        String url = "%s/models/%s:generateContent".formatted(gemini.getBaseUrl(), gemini.getModel());
-
         Map<String, Object> body = Map.of(
                 "systemInstruction", Map.of("parts", List.of(Map.of("text", systemInstruction))),
                 "contents", List.of(Map.of("role", "user", "parts", List.of(Map.of("text", prompt)))),
@@ -63,9 +65,33 @@ public class GeminiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-goog-api-key", gemini.getApiKey());
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
+        List<String> models = gemini.getFallbackModel() == null || gemini.getFallbackModel().isBlank()
+                || gemini.getFallbackModel().equals(gemini.getModel())
+                ? List.of(gemini.getModel())
+                : List.of(gemini.getModel(), gemini.getFallbackModel());
+        for (String model : models) {
+            for (int attempt = 1; attempt <= 2; attempt++) {
+                Attempt result = call(gemini.getBaseUrl(), model, request);
+                if (result.text() != null) {
+                    lastError = null;
+                    return Optional.of(result.text());
+                }
+                if (!result.retryable()) break;
+                sleep(attempt * 2000L);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private record Attempt(String text, boolean retryable) {
+    }
+
+    private Attempt call(String baseUrl, String model, HttpEntity<Map<String, Object>> request) {
+        String url = "%s/models/%s:generateContent".formatted(baseUrl, model);
         try {
-            JsonNode response = restTemplate.postForObject(url, new HttpEntity<>(body, headers), JsonNode.class);
+            JsonNode response = restTemplate.postForObject(url, request, JsonNode.class);
             StringBuilder text = new StringBuilder();
             if (response != null) {
                 for (JsonNode part : response.path("candidates").path(0).path("content").path("parts")) {
@@ -75,23 +101,31 @@ public class GeminiClient {
             }
             String result = text.toString().trim();
             if (result.isEmpty()) {
-                lastError = "No text in the answer, finishReason "
+                lastError = model + ": no text in the answer, finishReason "
                         + (response == null ? null : response.path("candidates").path(0).path("finishReason").asText())
                         + ", promptFeedback " + (response == null ? null : response.path("promptFeedback"));
                 log.warn("Gemini returned no text: {}", lastError);
-                return Optional.empty();
+                return new Attempt(null, false);
             }
-            lastError = null;
-            return Optional.of(result);
+            return new Attempt(result, false);
         } catch (HttpStatusCodeException e) {
             String error = e.getResponseBodyAsString();
-            lastError = e.getStatusCode() + " " + (error.length() > 500 ? error.substring(0, 500) : error);
+            lastError = model + ": " + e.getStatusCode() + " " + (error.length() > 500 ? error.substring(0, 500) : error);
             log.warn("Gemini request failed: {}", lastError);
-            return Optional.empty();
+            int status = e.getStatusCode().value();
+            return new Attempt(null, status == 429 || status >= 500);
         } catch (Exception e) {
-            lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            lastError = model + ": " + e.getClass().getSimpleName() + ": " + e.getMessage();
             log.warn("Gemini request failed: {}", lastError);
-            return Optional.empty();
+            return new Attempt(null, true);
+        }
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }

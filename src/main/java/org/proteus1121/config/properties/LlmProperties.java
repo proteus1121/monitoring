@@ -26,6 +26,10 @@ public class LlmProperties {
          * The "latest" alias follows the current Flash model, so a model retirement needs no change here.
          */
         private String model = "gemini-flash-latest";
+        /**
+         * Used when the main model is overloaded or unavailable; the Lite model is less busy.
+         */
+        private String fallbackModel = "gemini-flash-lite-latest";
         private String baseUrl = "https://generativelanguage.googleapis.com/v1beta";
         private int timeoutSeconds = 30;
     }
