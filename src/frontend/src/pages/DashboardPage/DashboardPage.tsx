@@ -55,7 +55,8 @@ export const DashboardPage = () => {
   const location = useLocation();
   const [chosenDeviceIds, setChosenDeviceIds] = useState<number[]>([]);
   const [startDate, setStartDate] = useState<Dayjs>(dayjs().subtract(1, 'day'));
-  const [endDate, setEndDate] = useState<Dayjs>(dayjs().add(1, 'hour'));
+  // one day ahead so the forecast (24 h by default) is visible next to the history
+  const [endDate, setEndDate] = useState<Dayjs>(dayjs().add(1, 'day'));
 
   // ?device=ID from search selects that device, otherwise the first one;
   // not tied to the polled list itself so a refresh keeps the user's selection
