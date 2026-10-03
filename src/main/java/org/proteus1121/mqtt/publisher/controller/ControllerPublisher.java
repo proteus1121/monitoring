@@ -17,6 +17,7 @@ public class ControllerPublisher {
     private static final String CONFIGURATION_TOPIC = "users/%d/controllers/%s/configuration";
     private static final String COMMAND_TOPIC = "users/%d/devices/%d/command";
     private static final String PAIRING_TOPIC = "pairing/%s/%s";
+    private static final String SCAN_TOPIC = "users/%d/controllers/%s/scan";
 
     private final MessagePublisher publisher;
     private final ObjectMapper objectMapper;
@@ -55,6 +56,15 @@ public class ControllerPublisher {
         } catch (Exception e) {
             log.error("Failed to unpair controller on {}", topic, e);
         }
+    }
+
+    /**
+     * Not retained: an old request must not start a scan when the board reconnects.
+     */
+    public void publishScanRequest(Long userId, String hardwareId, String requestId) {
+        String topic = SCAN_TOPIC.formatted(userId, hardwareId);
+        log.info("Publishing scan request to {}", topic);
+        publisher.publishMessage(topic, "{\"id\":\"%s\"}".formatted(requestId), false);
     }
 
     /**

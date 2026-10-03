@@ -4,6 +4,7 @@
 #include "network/setup-server/ServerManager.h"
 #include "storage/Storage.h"
 #include "system/Ota.h"
+#include "system/Scanner.h"
 #include "display/Screens.h"
 #include <Arduino.h>
 
@@ -155,6 +156,7 @@ void loop() {
         delay(200);
         ESP.restart();
     }
+    Scanner::loop();
     DeviceManager::loop();
 
     static unsigned long lastRender = 0;

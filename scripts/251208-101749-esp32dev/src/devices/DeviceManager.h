@@ -35,6 +35,10 @@ void render();
 size_t deviceCount();
 // The configuration brought a new display; restart from loop(), not from the MQTT callback.
 bool restartRequested();
+// A configured device uses the pin (also its second pin).
+bool usesPin(uint8_t pin);
+// Set the I2C bus back up for the configured I2C modules after it was moved (board scan).
+void reinitI2c();
 
 } // namespace DeviceManager
 

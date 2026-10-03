@@ -8,7 +8,11 @@ import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
 import { Spinner } from '@src/components/Spinner';
 import { errorMessage } from '@src/redux/helpers';
-import { ControllerWithRole, usePairControllerMutation } from '@src/redux/controllersApi';
+import {
+  ControllerWithRole,
+  usePairControllerMutation,
+  useScanControllerMutation,
+} from '@src/redux/controllersApi';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
@@ -22,6 +26,7 @@ import {
 } from '@src/redux/generatedApi';
 import { BoardDiagram } from './BoardDiagram';
 import { DisplaySettingsPanel } from './DisplaySettingsPanel';
+import { ScanPanel } from './ScanPanel';
 
 /**
  * Code input that links the board showing it to the current user. Used on the Devices page and on /pair,
@@ -130,6 +135,9 @@ export function ControllerPanel(props: {
   const [updateController] = useUpdateControllerMutation();
   const [syncController, { isLoading: isSyncing }] = useSyncControllerMutation();
   const [deleteController] = useDeleteControllerMutation();
+  const [scanController, { isLoading: isScanStarting }] = useScanControllerMutation();
+  const [showScan, setShowScan] = useState(false);
+  const isOwner = !(controller as ControllerWithRole).role || (controller as ControllerWithRole).role === 'OWNER';
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: editDevice } = useModal(DeviceUpdatingModalId);
 
@@ -142,6 +150,15 @@ export function ControllerPanel(props: {
       return;
     }
     setIsEditing(false);
+  };
+
+  const scan = async () => {
+    const res = await scanController({ id });
+    if ('error' in res) {
+      notification.error({ message: 'Could not start the scan', description: errorMessage(res.error) });
+      return;
+    }
+    setShowScan(true);
   };
 
   const sync = async () => {
@@ -203,6 +220,18 @@ export function ControllerPanel(props: {
         </div>
 
         <div className="ml-auto flex gap-1">
+          {isOwner && (
+            <Button
+              size="sm"
+              variant="secondary"
+              title="Look for modules on the free pins"
+              disabled={isScanStarting || !controller.online}
+              onClick={scan}
+            >
+              <Icon icon="lucide:scan-search" />
+              Scan board
+            </Button>
+          )}
           <Button size="icon" variant="ghost" title="Send configuration again" disabled={isSyncing} onClick={sync}>
             <Icon icon="lucide:refresh-cw" />
           </Button>
@@ -240,6 +269,8 @@ export function ControllerPanel(props: {
           </Button>
         </div>
       </div>
+
+      {showScan && <ScanPanel controller={controller as ControllerWithRole} onClose={() => setShowScan(false)} />}
 
       <DisplaySettingsPanel
         controller={controller as ControllerWithRole}

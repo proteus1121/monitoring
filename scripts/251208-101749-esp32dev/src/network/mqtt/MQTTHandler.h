@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define FIRMWARE_VERSION "2.2.0"
+#define FIRMWARE_VERSION "2.3.0"
 
 // site where the user signs in and enters the pairing code
 #define SITE_HOST "ssn.pp.ua"
@@ -15,12 +15,16 @@
  *             {"unpair":true} instead when the board was deleted on the site
  *   subscribe users/<userId>/devices/+/command                       value for an output device
  *   publish   users/<userId>/devices/<deviceId>/measurements         value
+ *   subscribe users/<userId>/controllers/<hardwareId>/scan           look for modules on free pins
+ *   publish   users/<userId>/controllers/<hardwareId>/scan-result    what was found
  */
 
 void initMQTT();
 void mqttLoop();
 bool mqttConnected();
 bool publishMeasurement(uint32_t deviceId, float value);
+// result of a board scan (system/Scanner.h) to users/<userId>/controllers/<hardwareId>/scan-result
+bool publishScanResult(const String &payload);
 
 /*
  * Pairing, while the board has no account:

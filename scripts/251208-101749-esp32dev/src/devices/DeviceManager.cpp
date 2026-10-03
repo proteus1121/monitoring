@@ -416,6 +416,21 @@ bool restartRequested() {
     return restartPending;
 }
 
+bool usesPin(uint8_t pin) {
+    for (Channel &c : channels) {
+        if (c.pin == pin || (c.pin2 != NONE && c.pin2 == pin))
+            return true;
+    }
+    return false;
+}
+
+void reinitI2c() {
+    for (Driver &d : drivers) {
+        if (d.key.startsWith("BMP180:"))
+            d.sensor->init();
+    }
+}
+
 size_t deviceCount() {
     return channels.size();
 }

@@ -1,6 +1,7 @@
 #include "MQTTHandler.h"
 #include "../../devices/DeviceManager.h"
 #include "../../display/DisplayManager.h"
+#include "../../system/Scanner.h"
 #include "../../storage/Storage.h"
 #include "network/setup-server/ServerManager.h" // needed for AP fallback
 #include <ArduinoJson.h>
@@ -29,6 +30,7 @@ static uint16_t currentPort = 0;
 static String userId = "";
 static String configTopic = "";
 static String commandTopicPrefix = "";
+static String scanTopic = "";
 static unsigned long lastReconnectAttempt = 0;
 static unsigned long lastHello = 0;
 static bool helloPending = false;
@@ -164,6 +166,16 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length) {
         return;
     }
 
+    if (topicStr == scanTopic) {
+        JsonDocument doc;
+        String id;
+        if (!deserializeJson(doc, (const char *)payload, length))
+            id = doc["id"] | "";
+        Serial.println("[SCAN] Requested from the site");
+        Scanner::request(id);
+        return;
+    }
+
     // users/<userId>/devices/<deviceId>/command
     if (topicStr.startsWith(commandTopicPrefix) && topicStr.endsWith("/command")) {
         String idStr = topicStr.substring(commandTopicPrefix.length(), topicStr.length() - strlen("/command"));
@@ -212,6 +224,7 @@ void initMQTT() {
     }
     configTopic = "users/" + userId + "/controllers/" + hardwareId() + "/configuration";
     commandTopicPrefix = "users/" + userId + "/devices/";
+    scanTopic = "users/" + userId + "/controllers/" + hardwareId() + "/scan";
 
     Serial.println("Hardware ID: " + hardwareId());
 
@@ -258,6 +271,7 @@ static bool connectMQTT() {
     bool ok = client.subscribe(configTopic.c_str(), 1);
     String commandTopic = commandTopicPrefix + "+/command";
     ok = client.subscribe(commandTopic.c_str(), 1) && ok;
+    ok = client.subscribe(scanTopic.c_str(), 0) && ok;
     Serial.println(String("[MQTT] Subscribed to ") + configTopic + " and " + commandTopic + (ok ? "" : " (FAILED)"));
 
     publishHello();
@@ -321,6 +335,16 @@ bool isPairing() {
 
 const String &pairingCode() {
     return currentPairingCode;
+}
+
+bool publishScanResult(const String &payload) {
+    if (!client.connected())
+        return false;
+    String topic = "users/" + userId + "/controllers/" + hardwareId() + "/scan-result";
+    bool ok = client.publish(topic.c_str(), payload.c_str());
+    if (!ok)
+        Serial.println("[SCAN] Failed to publish the result");
+    return ok;
 }
 
 bool publishMeasurement(uint32_t deviceId, float value) {

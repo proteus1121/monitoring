@@ -1,4 +1,4 @@
-import { Controller, generatedApi } from './generatedApi';
+import { Controller, DeviceTypeValue, SensorModel, generatedApi } from './generatedApi';
 
 // Pairing and board sharing, written by hand until the deployed OpenAPI spec has them
 // (npm run api-typegen reads it from the server). Remove once generatedApi.ts contains these endpoints.
@@ -34,6 +34,34 @@ export type ControllerWithRole = Controller & {
   displayFound?: boolean | null;
 };
 
+export type SuggestedDevice = {
+  name: string;
+  type: DeviceTypeValue;
+  sensorModel: SensorModel;
+  pin: number;
+  secondaryPin?: number | null;
+};
+
+export type ScanFinding = {
+  // SENSOR: identified; DISPLAY: a display; CHOOSE: something on the pin, pick the module; UNSUPPORTED: no driver
+  kind: 'SENSOR' | 'DISPLAY' | 'CHOOSE' | 'UNSUPPORTED';
+  title: string;
+  pins: number[];
+  // TEMPERATURE, HUMIDITY, PRESSURE, LEVEL (0 / 1), ANALOG (raw ADC)
+  readings: Record<string, number>;
+  note?: string | null;
+  options: { model: SensorModel; label: string; devices: SuggestedDevice[] }[];
+  display?: DisplaySettings | null;
+};
+
+export type BoardScan = {
+  status: 'PENDING' | 'DONE' | 'TIMEOUT';
+  requestedAt: string;
+  finishedAt?: string | null;
+  scannedPins: number[];
+  findings: ScanFinding[];
+};
+
 export const controllersApi = generatedApi.injectEndpoints({
   endpoints: build => ({
     getDisplayModels: build.query<DisplayModelInfo[], void>({
@@ -43,6 +71,17 @@ export const controllersApi = generatedApi.injectEndpoints({
     updateDisplay: build.mutation<ControllerWithRole, { id: number } & DisplaySettings>({
       query: ({ id, ...body }) => ({ url: `/controllers/${id}/display`, method: 'PUT', body }),
       invalidatesTags: ['Controller Management'],
+    }),
+    scanController: build.mutation<BoardScan, { id: number }>({
+      query: ({ id }) => ({ url: `/controllers/${id}/scan`, method: 'POST' }),
+      async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
+        const { data } = await queryFulfilled;
+        dispatch(controllersApi.util.upsertQueryData('getBoardScan', { id }, data));
+      },
+    }),
+    // null (204) when the board was not scanned since the server started
+    getBoardScan: build.query<BoardScan | null, { id: number }>({
+      query: ({ id }) => ({ url: `/controllers/${id}/scan` }),
     }),
     pairController: build.mutation<Controller, { code: string }>({
       query: body => ({ url: `/controllers/pair`, method: 'POST', body }),
@@ -64,6 +103,8 @@ export const controllersApi = generatedApi.injectEndpoints({
 });
 
 export const {
+  useScanControllerMutation,
+  useGetBoardScanQuery,
   useGetDisplayModelsQuery,
   useUpdateDisplayMutation,
   usePairControllerMutation,

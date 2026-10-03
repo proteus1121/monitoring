@@ -1,5 +1,4 @@
 import { useModal } from './modals.hook';
-import { SimpleModalState } from './modals.types';
 import { Spinner } from '@src/components/Spinner';
 import { Button } from '@src/components/Button';
 import {
@@ -14,7 +13,7 @@ import { useAppForm } from '@src/components/Form';
 import { notification } from 'antd';
 import { errorMessage } from '../helpers';
 import { useEffect } from 'react';
-import { useCreateDeviceMutation } from '../generatedApi';
+import { Device, useCreateDeviceMutation } from '../generatedApi';
 import {
   DeviceFormFields,
   DeviceSchema,
@@ -24,9 +23,8 @@ import {
 } from './DeviceFormFields';
 
 export const DeviceCreationModalId = 'device-creation-modal-id';
-export type DeviceCreationModal = SimpleModalState<
-  typeof DeviceCreationModalId
->;
+// true opens an empty form, a device pre-fills it (e.g. one found by "Scan board")
+export type DeviceCreationModal = Record<typeof DeviceCreationModalId, boolean | Device>;
 
 export function DeviceCreationModal() {
   const { state, setState } = useModal(DeviceCreationModalId);
@@ -67,11 +65,16 @@ export function DeviceCreationModal() {
   });
 
   useEffect(() => {
-    if (state) form.reset();
+    if (state) form.reset(toDeviceFormValues(typeof state === 'object' ? state : null));
   }, [state]);
 
   return (
-    <Dialog open={state} onOpenChange={setState}>
+    <Dialog
+      open={Boolean(state)}
+      onOpenChange={open => {
+        if (!open) setState(false);
+      }}
+    >
       <DialogContent className="max-h-[90dvh] overflow-y-auto">
         <form
           className="contents"

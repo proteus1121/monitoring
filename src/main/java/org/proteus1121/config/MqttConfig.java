@@ -21,6 +21,7 @@ public class MqttConfig {
             "users/+/devices/+/measurements",
             "users/+/controllers/+/hello",
             "pairing/+/request",
+            "users/+/controllers/+/scan-result",
     };
 
     @Bean

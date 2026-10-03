@@ -1,5 +1,7 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.service.BoardScanService;
+import org.proteus1121.model.dto.controller.BoardScan;
 import org.proteus1121.model.request.DisplayRequest;
 import org.proteus1121.model.enums.DisplayModel;
 import org.proteus1121.model.dto.controller.DisplayModelInfo;
@@ -41,6 +43,7 @@ public class ControllersController {
     private final ControllerService controllerService;
     private final PairingService pairingService;
     private final UserService userService;
+    private final BoardScanService boardScanService;
 
     @GetMapping
     @Operation(summary = "Get controllers of current user", description = "Boards appear here after they connect to MQTT with the user id")
@@ -65,6 +68,19 @@ public class ControllersController {
     public ResponseEntity<Controller> updateDisplay(@PathVariable Long id, @Valid @RequestBody DisplayRequest request) {
         return ResponseEntity.ok(controllerService.updateDisplay(id, getCurrentUser().getId(), request.getModel(),
                 request.getPins(), request.isFlip()));
+    }
+
+    @PostMapping("/{id}/scan")
+    @Operation(summary = "Scan the board", description = "The board looks for modules on its free pins; poll GET for the result")
+    public ResponseEntity<BoardScan> scan(@PathVariable Long id) {
+        return ResponseEntity.accepted().body(boardScanService.request(id, getCurrentUser().getId()));
+    }
+
+    @GetMapping("/{id}/scan")
+    @Operation(summary = "Last scan of the board", description = "204 when the board was not scanned yet")
+    public ResponseEntity<BoardScan> getScan(@PathVariable Long id) {
+        BoardScan scan = boardScanService.get(id, getCurrentUser().getId());
+        return scan == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(scan);
     }
 
     @PostMapping("/pair")
