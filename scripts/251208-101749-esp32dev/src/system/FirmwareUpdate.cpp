@@ -79,7 +79,19 @@ String run() {
     int status = http.GET();
     if (status != 200) {
         http.end();
-        return status < 0 ? "download failed: " + http.errorToString(status) : "server answered " + String(status);
+        if (status >= 0)
+            return "server answered " + String(status);
+        // "connection failed" hides why: the TLS error says if it was the certificate, memory or the network
+        String error = "download failed: " + http.errorToString(status);
+        char reason[96] = {0};
+#if defined(ESP8266)
+        int code = client.getLastSSLError(reason, sizeof(reason));
+        error += " (TLS " + String(code) + ": " + reason + ", free heap " + String(ESP.getFreeHeap()) + ")";
+#else
+        int code = client.lastError(reason, sizeof(reason));
+        error += " (TLS " + String(code) + ": " + reason + ")";
+#endif
+        return error;
     }
     int size = http.getSize();
     if (size <= 0) {
