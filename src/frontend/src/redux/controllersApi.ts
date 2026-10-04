@@ -15,6 +15,9 @@ export type ControllerShare = {
 
 export type DisplayModelValue = 'NONE' | 'ST7565' | 'SSD1306' | 'SH1106';
 
+// development board the chip sits on (BoardModel on the server), picked by the user for the diagram
+export type BoardModelValue = 'NODEMCU' | 'D1_MINI' | 'ESP32_DEVKIT';
+
 // pins are GPIO numbers in the order of the model's pin names
 export type DisplaySettings = { model: DisplayModelValue; pins: number[]; flip: boolean };
 
@@ -39,6 +42,7 @@ export type FirmwareUpdateStatus = {
 
 export type ControllerWithRole = Controller & {
   role?: DeviceRoleValue;
+  boardModel?: BoardModelValue;
   display?: DisplaySettings;
   displayFound?: boolean | null;
   // firmware build (platformio env): esp8266, esp32dev, ...
@@ -114,6 +118,10 @@ export const controllersApi = generatedApi.injectEndpoints({
       query: () => ({ url: `/controllers/display-models` }),
       providesTags: ['Controller Management'],
     }),
+    updateBoardModel: build.mutation<ControllerWithRole, { id: number; boardModel: BoardModelValue }>({
+      query: ({ id, ...body }) => ({ url: `/controllers/${id}/board-model`, method: 'PUT', body }),
+      invalidatesTags: ['Controller Management'],
+    }),
     updateDisplay: build.mutation<ControllerWithRole, { id: number } & DisplaySettings>({
       query: ({ id, ...body }) => ({ url: `/controllers/${id}/display`, method: 'PUT', body }),
       invalidatesTags: ['Controller Management'],
@@ -167,6 +175,7 @@ export const {
   useGetBoardScanQuery,
   useGetDisplayModelsQuery,
   useUpdateDisplayMutation,
+  useUpdateBoardModelMutation,
   useConnectControllerMutation,
   useGetControllerSharesQuery,
   useShareControllerMutation,

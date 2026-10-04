@@ -1,6 +1,7 @@
 package org.proteus1121.service;
 
 import org.springframework.web.server.ResponseStatusException;
+import org.proteus1121.model.enums.BoardModel;
 import org.proteus1121.model.enums.DisplayModel;
 import org.proteus1121.model.dto.controller.DisplaySettings;
 import org.proteus1121.model.dto.controller.Controller;
@@ -175,5 +176,34 @@ class ControllerServiceTest {
         device.setControllerId(5L);
         device.setDelay(5000L);
         return device;
+    }
+
+    @Test
+    void boardModelDefaultsByPlatformAndCanBeChosen() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setHardwareId("esp8266-abc");
+        controller.setPlatform("esp8266");
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+
+        assertEquals(BoardModel.NODEMCU, BoardModel.defaultFor("esp8266"));
+        assertEquals(BoardModel.ESP32_DEVKIT, BoardModel.defaultFor("esp32"));
+        Controller result = controllerService.setBoardModel(5L, 1L, BoardModel.D1_MINI);
+
+        assertEquals(BoardModel.D1_MINI, controller.getBoardModel());
+        assertEquals(BoardModel.D1_MINI, result.getBoardModel());
+    }
+
+    @Test
+    void boardModelMustFitThePlatform() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setPlatform("esp8266");
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+
+        assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 1L, BoardModel.ESP32_DEVKIT));
+        assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 2L, BoardModel.D1_MINI));
     }
 }

@@ -110,6 +110,15 @@ const DevicesPage = () => {
                 d => d.controllerId === controller.id && d.sensorModel
               )}
               models={models}
+              sensors={
+                <DevicesTable
+                  compact
+                  devices={(devices ?? []).filter(d => d.controllerId === controller.id)}
+                  controllers={[controller]}
+                  models={models}
+                  readings={readingByDevice}
+                />
+              }
             />
           ))
         ) : (
@@ -135,15 +144,6 @@ const DevicesPage = () => {
         </section>
       )}
 
-      <section className="space-y-3">
-        <h2 className="font-semibold">All devices</h2>
-        <DevicesTable
-          devices={devices ?? []}
-          controllers={controllers}
-          models={models}
-          readings={readingByDevice}
-        />
-      </section>
     </PageLayout>
   );
 };
@@ -165,12 +165,18 @@ function UnwiredChip({ device }: { device: Device }) {
   );
 }
 
+/**
+ * Devices with their last value, status and actions; `compact` lists the devices and display of one board in
+ * its card, without the board and forecast columns.
+ */
 function DevicesTable(props: {
   devices: Device[];
   controllers?: Controller[];
   models?: SensorModelInfo[];
   readings: Map<number, LatestReading>;
+  compact?: boolean;
 }) {
+  const compact = !!props.compact;
   const [deleteDevice] = useDeleteDeviceMutation();
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: edit } = useModal(DeviceUpdatingModalId);
@@ -182,19 +188,19 @@ function DevicesTable(props: {
   );
 
   if (props.devices.length === 0 && displays.length === 0) {
-    return <Card className="text-sm text-slate-500">No devices yet.</Card>;
+    return compact ? null : <Card className="text-sm text-slate-500">No devices yet.</Card>;
   }
 
   return (
-    <Card className="overflow-x-auto p-0">
-      <table className="w-full min-w-[760px] text-left text-sm">
+    <div className={clsx('overflow-x-auto', compact ? 'rounded-lg border border-black/10' : 'rounded-xl border border-black/10 bg-white')}>
+      <table className={clsx('w-full text-left text-sm', compact ? 'min-w-[480px]' : 'min-w-[760px]')}>
         <thead className="border-b border-black/10 text-xs text-slate-500">
           <tr>
             <th className="px-4 py-2 font-medium">Device</th>
-            <th className="px-4 py-2 font-medium">Board · module · pin</th>
+            <th className="px-4 py-2 font-medium">{compact ? 'Module · pin' : 'Board · module · pin'}</th>
             <th className="px-4 py-2 font-medium">Last value</th>
             <th className="px-4 py-2 font-medium">Status</th>
-            <th className="px-4 py-2 font-medium">Forecast</th>
+            {!compact && <th className="px-4 py-2 font-medium">Forecast</th>}
             <th className="px-4 py-2" />
           </tr>
         </thead>
@@ -229,8 +235,8 @@ function DevicesTable(props: {
                 <td className="px-4 py-2.5 text-slate-600">
                   {device.controllerId ? (
                     <>
-                      {controller?.name ?? `Board #${device.controllerId}`} ·{' '}
-                      {model?.label ?? device.sensorModel} ·{' '}
+                      {!compact && <>{controller?.name ?? `Board #${device.controllerId}`} · </>}
+                      {model?.label ?? device.sensorModel ?? 'no module'} ·{' '}
                       {getPinLabel(controller?.platform, device.pin)}
                       {device.secondaryPin !== undefined && device.secondaryPin !== null &&
                         ` / ${getPinLabel(controller?.platform, device.secondaryPin)}`}
@@ -256,7 +262,7 @@ function DevicesTable(props: {
                     {device.status}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-slate-600">
+                {!compact && <td className="px-4 py-2.5 text-slate-600">
                   {device.forecastModel && device.forecastModel !== 'NONE' ? (
                     <>
                       {FORECAST_LABELS[device.forecastModel]}
@@ -267,7 +273,7 @@ function DevicesTable(props: {
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}
-                </td>
+                </td>}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                     {model?.output && device.controllerId && <RelayControls deviceId={device.id!} />}
@@ -324,7 +330,8 @@ function DevicesTable(props: {
                   </div>
                 </td>
                 <td className="px-4 py-2.5 text-slate-600">
-                  {board.name} · {display.model} · {pins}
+                  {!compact && <>{board.name} · </>}
+                  {display.model} · {pins}
                 </td>
                 <td className="px-4 py-2.5 text-xs text-slate-400">shows the readings</td>
                 <td className="px-4 py-2.5">
@@ -338,7 +345,7 @@ function DevicesTable(props: {
                     {board.displayFound === false ? 'NOT FOUND' : board.displayFound ? 'OK' : 'UNKNOWN'}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-slate-400">—</td>
+                {!compact && <td className="px-4 py-2.5 text-slate-400">—</td>}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                     <Button
@@ -377,7 +384,7 @@ function DevicesTable(props: {
           })}
         </tbody>
       </table>
-    </Card>
+    </div>
   );
 }
 

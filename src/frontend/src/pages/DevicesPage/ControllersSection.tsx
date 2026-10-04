@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react';
@@ -8,9 +8,12 @@ import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
 import { errorMessage } from '@src/redux/helpers';
 import {
+  BoardModelValue,
   ControllerWithRole,
   useScanControllerMutation,
+  useUpdateBoardModelMutation,
 } from '@src/redux/controllersApi';
+import { BOARD_MODELS } from '@src/lib/hardware';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
@@ -76,12 +79,14 @@ export function SetupHint() {
 const hasDisplay = (model?: string) => !!model && model !== 'NONE';
 
 /**
- * A board with its status, actions and wiring diagram.
+ * A board with its status and actions; its wiring diagram on the left and `sensors` (the table of what is wired
+ * to it) on the right, one above the other on narrow screens.
  */
 export function ControllerPanel(props: {
   controller: Controller;
   devices: Device[];
   models: SensorModelInfo[] | undefined;
+  sensors?: ReactNode;
 }) {
   const { controller } = props;
   const [isEditing, setIsEditing] = useState(false);
@@ -91,6 +96,7 @@ export function ControllerPanel(props: {
   const [deleteController] = useDeleteControllerMutation();
   const [scanController, { isLoading: isScanStarting }] = useScanControllerMutation();
   const [showScan, setShowScan] = useState(false);
+  const [updateBoardModel, { isLoading: isBoardModelSaving }] = useUpdateBoardModelMutation();
   const isOwner = !(controller as ControllerWithRole).role || (controller as ControllerWithRole).role === 'OWNER';
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: editDevice } = useModal(DeviceUpdatingModalId);
@@ -114,6 +120,15 @@ export function ControllerPanel(props: {
       return;
     }
     setShowScan(true);
+  };
+
+  const boardModel = (controller as ControllerWithRole).boardModel;
+  const boardModels = BOARD_MODELS.filter(model => model.platform === (controller.platform ?? 'esp32'));
+  const changeBoardModel = async (value: BoardModelValue) => {
+    const res = await updateBoardModel({ id, boardModel: value });
+    if ('error' in res) {
+      notification.error({ message: 'Could not change the board', description: errorMessage(res.error) });
+    }
   };
 
   const sync = async () => {
@@ -156,6 +171,22 @@ export function ControllerPanel(props: {
         )}
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          {isOwner && boardModels.length > 1 && (
+            // the firmware only knows the chip: NodeMCU and D1 mini are told apart here
+            <select
+              value={boardModel ?? boardModels[0].value}
+              disabled={isBoardModelSaving}
+              onChange={e => changeBoardModel(e.target.value as BoardModelValue)}
+              title="Board type, for the diagram"
+              className="rounded-md border border-black/15 bg-white px-2 py-0.5 text-xs text-slate-700"
+            >
+              {boardModels.map(model => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </select>
+          )}
           <span
             className={`rounded-full px-2 text-white ${controller.online ? 'bg-green-500' : 'bg-gray-700'}`}
             title={controller.lastSeen ? `seen ${fromNow(controller.lastSeen)}` : undefined}
@@ -228,22 +259,24 @@ export function ControllerPanel(props: {
 
       {showScan && <ScanPanel controller={controller as ControllerWithRole} onClose={() => setShowScan(false)} />}
 
-      {props.devices.length === 0 && (
-        <p className="text-sm text-slate-500">
-          No sensors on this board yet: “Add Device” and choose the module you wired.
-        </p>
-      )}
-      {(props.devices.length > 0 || hasDisplay((controller as ControllerWithRole).display?.model)) && (
-        <div className="overflow-x-auto">
-          <BoardDiagram
-            controller={controller}
-            devices={props.devices}
-            models={props.models}
-            onDeviceClick={editDevice}
-            onDisplayClick={() => openDisplay({ controllerId: id })}
-          />
+      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
+        <div className="min-w-0 overflow-x-auto">
+          {props.devices.length > 0 || hasDisplay((controller as ControllerWithRole).display?.model) ? (
+            <BoardDiagram
+              controller={controller}
+              devices={props.devices}
+              models={props.models}
+              onDeviceClick={editDevice}
+              onDisplayClick={() => openDisplay({ controllerId: id })}
+            />
+          ) : (
+            <p className="text-sm text-slate-500">
+              No sensors on this board yet: “Add Device” and choose the module you wired.
+            </p>
+          )}
         </div>
-      )}
+        {props.sensors && <div className="min-w-0">{props.sensors}</div>}
+      </div>
     </Card>
   );
 }

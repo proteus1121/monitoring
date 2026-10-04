@@ -2,6 +2,7 @@ package org.proteus1121.service;
 
 import java.util.stream.Collectors;
 import java.util.Arrays;
+import org.proteus1121.model.enums.BoardModel;
 import org.proteus1121.model.enums.SensorModel;
 import org.proteus1121.model.enums.DisplayModel;
 import org.proteus1121.model.dto.controller.DisplaySettings;
@@ -284,6 +285,16 @@ public class ControllerService {
         return toController(controllerRepository.save(controller));
     }
 
+    public Controller setBoardModel(Long controllerId, Long userId, BoardModel boardModel) {
+        ControllerEntity controller = checkController(controllerId, userId);
+        if (!boardModel.fits(controller.getPlatform())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    boardModel.getLabel() + " does not fit a " + controller.getPlatform() + " board");
+        }
+        controller.setBoardModel(boardModel);
+        return toController(controllerRepository.save(controller));
+    }
+
     @Transactional
     public void delete(Long controllerId, Long userId) {
         ControllerEntity controller = checkController(controllerId, userId);
@@ -386,6 +397,8 @@ public class ControllerService {
         controller.setName(entity.getName());
         controller.setPlatform(entity.getPlatform());
         controller.setBoard(entity.getBoard());
+        controller.setBoardModel(entity.getBoardModel() != null ? entity.getBoardModel()
+                : BoardModel.defaultFor(entity.getPlatform()));
         controller.setFirmwareVersion(entity.getFirmwareVersion());
         controller.setIpAddress(entity.getIpAddress());
         controller.setLastSeen(entity.getLastSeen());

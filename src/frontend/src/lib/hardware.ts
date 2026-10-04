@@ -3,7 +3,7 @@ import type {
   DeviceTypeValue,
   SensorModelInfo,
 } from '@src/redux/generatedApi';
-import type { DisplayModelValue, DisplaySettings } from '@src/redux/controllersApi';
+import type { BoardModelValue, DisplayModelValue, DisplaySettings } from '@src/redux/controllersApi';
 
 export type PinOption = {
   value: string;
@@ -215,6 +215,31 @@ const NODEMCU_LAYOUT: BoardLayout = {
   ],
 };
 
+// Wemos D1 mini, antenna up, USB at the bottom
+const D1_MINI_LAYOUT: BoardLayout = {
+  name: 'Wemos D1 mini (ESP8266)',
+  left: [
+    { label: 'RST' },
+    { label: 'A0', gpio: 17 },
+    { label: 'D0', gpio: 16 },
+    { label: 'D5', gpio: 14 },
+    { label: 'D6', gpio: 12 },
+    { label: 'D7', gpio: 13 },
+    { label: 'D8', gpio: 15 },
+    { label: '3V3' },
+  ],
+  right: [
+    { label: 'TX', gpio: 1 },
+    { label: 'RX', gpio: 3 },
+    { label: 'D1', gpio: 5 },
+    { label: 'D2', gpio: 4 },
+    { label: 'D3', gpio: 0 },
+    { label: 'D4', gpio: 2 },
+    { label: 'G' },
+    { label: '5V' },
+  ],
+};
+
 const ESP32_DEVKIT_LAYOUT: BoardLayout = {
   name: 'ESP32 DevKit',
   left: [
@@ -253,8 +278,18 @@ const ESP32_DEVKIT_LAYOUT: BoardLayout = {
   ],
 };
 
-export function boardLayout(platform?: string): BoardLayout {
-  return platform === 'esp8266' ? NODEMCU_LAYOUT : ESP32_DEVKIT_LAYOUT;
+export const BOARD_MODELS: { value: BoardModelValue; label: string; platform: string }[] = [
+  { value: 'NODEMCU', label: 'NodeMCU v2', platform: 'esp8266' },
+  { value: 'D1_MINI', label: 'Wemos D1 mini', platform: 'esp8266' },
+  { value: 'ESP32_DEVKIT', label: 'ESP32 DevKit', platform: 'esp32' },
+];
+
+// the board the user picked; the firmware only knows the chip
+export function boardLayout(platform?: string, boardModel?: BoardModelValue): BoardLayout {
+  if (platform === 'esp8266') {
+    return boardModel === 'D1_MINI' ? D1_MINI_LAYOUT : NODEMCU_LAYOUT;
+  }
+  return ESP32_DEVKIT_LAYOUT;
 }
 
 // What the pin is taken by on this board (display, serial, ...), undefined when free

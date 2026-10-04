@@ -12,6 +12,7 @@ import org.proteus1121.service.BoardConnectService;
 import org.proteus1121.model.dto.controller.BoardConnection;
 import org.proteus1121.model.request.ShareControllerRequest;
 import org.proteus1121.model.request.ConnectControllerRequest;
+import org.proteus1121.model.request.BoardModelRequest;
 import org.proteus1121.model.dto.controller.ControllerShare;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -72,6 +73,12 @@ public class ControllersController {
     public ResponseEntity<Controller> updateDisplay(@PathVariable Long id, @Valid @RequestBody DisplayRequest request) {
         return ResponseEntity.ok(controllerService.updateDisplay(id, getCurrentUser().getId(), request.getModel(),
                 request.getPins(), request.isFlip()));
+    }
+
+    @PutMapping("/{id}/board-model")
+    @Operation(summary = "Set the development board", description = "NodeMCU or D1 mini for an ESP8266: the firmware cannot tell them apart, the diagram follows it")
+    public ResponseEntity<Controller> updateBoardModel(@PathVariable Long id, @Valid @RequestBody BoardModelRequest request) {
+        return ResponseEntity.ok(controllerService.setBoardModel(id, getCurrentUser().getId(), request.getBoardModel()));
     }
 
     @PostMapping("/{id}/firmware-update")

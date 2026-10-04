@@ -1,5 +1,6 @@
 package org.proteus1121.model.entity;
 
+import org.proteus1121.model.enums.BoardModel;
 import org.proteus1121.model.enums.DisplayModel;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
@@ -44,6 +45,13 @@ public class ControllerEntity {
      */
     @Column(length = 32)
     private String board;
+
+    /**
+     * Development board picked by the user, null until then (BoardModel.defaultFor the platform).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "board_model", columnDefinition = "VARCHAR(16)")
+    private BoardModel boardModel;
 
     @Column(length = 32)
     private String firmwareVersion;

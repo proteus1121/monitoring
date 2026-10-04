@@ -83,7 +83,7 @@ export function BoardDiagram(props: {
 }) {
   const { controller, devices, models, onDeviceClick, onDisplayClick } = props;
   const display = (controller as ControllerWithRole).display;
-  const layout = boardLayout(controller.platform);
+  const layout = boardLayout(controller.platform, (controller as ControllerWithRole).boardModel);
 
   const findPin = (gpio?: number): PinRef | undefined => {
     if (gpio === undefined || gpio === null) return undefined;
