@@ -30,11 +30,12 @@ public:
     static String getSsid();
     static String getPass();
     static String getSavedSsid();
+    // station mode with the saved Wi-Fi, one attempt
+    static bool tryConnectWiFi();
 
 private:
     static void startAPMode();
     static void startServer();
-    static bool tryConnectWiFi();
     static void handleRootPage();
     static void handleSavePage();
     static void handleUnpair();

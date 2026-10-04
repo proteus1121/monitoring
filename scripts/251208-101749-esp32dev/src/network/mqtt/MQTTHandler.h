@@ -5,7 +5,7 @@
 
 // may be set by the build, e.g. PLATFORMIO_BUILD_FLAGS=-DFIRMWARE_VERSION=\"2.3.9\" for a test build
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "2.4.0"
+#define FIRMWARE_VERSION "2.4.1"
 #endif
 
 // env name of platformio.ini, the site picks update files by it
@@ -37,8 +37,6 @@ bool publishMeasurement(uint32_t deviceId, float value);
 bool publishScanResult(const String &payload);
 // progress of a firmware update (system/FirmwareUpdate.h)
 bool publishUpdateStatus(const String &payload);
-// small MQTT buffer while a firmware update needs the memory for TLS, back to normal afterwards
-void shrinkMqttBuffer(bool small);
 
 /*
  * Pairing, while the board has no account:

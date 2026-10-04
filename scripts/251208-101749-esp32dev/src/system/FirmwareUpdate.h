@@ -13,6 +13,9 @@
  * The file is downloaded over HTTPS only and the server certificate has to chain to a Let's Encrypt root
  * (TrustedRoots.h), so nobody on the network can hand the board another file; the MD5 from the request is
  * checked before the image is accepted. On success the board restarts into the new firmware.
+ *
+ * ESP8266 has too little memory for TLS once everything runs: it restarts and downloads at the next boot
+ * (runAtBoot), then reports a failure after MQTT connects; success shows as the new version in its hello.
  */
 namespace FirmwareUpdate {
 
@@ -20,6 +23,9 @@ namespace FirmwareUpdate {
 void request(const String &url, const String &md5, const String &version);
 
 void loop();
+
+// from setup() after the display and the Wi-Fi credentials, before MQTT and the devices start
+void runAtBoot();
 
 // an update is being downloaded or written
 bool inProgress();

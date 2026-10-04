@@ -122,6 +122,8 @@ void setup() {
     Serial.println("Hardware ID: " + hardwareId());
     Serial.println("User ID: " + Storage::loadUserId());
 
+    FirmwareUpdate::runAtBoot();
+
     Screens::connecting(ServerManager::getSavedSsid());
 
     ServerManager::connect();

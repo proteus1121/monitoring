@@ -359,10 +359,6 @@ bool publishUpdateStatus(const String &payload) {
     return client.publish(topic.c_str(), payload.c_str());
 }
 
-void shrinkMqttBuffer(bool small) {
-    client.setBufferSize(small ? 512 : MQTT_BUFFER_SIZE);
-}
-
 bool publishScanResult(const String &payload) {
     if (!client.connected())
         return false;
