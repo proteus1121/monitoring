@@ -4,7 +4,7 @@ import { Icon } from '@iconify/react';
 import clsx from 'clsx';
 import { ModuleCreationModalId } from '@src/redux/modals/ModuleCreationModal';
 import { DisplayModalId } from '@src/redux/modals/DisplayModal';
-import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
+import { DeviceUpdatingModalId, useDeleteDevice } from '@src/redux/modals/DeviceUpdatingModal';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { errorMessage } from '@src/redux/helpers';
@@ -26,7 +26,6 @@ import {
   Device,
   LatestReading,
   SensorModelInfo,
-  useDeleteDeviceMutation,
   useGetAllDevicesQuery,
   useGetControllersQuery,
   useGetLatestReadingsQuery,
@@ -177,7 +176,7 @@ function DevicesTable(props: {
   compact?: boolean;
 }) {
   const compact = !!props.compact;
-  const [deleteDevice] = useDeleteDeviceMutation();
+  const deleteDevice = useDeleteDevice();
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: edit } = useModal(DeviceUpdatingModalId);
   const { setState: openDisplay } = useModal(DisplayModalId);
@@ -284,22 +283,7 @@ function DevicesTable(props: {
                       size="icon"
                       variant="ghost"
                       title="Delete"
-                      onClick={() =>
-                        confirm({
-                          description: `Delete ${device.name} with its history?`,
-                          callback: async () => {
-                            const res = await deleteDevice({ id: device.id! });
-                            if ('error' in res) {
-                              notification.error({
-                                message: `Failed to delete ${device.name}`,
-                                description: errorMessage(res.error),
-                              });
-                            } else {
-                              notification.success({ message: `Deleted ${device.name}` });
-                            }
-                          },
-                        })
-                      }
+                      onClick={() => deleteDevice(device)}
                     >
                       <Icon icon="lucide:trash-2" />
                     </Button>

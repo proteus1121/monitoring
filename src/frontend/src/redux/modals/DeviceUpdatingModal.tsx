@@ -13,9 +13,11 @@ import {
 import { useAppForm } from '@src/components/Form';
 import { notification } from 'antd';
 import { errorMessage } from '../helpers';
-import { Device, useUpdateDeviceMutation } from '../generatedApi';
+import { Device, useDeleteDeviceMutation, useUpdateDeviceMutation } from '../generatedApi';
 import { useEffect } from 'react';
 import { ModuleArt } from '@src/components/ModuleArt';
+import { Icon } from '@iconify/react';
+import { AppAlertDialogModalId } from './AlertDialog';
 import {
   DeviceFormFields,
   DeviceSchema,
@@ -30,9 +32,35 @@ export type DeviceUpdatingModal = ModalState<
   Device
 >;
 
+/**
+ * Deletes a device with its history after a confirmation; `onDeleted` runs once it is gone.
+ */
+export function useDeleteDevice() {
+  const [deleteDevice] = useDeleteDeviceMutation();
+  const { setState: confirm } = useModal(AppAlertDialogModalId);
+
+  return (device: Device, onDeleted?: () => void) =>
+    confirm({
+      description: `Delete ${device.name} with its history?`,
+      callback: async () => {
+        const res = await deleteDevice({ id: device.id! });
+        if ('error' in res) {
+          notification.error({
+            message: `Failed to delete ${device.name}`,
+            description: errorMessage(res.error),
+          });
+        } else {
+          notification.success({ message: `Deleted ${device.name}` });
+          onDeleted?.();
+        }
+      },
+    });
+}
+
 export function DeviceUpdatingModal() {
   const { state, setState } = useModal(DeviceUpdatingModalId);
   const [updateDevice] = useUpdateDeviceMutation();
+  const deleteDevice = useDeleteDevice();
 
   const form = useAppForm({
     defaultValues: toDeviceFormValues(state),
@@ -107,6 +135,15 @@ export function DeviceUpdatingModal() {
             <DeviceFormFields form={form} device={state} />
           </div>
           <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-red-600 hover:text-red-700 sm:mr-auto"
+              onClick={() => state && deleteDevice(state, () => setState(null))}
+            >
+              <Icon icon="lucide:trash-2" />
+              Delete
+            </Button>
             <DialogClose asChild>
               <Button variant="secondary">Cancel</Button>
             </DialogClose>
