@@ -39,6 +39,12 @@ public class ControllerEntity {
     @Column(length = 32)
     private String platform;
 
+    /**
+     * Firmware build the board runs (platformio env, e.g. esp8266, esp32dev); picks the update file.
+     */
+    @Column(length = 32)
+    private String board;
+
     @Column(length = 32)
     private String firmwareVersion;
 

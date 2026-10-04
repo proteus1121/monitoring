@@ -18,6 +18,7 @@ public class Controller {
     private String hardwareId;
     private String name;
     private String platform;
+    private String board;
     private String firmwareVersion;
     private String ipAddress;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
@@ -33,4 +34,12 @@ public class Controller {
      * false when the board did not find the configured display (wiring or model), null when unknown.
      */
     private Boolean displayFound;
+    /**
+     * Newer firmware published for this board, null when it runs the latest.
+     */
+    private String availableFirmware;
+    /**
+     * Firmware update in progress (or failed), null when none.
+     */
+    private FirmwareUpdateStatus firmwareUpdate;
 }

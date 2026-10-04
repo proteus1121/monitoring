@@ -71,7 +71,7 @@ class ControllerServiceTest {
                 device(11L, DeviceType.TEMPERATURE, SensorModel.DHT11, 16),
                 device(13L, DeviceType.LIGHT, null, null)));
 
-        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.0.0", "10.0.0.2", "", true));
+        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.0.0", "10.0.0.2", "", true, null));
 
         ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
         verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
@@ -95,7 +95,7 @@ class ControllerServiceTest {
                 device(11L, DeviceType.RELAY, SensorModel.RELAY, 4)));
 
         String version = controllerService.buildConfiguration(5L).v();
-        controllerService.handleHello(1L, "esp32-1", new ControllerHello("esp32", "2.0.0", "10.0.0.3", version, true));
+        controllerService.handleHello(1L, "esp32-1", new ControllerHello("esp32", "2.0.0", "10.0.0.3", version, true, null));
 
         verify(controllerPublisher, never()).publishConfiguration(any(), anyString(), any());
         assertEquals(version, controller.getAppliedConfigVersion());
@@ -106,7 +106,7 @@ class ControllerServiceTest {
         when(controllerRepository.findByHardwareId("esp8266-abc")).thenReturn(Optional.empty());
         when(deviceRepository.findByControllerId(5L)).thenReturn(List.of());
 
-        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.1.0", "10.0.0.2", "", true));
+        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.1.0", "10.0.0.2", "", true, null));
 
         ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
         verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
@@ -160,7 +160,7 @@ class ControllerServiceTest {
 
     @Test
     void helloForUnknownUserIsIgnored() {
-        controllerService.handleHello(99L, "esp32-x", new ControllerHello("esp32", "2.0.0", null, null, true));
+        controllerService.handleHello(99L, "esp32-x", new ControllerHello("esp32", "2.0.0", null, null, true, null));
 
         verify(controllerRepository, never()).save(any());
         verify(controllerPublisher, never()).publishConfiguration(any(), anyString(), any());

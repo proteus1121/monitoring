@@ -20,8 +20,11 @@ export type ModuleEntry = {
   display?: DisplayModelInfo;
 };
 
+// "Temperature" -> "temperature", acronyms stay: "LPG", "methane (CH4)"
+const inSentence = (label: string) => label.replace(/^[A-Z](?=[a-z])/, c => c.toLowerCase());
+
 function joinTypes(types: DeviceTypeValue[]) {
-  const names = types.map(type => DEVICE_TYPE_LABELS[type].toLowerCase());
+  const names = types.map(type => inSentence(DEVICE_TYPE_LABELS[type]));
   return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? '';
 }
 
@@ -62,7 +65,7 @@ export const isDisplayModule = (key?: string): key is Exclude<DisplayModelValue,
 export function defaultDeviceName(module: ModuleEntry, type: DeviceTypeValue) {
   const types = module.sensor?.supportedTypes ?? [];
   if (types.length > 1 && module.key !== 'ANALOG_INPUT') {
-    return `${module.label} ${DEVICE_TYPE_LABELS[type].toLowerCase()}`;
+    return `${module.label} ${inSentence(DEVICE_TYPE_LABELS[type])}`;
   }
   return module.label;
 }

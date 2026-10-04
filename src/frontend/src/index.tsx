@@ -24,6 +24,7 @@ import { DashboardPage } from './pages/DashboardPage/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { PairPage } from './pages/PairPage';
 import { ModulesPage } from './pages/ModulesPage';
+import { FirmwarePage } from './pages/FirmwarePage';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
@@ -64,6 +65,7 @@ export const router = createBrowserRouter(
           <Route path="pair" element={<PairPage />} />
           <Route path="settings/configurations" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/modules" element={<ModulesPage />} />
+          <Route path="settings/firmware" element={<FirmwarePage />} />
           <Route path="settings/users" element={<UsersPage />} />
           <Route path="settings/alerts" element={<AlertsPage />} />
           <Route path="*" element={<Navigate to="/dashboard/overview" />} />

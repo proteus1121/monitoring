@@ -5,6 +5,7 @@
 #include "storage/Storage.h"
 #include "system/Ota.h"
 #include "system/Scanner.h"
+#include "system/FirmwareUpdate.h"
 #include "display/Screens.h"
 #include <Arduino.h>
 
@@ -157,6 +158,7 @@ void loop() {
         ESP.restart();
     }
     Scanner::loop();
+    FirmwareUpdate::loop();
     DeviceManager::loop();
 
     static unsigned long lastRender = 0;

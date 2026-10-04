@@ -28,10 +28,46 @@ export type DisplayModelInfo = {
 
 // role of the current user: OWNER for own boards, EDITOR / VIEWER for boards shared with them;
 // displayFound is false when the board did not find its display, undefined with older firmware
+export type FirmwareUpdateStatus = {
+  // REQUESTED, DOWNLOADING, DONE (restarting), FAILED, TIMEOUT
+  state: string;
+  progress: number;
+  version?: string | null;
+  error?: string | null;
+  updatedAt: string;
+};
+
 export type ControllerWithRole = Controller & {
   role?: DeviceRoleValue;
   display?: DisplaySettings;
   displayFound?: boolean | null;
+  // firmware build (platformio env): esp8266, esp32dev, ...
+  board?: string | null;
+  // newer firmware published for this board
+  availableFirmware?: string | null;
+  firmwareUpdate?: FirmwareUpdateStatus | null;
+};
+
+// /firmware/manifest.json, published with the site by CI (firmware tools/firmware_manifest.py)
+export type FirmwareBuild = {
+  board: string;
+  label: string;
+  chip: string;
+  file: string;
+  size: number;
+  md5: string;
+  sha256: string;
+  fullFile: string;
+  install: string;
+};
+
+export type FirmwareManifest = {
+  version: string;
+  date: string;
+  commit?: string | null;
+  notes?: string | null;
+  builds: FirmwareBuild[];
+  planned?: { board: string; label: string; note?: string }[];
 };
 
 export type SuggestedDevice = {
@@ -72,6 +108,14 @@ export const controllersApi = generatedApi.injectEndpoints({
       query: ({ id, ...body }) => ({ url: `/controllers/${id}/display`, method: 'PUT', body }),
       invalidatesTags: ['Controller Management'],
     }),
+    // served by the site itself, not the API
+    getFirmwareManifest: build.query<FirmwareManifest, void>({
+      query: () => ({ url: `${window.location.origin}/firmware/manifest.json`, credentials: 'omit' }),
+    }),
+    updateFirmware: build.mutation<FirmwareUpdateStatus, { id: number }>({
+      query: ({ id }) => ({ url: `/controllers/${id}/firmware-update`, method: 'POST' }),
+      invalidatesTags: ['Controller Management'],
+    }),
     scanController: build.mutation<BoardScan, { id: number }>({
       query: ({ id }) => ({ url: `/controllers/${id}/scan`, method: 'POST' }),
       async onQueryStarted({ id }, { dispatch, queryFulfilled }) {
@@ -103,6 +147,8 @@ export const controllersApi = generatedApi.injectEndpoints({
 });
 
 export const {
+  useGetFirmwareManifestQuery,
+  useUpdateFirmwareMutation,
   useScanControllerMutation,
   useGetBoardScanQuery,
   useGetDisplayModelsQuery,

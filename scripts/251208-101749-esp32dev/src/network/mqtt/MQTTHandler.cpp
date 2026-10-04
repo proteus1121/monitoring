@@ -2,6 +2,7 @@
 #include "../../devices/DeviceManager.h"
 #include "../../display/DisplayManager.h"
 #include "../../system/Scanner.h"
+#include "../../system/FirmwareUpdate.h"
 #include "../../storage/Storage.h"
 #include "network/setup-server/ServerManager.h" // needed for AP fallback
 #include <ArduinoJson.h>
@@ -31,6 +32,7 @@ static String userId = "";
 static String configTopic = "";
 static String commandTopicPrefix = "";
 static String scanTopic = "";
+static String updateTopic = "";
 static unsigned long lastReconnectAttempt = 0;
 static unsigned long lastHello = 0;
 static bool helloPending = false;
@@ -79,6 +81,7 @@ static void publishHello() {
 #else
     doc["platform"] = "esp32";
 #endif
+    doc["board"] = BOARD_ID;
     doc["fw"] = FIRMWARE_VERSION;
     doc["ip"] = WiFi.localIP().toString();
     doc["v"] = DeviceManager::configVersion();
@@ -166,6 +169,16 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length) {
         return;
     }
 
+    if (topicStr == updateTopic) {
+        JsonDocument doc;
+        if (deserializeJson(doc, (const char *)payload, length)) {
+            Serial.println("[UPDATE] Bad request");
+            return;
+        }
+        FirmwareUpdate::request(doc["url"] | "", doc["md5"] | "", doc["version"] | "");
+        return;
+    }
+
     if (topicStr == scanTopic) {
         JsonDocument doc;
         String id;
@@ -225,6 +238,7 @@ void initMQTT() {
     configTopic = "users/" + userId + "/controllers/" + hardwareId() + "/configuration";
     commandTopicPrefix = "users/" + userId + "/devices/";
     scanTopic = "users/" + userId + "/controllers/" + hardwareId() + "/scan";
+    updateTopic = "users/" + userId + "/controllers/" + hardwareId() + "/update";
 
     Serial.println("Hardware ID: " + hardwareId());
 
@@ -272,6 +286,7 @@ static bool connectMQTT() {
     String commandTopic = commandTopicPrefix + "+/command";
     ok = client.subscribe(commandTopic.c_str(), 1) && ok;
     ok = client.subscribe(scanTopic.c_str(), 0) && ok;
+    ok = client.subscribe(updateTopic.c_str(), 0) && ok;
     Serial.println(String("[MQTT] Subscribed to ") + configTopic + " and " + commandTopic + (ok ? "" : " (FAILED)"));
 
     publishHello();
@@ -335,6 +350,17 @@ bool isPairing() {
 
 const String &pairingCode() {
     return currentPairingCode;
+}
+
+bool publishUpdateStatus(const String &payload) {
+    if (!client.connected())
+        return false;
+    String topic = "users/" + userId + "/controllers/" + hardwareId() + "/update-status";
+    return client.publish(topic.c_str(), payload.c_str());
+}
+
+void shrinkMqttBuffer(bool small) {
+    client.setBufferSize(small ? 512 : MQTT_BUFFER_SIZE);
 }
 
 bool publishScanResult(const String &payload) {

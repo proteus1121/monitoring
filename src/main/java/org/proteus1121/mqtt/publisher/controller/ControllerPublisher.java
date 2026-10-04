@@ -18,6 +18,7 @@ public class ControllerPublisher {
     private static final String COMMAND_TOPIC = "users/%d/devices/%d/command";
     private static final String PAIRING_TOPIC = "pairing/%s/%s";
     private static final String SCAN_TOPIC = "users/%d/controllers/%s/scan";
+    private static final String UPDATE_TOPIC = "users/%d/controllers/%s/update";
 
     private final MessagePublisher publisher;
     private final ObjectMapper objectMapper;
@@ -56,6 +57,15 @@ public class ControllerPublisher {
         } catch (Exception e) {
             log.error("Failed to unpair controller on {}", topic, e);
         }
+    }
+
+    /**
+     * Not retained: a board that is offline now must not install it later without being asked again.
+     */
+    public void publishFirmwareUpdate(Long userId, String hardwareId, String payload) {
+        String topic = UPDATE_TOPIC.formatted(userId, hardwareId);
+        log.info("Publishing firmware update to {}: {}", topic, payload);
+        publisher.publishMessage(topic, payload, false);
     }
 
     /**

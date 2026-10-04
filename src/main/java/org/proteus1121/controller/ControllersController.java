@@ -1,5 +1,7 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.service.FirmwareService;
+import org.proteus1121.model.dto.controller.FirmwareUpdateStatus;
 import org.proteus1121.service.BoardScanService;
 import org.proteus1121.model.dto.controller.BoardScan;
 import org.proteus1121.model.request.DisplayRequest;
@@ -44,11 +46,12 @@ public class ControllersController {
     private final PairingService pairingService;
     private final UserService userService;
     private final BoardScanService boardScanService;
+    private final FirmwareService firmwareService;
 
     @GetMapping
     @Operation(summary = "Get controllers of current user", description = "Boards appear here after they connect to MQTT with the user id")
     public ResponseEntity<List<Controller>> getControllers() {
-        return ResponseEntity.ok(controllerService.getControllers(getCurrentUser().getId()));
+        return ResponseEntity.ok(firmwareService.decorate(controllerService.getControllers(getCurrentUser().getId())));
     }
 
     @GetMapping("/sensor-models")
@@ -68,6 +71,12 @@ public class ControllersController {
     public ResponseEntity<Controller> updateDisplay(@PathVariable Long id, @Valid @RequestBody DisplayRequest request) {
         return ResponseEntity.ok(controllerService.updateDisplay(id, getCurrentUser().getId(), request.getModel(),
                 request.getPins(), request.isFlip()));
+    }
+
+    @PostMapping("/{id}/firmware-update")
+    @Operation(summary = "Update the firmware", description = "The board downloads the latest published firmware for it and restarts; progress is in firmwareUpdate of GET /controllers")
+    public ResponseEntity<FirmwareUpdateStatus> updateFirmware(@PathVariable Long id) {
+        return ResponseEntity.accepted().body(firmwareService.requestUpdate(id, getCurrentUser().getId()));
     }
 
     @PostMapping("/{id}/scan")

@@ -34,6 +34,7 @@ import {
   useSendCommandMutation,
 } from '@src/redux/generatedApi';
 import { ControllerPanel, SetupHint } from './ControllersSection';
+import { isUpdating } from './BoardFirmware';
 
 const POLLING_INTERVAL_MS = 30000;
 const PENDING_POLLING_INTERVAL_MS = 3000;
@@ -54,7 +55,9 @@ const DevicesPage = () => {
     pollingInterval: waitingForBoard ? PENDING_POLLING_INTERVAL_MS : POLLING_INTERVAL_MS,
   });
   useEffect(() => {
-    setWaitingForBoard(Boolean(controllers?.some(c => c.online && !c.synced)));
+    setWaitingForBoard(
+      Boolean(controllers?.some(c => (c.online && !c.synced) || isUpdating(c as ControllerWithRole)))
+    );
   }, [controllers]);
   const { data: models } = useGetSensorModelsQuery();
   const { data: readings } = useGetLatestReadingsQuery(undefined, {

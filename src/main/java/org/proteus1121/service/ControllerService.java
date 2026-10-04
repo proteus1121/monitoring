@@ -81,6 +81,9 @@ public class ControllerService {
         }
 
         controller.setPlatform(hello.platform());
+        if (hello.board() != null) {
+            controller.setBoard(hello.board());
+        }
         controller.setFirmwareVersion(hello.fw());
         controller.setIpAddress(hello.ip());
         controller.setAppliedConfigVersion(hello.v());
@@ -379,6 +382,7 @@ public class ControllerService {
         controller.setHardwareId(entity.getHardwareId());
         controller.setName(entity.getName());
         controller.setPlatform(entity.getPlatform());
+        controller.setBoard(entity.getBoard());
         controller.setFirmwareVersion(entity.getFirmwareVersion());
         controller.setIpAddress(entity.getIpAddress());
         controller.setLastSeen(entity.getLastSeen());

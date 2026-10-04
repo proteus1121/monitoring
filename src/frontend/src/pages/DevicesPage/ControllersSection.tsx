@@ -27,6 +27,7 @@ import {
 import { BoardDiagram } from './BoardDiagram';
 import { DisplayModalId } from '@src/redux/modals/DisplayModal';
 import { ScanPanel } from './ScanPanel';
+import { BoardFirmware } from './BoardFirmware';
 
 /**
  * Code input that links the board showing it to the current user. Used on the Devices page and on /pair,
@@ -220,7 +221,8 @@ export function ControllerPanel(props: {
           </span>
         </div>
 
-        <div className="ml-auto flex gap-1">
+        <div className="ml-auto flex flex-wrap items-center gap-1">
+          <BoardFirmware controller={controller as ControllerWithRole} />
           {isOwner && (
             <Button
               size="sm"
