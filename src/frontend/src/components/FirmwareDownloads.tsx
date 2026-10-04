@@ -1,4 +1,5 @@
 import { Icon } from '@iconify/react';
+import { ReactNode } from 'react';
 import { Card } from '@src/components/Card';
 import { BoardArt } from '@src/components/BoardArt';
 import { UsbInstaller } from '@src/components/UsbInstaller';
@@ -17,7 +18,7 @@ type Board = {
 };
 
 // the firmware cannot tell a NodeMCU from a D1 mini: both run the ESP8266 build
-const BOARDS: Board[] = [
+export const BOARDS: Board[] = [
   { model: 'NODEMCU', label: 'NodeMCU v2', chip: 'ESP8266', build: 'esp8266' },
   { model: 'D1_MINI', label: 'Wemos D1 mini', chip: 'ESP8266', build: 'esp8266' },
   { model: 'ESP32_DEVKIT', label: 'ESP32 DevKit', chip: 'ESP32', build: 'esp32dev' },
@@ -90,8 +91,19 @@ type Texts = (typeof TEXTS)['uk'];
  * The supported boards with the firmware for the first install over USB: the full image to download and
  * flash at 0x0, or installing it straight from the browser.
  */
-export function FirmwareDownloads({ manifest }: { manifest?: FirmwareManifest }) {
+export function FirmwareDownloads({
+  manifest,
+  shown,
+  about,
+}: {
+  manifest?: FirmwareManifest;
+  // the boards to show (all by default), the rest is hidden by a search
+  shown?: BoardModelValue[];
+  // description and tags under the board name
+  about?: (model: BoardModelValue) => ReactNode;
+}) {
   const t = useTexts(TEXTS);
+  const filtered = !!shown;
   return (
     <div className="space-y-3">
       <div className="text-sm text-slate-500">
@@ -106,15 +118,16 @@ export function FirmwareDownloads({ manifest }: { manifest?: FirmwareManifest })
         )}
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {BOARDS.map(board => (
+        {BOARDS.filter(board => !shown || shown.includes(board.model)).map(board => (
           <BoardCard
             key={board.model}
             board={board}
             build={manifest?.builds.find(b => b.board === board.build)}
+            about={about?.(board.model)}
             t={t}
           />
         ))}
-        {(manifest?.planned ?? []).map(planned => (
+        {(filtered ? [] : manifest?.planned ?? []).map(planned => (
           <Card key={planned.board} className="flex flex-col gap-2 border-dashed text-slate-500">
             <div className="font-semibold">{planned.label}</div>
             <div className="text-sm">
@@ -136,7 +149,17 @@ export function FirmwareDownloads({ manifest }: { manifest?: FirmwareManifest })
   );
 }
 
-function BoardCard({ board, build, t }: { board: Board; build?: FirmwareBuild; t: Texts }) {
+function BoardCard({
+  board,
+  build,
+  about,
+  t,
+}: {
+  board: Board;
+  build?: FirmwareBuild;
+  about?: ReactNode;
+  t: Texts;
+}) {
   const base = `${window.location.origin}/firmware/`;
   // the application image is the download itself on boards without a separate full image
   const fullSha256 = build && (build.fullSha256 ?? (build.fullFile === build.file ? build.sha256 : undefined));
@@ -154,6 +177,8 @@ function BoardCard({ board, build, t }: { board: Board; build?: FirmwareBuild; t
           </div>
         </div>
       </div>
+
+      {about}
 
       <ul className="space-y-1 text-sm text-slate-600">
         {t.notes[board.model].map(note => (
