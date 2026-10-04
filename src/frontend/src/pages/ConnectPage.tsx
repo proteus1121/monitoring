@@ -12,6 +12,42 @@ import {
 import { PageLayout } from '@src/layouts/PageLayout';
 import { errorMessage } from '@src/redux/helpers';
 import { useConnectControllerMutation } from '@src/redux/controllersApi';
+import { useTexts } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    title: 'Підключення плати',
+    description: 'Плата приєднається до вашого акаунта й з’явиться на сторінці «Мої пристрої»',
+    invalid: (
+      <>
+        Це посилання прийшло не з плати. Відкрийте сторінку плати (на ESP8266 — http://192.168.4.1 у її мережі, на ESP32 —
+        адреса з дисплея) і натисніть там <b>Sign in</b>.
+      </>
+    ),
+    firmware: 'прошивка',
+    at: 'за адресою',
+    explain:
+      'Підключення дає платі власний логін до сервера й повертає вас на її сторінку. Залишайтеся в тій самій мережі, з якої відкрили сторінку плати.',
+    back: 'Назад до плати…',
+    link: 'Підключити цю плату',
+  },
+  en: {
+    title: 'Link a board',
+    description: 'The board joins your account and appears on the My devices page',
+    invalid: (
+      <>
+        This link does not come from a board. Open the board's page (on ESP8266 http://192.168.4.1 on its network, on
+        ESP32 the address on its display) and press <b>Sign in</b> there.
+      </>
+    ),
+    firmware: 'firmware',
+    at: 'at',
+    explain:
+      'Linking gives the board its own login to the server and sends you back to its page. Stay on the network you opened the board’s page from.',
+    back: 'Back to the board…',
+    link: 'Link this board',
+  },
+};
 
 // the board's own page on the local network, as the server checks it (BoardConnectService.isBoardAddress)
 function isBoardAddress(back: string) {
@@ -49,6 +85,7 @@ export function ConnectPage() {
   const [connect, { isLoading }] = useConnectControllerMutation();
   const [error, setError] = useState<string | null>(null);
   const [redirecting, setRedirecting] = useState(false);
+  const t = useTexts(TEXTS);
 
   const link = async () => {
     setError(null);
@@ -74,19 +111,14 @@ export function ConnectPage() {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Link a board</PageHeaderTitle>
-          <PageHeaderDescription>
-            The board joins your account and appears on the My devices page
-          </PageHeaderDescription>
+          <PageHeaderTitle>{t.title}</PageHeaderTitle>
+          <PageHeaderDescription>{t.description}</PageHeaderDescription>
         </div>
       </PageHeader>
 
       <Card className="max-w-xl space-y-4">
         {!valid ? (
-          <p className="text-sm text-slate-600">
-            This link does not come from a board. Open the board's page on your Wi-Fi (its address is on the
-            display) and press <b>Sign in</b> there.
-          </p>
+          <p className="text-sm text-slate-600">{t.invalid}</p>
         ) : (
           <>
             <div className="flex items-start gap-3">
@@ -96,19 +128,16 @@ export function ConnectPage() {
               <div className="text-sm">
                 <div className="font-mono font-semibold">{hardwareId}</div>
                 <div className="text-slate-500">
-                  {platform?.toUpperCase()} {firmwareVersion && <>· firmware {firmwareVersion}</>} · at{' '}
+                  {platform?.toUpperCase()} {firmwareVersion && <>· {t.firmware} {firmwareVersion}</>} · {t.at}{' '}
                   {new URL(back).host}
                 </div>
               </div>
             </div>
-            <p className="text-sm text-slate-600">
-              Linking gives the board its own login to the server and sends you back to its page. Keep this
-              phone or computer on the same Wi-Fi as the board.
-            </p>
+            <p className="text-sm text-slate-600">{t.explain}</p>
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button onClick={link} disabled={isLoading || redirecting}>
               {isLoading || redirecting ? <Spinner /> : <Icon icon="lucide:link" />}
-              {redirecting ? 'Back to the board…' : 'Link this board'}
+              {redirecting ? t.back : t.link}
             </Button>
           </>
         )}

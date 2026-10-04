@@ -1,18 +1,58 @@
 import z from 'zod';
 import { FieldGroup } from '@src/components/Field';
+import { pick, useTexts } from '@src/lib/lang';
 import type {
   NotificationChannel,
   TelegramNotification,
   TelegramNotificationRequest,
 } from '../generatedApi';
 
-export const DEFAULT_TEMPLATE = `Critical alert
+const TEXTS = {
+  uk: {
+    template: `Критичне сповіщення
+
+Датчик {{device_name}} показав {{current_value}}
+Пороги: {{lower_value}} … {{critical_value}}
+Час: {{timestamp}}
+
+{{description}}`,
+    templateRequired: 'Потрібен шаблон',
+    chatRequired: 'Потрібен id чату',
+    validEmail: 'Введіть правильну адресу e-mail',
+    channel: 'Канал',
+    severity: 'Рівень',
+    critical: 'Критичні',
+    warning: 'Попередження',
+    info: 'Інформація',
+    chatId: 'id чату Telegram',
+    chatHelp: 'Спершу напишіть боту, потім дізнайтеся свій id чату, наприклад через @userinfobot.',
+    messageTemplate: 'Шаблон повідомлення',
+    placeholders: 'Підстановки:',
+    aiNote: 'пояснення від AI (додається в кінці, якщо підстановки немає)',
+  },
+  en: {
+    template: `Critical alert
 
 Sensor {{device_name}} reported {{current_value}}
 Thresholds: {{lower_value}} … {{critical_value}}
 Time: {{timestamp}}
 
-{{description}}`;
+{{description}}`,
+    templateRequired: 'Template is required',
+    chatRequired: 'Chat id is required',
+    validEmail: 'Enter a valid e-mail',
+    channel: 'Channel',
+    severity: 'Severity',
+    critical: 'Critical',
+    warning: 'Warning',
+    info: 'Info',
+    chatId: 'Telegram chat id',
+    chatHelp: 'Write to the bot first, then get your chat id, e.g. from @userinfobot.',
+    messageTemplate: 'Message template',
+    placeholders: 'Placeholders:',
+    aiNote: 'explanation written by the AI (added at the end when the placeholder is missing)',
+  },
+};
 
 export const NotificationSchema = z
   .object({
@@ -20,14 +60,14 @@ export const NotificationSchema = z
     telegramChatId: z.string().optional(),
     email: z.string().optional(),
     type: z.enum(['INFO', 'WARNING', 'CRITICAL']),
-    template: z.string().min(1, 'Template is required'),
+    template: z.string().min(1, { error: () => pick(TEXTS).templateRequired }),
   })
   .superRefine((value, ctx) => {
     if (value.channel === 'TELEGRAM' && !value.telegramChatId?.trim()) {
-      ctx.addIssue({ code: 'custom', path: ['telegramChatId'], message: 'Chat id is required' });
+      ctx.addIssue({ code: 'custom', path: ['telegramChatId'], message: pick(TEXTS).chatRequired });
     }
     if (value.channel === 'EMAIL' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value.email ?? '')) {
-      ctx.addIssue({ code: 'custom', path: ['email'], message: 'Enter a valid e-mail' });
+      ctx.addIssue({ code: 'custom', path: ['email'], message: pick(TEXTS).validEmail });
     }
   });
 
@@ -41,7 +81,8 @@ export function toNotificationFormValues(
     telegramChatId: notification?.telegramChatId ?? '',
     email: notification?.email ?? '',
     type: notification?.type ?? 'CRITICAL',
-    template: notification?.template ?? DEFAULT_TEMPLATE,
+    // a new one starts from the template in the interface language
+    template: notification?.template ?? pick(TEXTS).template,
   };
 }
 
@@ -59,6 +100,7 @@ export function toNotificationRequest(
 
 // TanStack form instance created with useAppForm in the parent modal
 export function NotificationFormFields({ form }: { form: any }) {
+  const t = useTexts(TEXTS);
   return (
     <FieldGroup>
       <div className="flex flex-wrap gap-2">
@@ -66,7 +108,7 @@ export function NotificationFormFields({ form }: { form: any }) {
           name="channel"
           children={(field: any) => (
             <field.SelectField
-              label="Channel"
+              label={t.channel}
               options={[
                 { value: 'TELEGRAM', label: 'Telegram' },
                 { value: 'EMAIL', label: 'E-mail' },
@@ -78,11 +120,11 @@ export function NotificationFormFields({ form }: { form: any }) {
           name="type"
           children={(field: any) => (
             <field.SelectField
-              label="Severity"
+              label={t.severity}
               options={[
-                { value: 'CRITICAL', label: 'Critical' },
-                { value: 'WARNING', label: 'Warning' },
-                { value: 'INFO', label: 'Info' },
+                { value: 'CRITICAL', label: t.critical },
+                { value: 'WARNING', label: t.warning },
+                { value: 'INFO', label: t.info },
               ]}
             />
           )}
@@ -104,12 +146,10 @@ export function NotificationFormFields({ form }: { form: any }) {
               <form.AppField
                 name="telegramChatId"
                 children={(field: any) => (
-                  <field.TextField label="Telegram chat id" placeholder="392872938" />
+                  <field.TextField label={t.chatId} placeholder="392872938" />
                 )}
               />
-              <p className="-mt-3 text-xs text-slate-500">
-                Write to the bot first, then get your chat id, e.g. from @userinfobot.
-              </p>
+              <p className="-mt-3 text-xs text-slate-500">{t.chatHelp}</p>
             </>
           )
         }
@@ -117,12 +157,12 @@ export function NotificationFormFields({ form }: { form: any }) {
 
       <form.AppField
         name="template"
-        children={(field: any) => <field.TextareaField label="Message template" />}
+        children={(field: any) => <field.TextareaField label={t.messageTemplate} />}
       />
       <p className="-mt-3 text-xs text-slate-500">
-        Placeholders: {'{{device_name}}'}, {'{{current_value}}'}, {'{{lower_value}}'},{' '}
+        {t.placeholders} {'{{device_name}}'}, {'{{current_value}}'}, {'{{lower_value}}'},{' '}
         {'{{critical_value}}'}, {'{{device_location}}'}, {'{{timestamp}}'}, {'%{username}'},{' '}
-        {'{{description}}'} — explanation written by the AI (added at the end when the placeholder is missing)
+        {'{{description}}'} — {t.aiNote}
       </p>
     </FieldGroup>
   );

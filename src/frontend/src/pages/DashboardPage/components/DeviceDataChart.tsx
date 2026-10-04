@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Dayjs } from 'dayjs';
 import { serverTime } from '@src/lib/readings';
+import { useTexts } from '@src/lib/lang';
 import {
   Device,
   SensorData,
@@ -38,6 +39,27 @@ const COLORS = [
   'rgb(8, 145, 178)',
   'rgb(202, 138, 4)',
 ];
+
+const TEXTS = {
+  uk: {
+    device: 'Пристрій',
+    forecast: 'прогноз',
+    locale: 'uk-UA',
+    failed: 'Не вдалося завантажити дані',
+    loading: 'Завантаження…',
+    noData: 'За цей період даних немає',
+    selectDevices: 'Виберіть пристрої, щоб побачити їхню історію',
+  },
+  en: {
+    device: 'Device',
+    forecast: 'forecast',
+    locale: 'en-GB',
+    failed: 'Failed to load data',
+    loading: 'Loading…',
+    noData: 'No data for this period',
+    selectDevices: 'Select devices to show their history',
+  },
+};
 
 interface DatasetConfig {
   label: string;
@@ -76,6 +98,7 @@ const DeviceDataChart = ({
   startDate: Dayjs;
   endDate: Dayjs;
 }) => {
+  const t = useTexts(TEXTS);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
@@ -127,7 +150,7 @@ const DeviceDataChart = ({
         responses.forEach((r, index) => {
           const color = COLORS[index % COLORS.length];
           const name =
-            devicesRef.current?.find(d => d.id === r.id)?.name ?? `Device ${r.id}`;
+            devicesRef.current?.find(d => d.id === r.id)?.name ?? `${t.device} ${r.id}`;
           datasets.push({
             label: name,
             data: sorted.map(ts => r.actual[ts] ?? null),
@@ -139,7 +162,7 @@ const DeviceDataChart = ({
           });
           if (Object.keys(r.predicted).length > 0) {
             datasets.push({
-              label: `${name} (forecast)`,
+              label: `${name} (${t.forecast})`,
               data: sorted.map(ts => r.predicted[ts] ?? null),
               borderColor: color,
               backgroundColor: color,
@@ -153,7 +176,7 @@ const DeviceDataChart = ({
 
         setChartData({
           labels: sorted.map(ts =>
-            new Date(ts).toLocaleString(undefined, {
+            new Date(ts).toLocaleString(t.locale, {
               month: 'short',
               day: 'numeric',
               hour: '2-digit',
@@ -164,7 +187,7 @@ const DeviceDataChart = ({
         });
       } catch (err) {
         console.error(err);
-        if (!cancelled) setError('Failed to load data');
+        if (!cancelled) setError(t.failed);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -182,7 +205,7 @@ const DeviceDataChart = ({
     <div className="relative h-[360px]">
       {isLoading && (
         <span className="absolute top-0 right-0 z-10 text-xs text-slate-400">
-          Loading…
+          {t.loading}
         </span>
       )}
       {error && <p className="text-sm text-red-500">{error}</p>}
@@ -202,9 +225,7 @@ const DeviceDataChart = ({
         !isLoading &&
         !error && (
           <p className="pt-10 text-center text-sm text-slate-500">
-            {choosenDevicesIds.length
-              ? 'No data for this period'
-              : 'Select devices to show their history'}
+            {choosenDevicesIds.length ? t.noData : t.selectDevices}
           </p>
         )
       )}

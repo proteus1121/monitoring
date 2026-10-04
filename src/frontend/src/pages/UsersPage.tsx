@@ -15,10 +15,29 @@ import {
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { DeviceIcon } from './DevicesPage/DevicesPage';
-import { capitalizeFirstLetter } from '@src/lib/capitalizeFirstLetter';
 import { DeviceSharingCreationModalId } from '@src/redux/modals/DeviceSharingCreationModal';
 import { DeviceSharingUpdatingModalId } from '@src/redux/modals/DeviceSharingUpdatingModal';
-import { BoardSharingCard } from './BoardSharingCard';
+import { BoardSharingCard, roleLabel } from './BoardSharingCard';
+import { useTexts } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    title: 'Користувачі',
+    description: 'Надавайте доступ до плат або окремих пристроїв і керуйте правами',
+    shareDevices: 'Доступ до окремих пристроїв',
+    users: 'Користувачі',
+    you: 'Ви',
+    sharedDevices: (count: number) => `Спільні пристрої (${count})`,
+  },
+  en: {
+    title: 'User Management',
+    description: 'Share boards or single devices with users and manage access permissions',
+    shareDevices: 'Share single devices',
+    users: 'Users',
+    you: 'You',
+    sharedDevices: (count: number) => `Shared Devices (${count})`,
+  },
+};
 
 export type FlatUserWithDevices = {
   username: string;
@@ -56,6 +75,7 @@ export const UsersPage = () => {
   );
 
   const { users, owner, isLoading } = useUsersWithDevices();
+  const t = useTexts(TEXTS);
 
   if (isLoading) {
     return <Loader />;
@@ -67,9 +87,9 @@ export const UsersPage = () => {
         <PageHeader>
           <div>
             <PageHeaderTitle>
-              <H1>User Management</H1>
+              <H1>{t.title}</H1>
             </PageHeaderTitle>
-            <H3>Share boards or single devices with users and manage access permissions</H3>
+            <H3>{t.description}</H3>
           </div>
 
           <Button
@@ -78,7 +98,7 @@ export const UsersPage = () => {
             className="ml-2 shrink-0"
           >
             <Icon icon="lucide:user-plus" className="size-4" />
-            Share single devices
+            {t.shareDevices}
           </Button>
         </PageHeader>
 
@@ -86,7 +106,7 @@ export const UsersPage = () => {
 
         <Card className="space-y-4">
           <div className="flex items-center justify-between pb-6 text-xl font-semibold">
-            Users
+            {t.users}
             {/* <Select */}
             {/*   defaultValue="all" */}
             {/*   onValueChange={val => { */}
@@ -232,6 +252,7 @@ const UserItem = ({
   const { setState: showDeviceSharingUpdatingModal } = useModal(
     DeviceSharingUpdatingModalId
   );
+  const t = useTexts(TEXTS);
 
   return (
     <div
@@ -262,7 +283,7 @@ const UserItem = ({
           </div>
           {isCurrentUser && (
             <span className="inline-flex items-center justify-center gap-1 rounded-2xl border border-current/40 bg-current/20 px-2 py-0.5 text-xs text-green-700">
-              You
+              {t.you}
             </span>
           )}
         </div>
@@ -280,7 +301,7 @@ const UserItem = ({
       </div>
       <div className="ml-16 border-t pt-2">
         <p className="mb-2 text-xs text-gray-500">
-          Shared Devices ({user.devices.length})
+          {t.sharedDevices(user.devices.length)}
         </p>
         <div className="flex flex-wrap gap-2">
           {user.devices.map(i => (
@@ -292,7 +313,7 @@ const UserItem = ({
               <DeviceIcon type="UNKNOWN" />
               {i.deviceName}
               <span className="ml-1 text-gray-400">
-                ({capitalizeFirstLetter(i.role ?? '')})
+                ({roleLabel(i.role)})
               </span>
             </span>
           ))}

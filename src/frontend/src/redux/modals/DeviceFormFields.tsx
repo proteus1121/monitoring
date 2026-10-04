@@ -13,6 +13,7 @@ import {
   getPinOptions,
 } from '@src/lib/hardware';
 import { fromNow } from '@src/lib/readings';
+import { pick, useTexts } from '@src/lib/lang';
 import {
   Device,
   DeviceRequest,
@@ -30,11 +31,194 @@ import { useGetRawReadingQuery, type ControllerWithRole } from '../controllersAp
 // value of the controller select when the device is not wired to a board
 export const NO_CONTROLLER = 'none';
 
+const TEXTS = {
+  uk: {
+    mustBeNumber: 'Має бути числом',
+    atLeastSecond: 'Щонайменше 1 секунда',
+    selectModule: 'Виберіть модуль, під’єднаний до плати',
+    selectPin: 'Виберіть пін',
+    forecastModels: {
+      NONE: ['Без прогнозу', 'Для пристрою не будується прогноз.'],
+      ARIMA: ['ARIMA', 'Авторегресійна інтегрована модель ковзного середнього ARIMA(p, d, q). Добре для плавних рядів із трендом.'],
+      KALMAN: ['Фільтр Калмана', 'Локальний рівень і згасаючий тренд, які відстежує фільтр Калмана. Стійкий до шумних датчиків, швидко підлаштовується.'],
+      XGBOOST: ['XGBoost', 'Градієнтний бустинг дерев за часом доби, днем тижня й останніми значеннями. Враховує добові закономірності.'],
+    } as Record<string, [string, string]>,
+    fields: {
+      name: 'Назва пристрою',
+      description: 'Опис',
+      criticalValue: 'Верхній поріг',
+      lowerValue: 'Нижній поріг',
+      delaySeconds: 'Інтервал надсилання',
+      type: 'Вимірювання',
+      controllerId: 'Плата',
+      sensorModel: 'Модуль датчика',
+      pin: 'Пін',
+      secondaryPin: 'Другий пін',
+    } as Record<string, string>,
+    checkSettings: 'Перевірте налаштування пристрою',
+    tabs: { general: 'Загальне', alerts: 'Сповіщення', forecast: 'Прогноз', calibration: 'Калібрування' },
+    namePlaceholder: 'Температура на кухні',
+    descriptionPlaceholder: 'Де стоїть і що вимірює',
+    board: 'Плата',
+    notWired: 'Не під’єднано до плати',
+    sensorModule: 'Модуль датчика',
+    selectModulePlaceholder: 'Виберіть модуль',
+    noBoards: 'Плат ще немає. Прошийте плату й увійдіть з її сторінки.',
+    signal: 'Сигнал',
+    pinOf: (name: string) => `Пін ${name}`,
+    selectPinPlaceholder: 'Виберіть пін',
+    measurement: 'Вимірювання',
+    selectMeasurement: 'Виберіть вимірювання',
+    interval: 'Інтервал надсилання, секунд',
+    intervalNote: 'Як часто плата надсилає значення. Після трьох пропущених інтервалів пристрій вважається офлайн.',
+    sensor: 'Датчик',
+    describeFailed: 'Не вдалося згенерувати опис',
+    generate: 'Згенерувати',
+    generateNote: 'Пише AI за назвою, модулем і піном. Якщо залишити порожнім, опис з’явиться після збереження.',
+    calibrationHelp: (
+      <>
+        Тримайте датчик у повітрі й натисніть <b>Сухо зараз</b>; занурте його у воду до риски, дочекайтеся, поки
+        значення встановиться, і натисніть <b>У воді зараз</b>. Збережіть, щоб надіслати на плату.
+      </>
+    ),
+    rawNow: 'Сире значення зараз:',
+    rawSent: (when: string) => `${when}, плата надсилає його з кожним показником`,
+    rawNone: 'ще немає: плата надішле його з наступним показником',
+    dry: 'Сухо, 0 %',
+    wet: 'У воді, 100 %',
+    byDefault: 'типово',
+    dryNow: 'Сухо зараз',
+    wetNow: 'У воді зараз',
+    preview: (value: number) => (
+      <>
+        З цими значеннями датчик зараз показує <b>{value} %</b>.
+      </>
+    ),
+    mustDiffer: 'Значення «сухо» й «у воді» мають відрізнятися.',
+    alertsHelp:
+      'Сповіщення спрацьовує, коли значення виходить вище верхнього або нижче нижнього порогу. Залиште порожнім, щоб вимкнути. Канали сповіщень налаштовуються на сторінці «Сповіщення».',
+    upper: 'Верхній поріг',
+    lower: 'Нижній поріг',
+    notSet: 'не задано',
+    forecastFailed: 'Не вдалося побудувати прогноз',
+    forecastNotBuilt: 'Прогноз не побудовано',
+    forecastBuilt: (hours: number) => `Прогноз побудовано: на ${hours} год уперед`,
+    trainedOn: (hours: number, mae?: string, rmse?: string) => `Навчено на ${hours} год. MAE ${mae}, RMSE ${rmse}`,
+    model: 'Модель',
+    horizon: 'Горизонт, годин',
+    history: 'Історія, днів',
+    arimaP: 'p (порядок AR)',
+    arimaD: 'd (диференціювання)',
+    arimaQ: 'q (порядок MA)',
+    processNoise: 'Шум процесу',
+    measurementNoise: 'Шум вимірювань',
+    kalmanNote:
+      'Відносно дисперсії погодинних змін. Більший шум процесу швидше йде за даними, більший шум вимірювань сильніше згладжує.',
+    rounds: 'Раунди бустингу',
+    depth: 'Макс. глибина дерева',
+    lastRun: (when: string) => `Останній запуск ${when}`,
+    notRun: 'Ще не запускався. Прогнози оновлюються щогодини.',
+    runNow: 'Запустити зараз',
+    runNote:
+      '«Запустити зараз» бере збережені налаштування, тож спершу збережіть зміни. Похибки рахуються на останніх годинах, яких модель не бачила.',
+  },
+  en: {
+    mustBeNumber: 'Must be a number',
+    atLeastSecond: 'At least 1 second',
+    selectModule: 'Select the module wired to the controller',
+    selectPin: 'Select the pin',
+    forecastModels: {
+      NONE: ['No forecast', 'The device is not forecast.'],
+      ARIMA: ['ARIMA', 'Autoregressive integrated moving average ARIMA(p, d, q). Good for smooth series with a trend.'],
+      KALMAN: ['Kalman filter', 'Local level + damped trend tracked by a Kalman filter. Robust to noisy sensors, adapts quickly.'],
+      XGBOOST: ['XGBoost', 'Gradient boosted trees on the time of day, day of week and recent values. Captures daily patterns.'],
+    } as Record<string, [string, string]>,
+    fields: {
+      name: 'Device name',
+      description: 'Description',
+      criticalValue: 'Upper threshold',
+      lowerValue: 'Lower threshold',
+      delaySeconds: 'Send interval',
+      type: 'Measurement',
+      controllerId: 'Board',
+      sensorModel: 'Sensor module',
+      pin: 'Pin',
+      secondaryPin: 'Second pin',
+    } as Record<string, string>,
+    checkSettings: 'Check the device settings',
+    tabs: { general: 'General', alerts: 'Alerts', forecast: 'Forecast', calibration: 'Calibration' },
+    namePlaceholder: 'Kitchen temperature',
+    descriptionPlaceholder: 'Where it is, what it measures',
+    board: 'Board',
+    notWired: 'Not wired to a board',
+    sensorModule: 'Sensor module',
+    selectModulePlaceholder: 'Select module',
+    noBoards: 'No boards yet. Flash a board and sign in from its page.',
+    signal: 'Signal',
+    pinOf: (name: string) => `${name} pin`,
+    selectPinPlaceholder: 'Select pin',
+    measurement: 'Measurement',
+    selectMeasurement: 'Select measurement',
+    interval: 'Send interval, seconds',
+    intervalNote: 'How often the board sends the value. The device is shown offline after three missed intervals.',
+    sensor: 'Sensor',
+    describeFailed: 'Could not generate a description',
+    generate: 'Generate',
+    generateNote: 'Written by AI from the name, module and pin. Left empty, it is generated after saving.',
+    calibrationHelp: (
+      <>
+        Hold the probe in the air, press <b>Dry now</b>; put it in water up to the line, wait for the value to
+        settle and press <b>In water now</b>. Save to send it to the board.
+      </>
+    ),
+    rawNow: 'Raw value now:',
+    rawSent: (when: string) => `${when}, the board sends it with every reading`,
+    rawNone: 'none yet: the board sends it with the next reading',
+    dry: 'Dry, 0 %',
+    wet: 'In water, 100 %',
+    byDefault: 'default',
+    dryNow: 'Dry now',
+    wetNow: 'In water now',
+    preview: (value: number) => (
+      <>
+        With these values the probe reads <b>{value} %</b> now.
+      </>
+    ),
+    mustDiffer: 'Dry and wet must differ.',
+    alertsHelp:
+      'An alert is raised when a value goes above the upper or below the lower threshold. Leave empty to disable. Notification channels are set on the Alerts page.',
+    upper: 'Upper threshold',
+    lower: 'Lower threshold',
+    notSet: 'not set',
+    forecastFailed: 'Forecast failed',
+    forecastNotBuilt: 'Forecast was not built',
+    forecastBuilt: (hours: number) => `Forecast built: ${hours} h ahead`,
+    trainedOn: (hours: number, mae?: string, rmse?: string) => `Trained on ${hours} h. MAE ${mae}, RMSE ${rmse}`,
+    model: 'Model',
+    horizon: 'Horizon, hours',
+    history: 'History, days',
+    arimaP: 'p (AR order)',
+    arimaD: 'd (differencing)',
+    arimaQ: 'q (MA order)',
+    processNoise: 'Process noise',
+    measurementNoise: 'Measurement noise',
+    kalmanNote:
+      'Relative to the variance of hourly changes. Higher process noise follows the data faster, higher measurement noise smooths more.',
+    rounds: 'Boosting rounds',
+    depth: 'Max tree depth',
+    lastRun: (when: string) => `Last run ${when}`,
+    notRun: 'Not run yet. Forecasts refresh every hour.',
+    runNow: 'Run now',
+    runNote:
+      'Run now uses the saved settings, submit changes first. Errors are measured on the last hours the model did not see.',
+  },
+};
+
 const optionalNumber = z
   .string()
   .optional()
   .refine(v => v === undefined || v === '' || Number.isFinite(Number(v)), {
-    message: 'Must be a number',
+    error: () => pick(TEXTS).mustBeNumber,
   });
 
 export const DeviceSchema = z
@@ -43,7 +227,7 @@ export const DeviceSchema = z
     description: z.string().max(255).optional(),
     criticalValue: optionalNumber,
     lowerValue: optionalNumber,
-    delaySeconds: z.coerce.number<string>().min(1, 'At least 1 second'),
+    delaySeconds: z.coerce.number<string>().min(1, { error: () => pick(TEXTS).atLeastSecond }),
     type: z.enum(DeviceType).optional(),
     controllerId: z.string().optional(),
     sensorModel: z.string().optional(),
@@ -68,11 +252,11 @@ export const DeviceSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['sensorModel'],
-        message: 'Select the module wired to the controller',
+        message: pick(TEXTS).selectModule,
       });
     }
     if (!value.pin) {
-      ctx.addIssue({ code: 'custom', path: ['pin'], message: 'Select the pin' });
+      ctx.addIssue({ code: 'custom', path: ['pin'], message: pick(TEXTS).selectPin });
     }
   });
 
@@ -152,39 +336,9 @@ const ALL_TYPES = (Object.keys(DEVICE_TYPE_LABELS) as DeviceTypeValue[]).filter(
   type => type !== 'UNKNOWN'
 );
 
-const FORECAST_MODELS: { value: ForecastModel; label: string; hint: string }[] = [
-  { value: 'NONE', label: 'No forecast', hint: 'The device is not forecast.' },
-  {
-    value: 'ARIMA',
-    label: 'ARIMA',
-    hint: 'Autoregressive integrated moving average ARIMA(p, d, q). Good for smooth series with a trend.',
-  },
-  {
-    value: 'KALMAN',
-    label: 'Kalman filter',
-    hint: 'Local level + damped trend tracked by a Kalman filter. Robust to noisy sensors, adapts quickly.',
-  },
-  {
-    value: 'XGBOOST',
-    label: 'XGBoost',
-    hint: 'Gradient boosted trees on the time of day, day of week and recent values. Captures daily patterns.',
-  },
-];
+const FORECAST_MODELS: ForecastModel[] = ['NONE', 'ARIMA', 'KALMAN', 'XGBOOST'];
 
 type Tab = 'general' | 'alerts' | 'forecast' | 'calibration';
-
-const FIELD_LABELS: Record<string, string> = {
-  name: 'Device name',
-  description: 'Description',
-  criticalValue: 'Upper threshold',
-  lowerValue: 'Lower threshold',
-  delaySeconds: 'Send interval',
-  type: 'Measurement',
-  controllerId: 'Board',
-  sensorModel: 'Sensor module',
-  pin: 'Pin',
-  secondaryPin: 'Second pin',
-};
 
 /**
  * Fields are spread over tabs, so a failed submit names the invalid fields instead of failing silently.
@@ -192,13 +346,14 @@ const FIELD_LABELS: Record<string, string> = {
 export function notifyInvalidDevice(value: unknown) {
   const parsed = DeviceSchema.safeParse(value);
   if (parsed.success) return;
+  const t = pick(TEXTS);
   const byField = new Map<string, string>();
   for (const issue of parsed.error.issues) {
     const field = String(issue.path[0] ?? '');
-    if (!byField.has(field)) byField.set(field, `${FIELD_LABELS[field] ?? field}: ${issue.message}`);
+    if (!byField.has(field)) byField.set(field, `${t.fields[field] ?? field}: ${issue.message}`);
   }
   notification.error({
-    message: 'Check the device settings',
+    message: t.checkSettings,
     description: [...byField.values()].join('. '),
   });
 }
@@ -206,6 +361,7 @@ export function notifyInvalidDevice(value: unknown) {
 // TanStack form instance created with useAppForm in the parent modal
 export function DeviceFormFields({ form, device }: { form: any; device?: Device | null }) {
   const [tab, setTab] = useState<Tab>('general');
+  const t = useTexts(TEXTS);
   // a soil probe is calibrated from the raw values its board reports, so only once it is saved on a board
   const calibratable = !!device?.id && !!device.controllerId && device.sensorModel === 'SOIL_MOISTURE';
 
@@ -214,10 +370,10 @@ export function DeviceFormFields({ form, device }: { form: any; device?: Device 
       <div className="flex gap-1 rounded-lg bg-gray-100 p-1 text-sm">
         {(
           [
-            ['general', 'General'],
-            ['alerts', 'Alerts'],
-            ['forecast', 'Forecast'],
-            ...(calibratable ? [['calibration', 'Calibration']] : []),
+            ['general', t.tabs.general],
+            ['alerts', t.tabs.alerts],
+            ['forecast', t.tabs.forecast],
+            ...(calibratable ? [['calibration', t.tabs.calibration]] : []),
           ] as [Tab, string][]
         ).map(([value, label]) => (
           <button
@@ -245,20 +401,21 @@ export function DeviceFormFields({ form, device }: { form: any; device?: Device 
 function GeneralFields({ form }: { form: any }) {
   const { data: controllers } = useGetControllersQuery();
   const { data: models } = useGetSensorModelsQuery();
+  const t = useTexts(TEXTS);
 
   return (
     <FieldGroup>
       <form.AppField
         name="name"
         children={(field: any) => (
-          <field.TextField label="Device name" placeholder="Kitchen temperature" />
+          <field.TextField label={t.fields.name} placeholder={t.namePlaceholder} />
         )}
       />
 
       <form.AppField
         name="description"
         children={(field: any) => (
-          <field.TextareaField label="Description" placeholder="Where it is, what it measures" />
+          <field.TextareaField label={t.fields.description} placeholder={t.descriptionPlaceholder} />
         )}
       />
       <GenerateDescription form={form} />
@@ -280,10 +437,10 @@ function GeneralFields({ form }: { form: any }) {
                   name="controllerId"
                   children={(field: any) => (
                     <field.SelectField
-                      label="Board"
+                      label={t.board}
                       className="w-[200px]"
                       options={[
-                        { value: NO_CONTROLLER, label: 'Not wired to a board' },
+                        { value: NO_CONTROLLER, label: t.notWired },
                         ...(controllers ?? []).map(c => ({
                           value: String(c.id),
                           label: `${c.name} (${c.platform ?? '?'})`,
@@ -309,9 +466,9 @@ function GeneralFields({ form }: { form: any }) {
                     }}
                     children={(field: any) => (
                       <field.SelectField
-                        label="Sensor module"
+                        label={t.sensorModule}
                         className="w-[200px]"
-                        placeholder="Select module"
+                        placeholder={t.selectModulePlaceholder}
                         options={(models ?? []).map(m => ({
                           value: m.model!,
                           label: m.label ?? m.model!,
@@ -323,9 +480,7 @@ function GeneralFields({ form }: { form: any }) {
               </div>
 
               {bound && !controllers?.length && (
-                <p className="text-sm text-slate-500">
-                  No boards yet. Flash the firmware and enter your User ID in the board setup portal.
-                </p>
+                <p className="text-sm text-slate-500">{t.noBoards}</p>
               )}
 
               {bound && model && (
@@ -336,9 +491,9 @@ function GeneralFields({ form }: { form: any }) {
                       name="pin"
                       children={(field: any) => (
                         <field.SelectField
-                          label={`${model.pins?.[0] ?? 'Signal'} pin`}
+                          label={t.pinOf(model.pins?.[0] ?? t.signal)}
                           className="w-[200px]"
-                          placeholder="Select pin"
+                          placeholder={t.selectPinPlaceholder}
                           options={pinOptions}
                         />
                       )}
@@ -348,9 +503,9 @@ function GeneralFields({ form }: { form: any }) {
                         name="secondaryPin"
                         children={(field: any) => (
                           <field.SelectField
-                            label={`${model.pins?.[1]} pin`}
+                            label={t.pinOf(model.pins?.[1] ?? '')}
                             className="w-[200px]"
-                            placeholder="Select pin"
+                            placeholder={t.selectPinPlaceholder}
                             options={pinOptions}
                           />
                         )}
@@ -364,9 +519,9 @@ function GeneralFields({ form }: { form: any }) {
                 name="type"
                 children={(field: any) => (
                   <field.SelectField
-                    label="Measurement"
+                    label={t.measurement}
                     className="w-[200px]"
-                    placeholder="Select measurement"
+                    placeholder={t.selectMeasurement}
                     options={types.map(type => ({ value: type, label: DEVICE_TYPE_LABELS[type] }))}
                   />
                 )}
@@ -379,12 +534,10 @@ function GeneralFields({ form }: { form: any }) {
       <form.AppField
         name="delaySeconds"
         children={(field: any) => (
-          <field.TextField label="Send interval, seconds" placeholder="10" />
+          <field.TextField label={t.interval} placeholder="10" />
         )}
       />
-      <p className="-mt-3 text-xs text-slate-500">
-        How often the board sends the value. The device is shown offline after three missed intervals.
-      </p>
+      <p className="-mt-3 text-xs text-slate-500">{t.intervalNote}</p>
     </FieldGroup>
   );
 }
@@ -396,19 +549,20 @@ function GeneralFields({ form }: { form: any }) {
 function GenerateDescription({ form }: { form: any }) {
   const { data: status } = useGetLlmStatusQuery();
   const [describe, { isLoading }] = useDescribeDeviceMutation();
+  const t = useTexts(TEXTS);
 
   if (!status?.enabled) return null;
 
   const generate = async () => {
     const values = form.state.values;
-    const parsed = DeviceSchema.safeParse({ ...values, name: values.name || 'Sensor' });
+    const parsed = DeviceSchema.safeParse({ ...values, name: values.name || t.sensor });
     if (!parsed.success) {
-      notifyInvalidDevice({ ...values, name: values.name || 'Sensor' });
+      notifyInvalidDevice({ ...values, name: values.name || t.sensor });
       return;
     }
     const res = await describe({ deviceRequest: toDeviceRequest(parsed.data) });
     if ('error' in res) {
-      notification.error({ message: 'Could not generate a description', description: JSON.stringify(res.error) });
+      notification.error({ message: t.describeFailed, description: JSON.stringify(res.error) });
       return;
     }
     form.setFieldValue('description', res.data.text);
@@ -418,9 +572,9 @@ function GenerateDescription({ form }: { form: any }) {
     <div className="-mt-3 flex items-center gap-2 text-xs text-slate-500">
       <Button type="button" size="sm" variant="secondary" disabled={isLoading} onClick={generate}>
         {isLoading ? <Spinner /> : <Icon icon="lucide:sparkles" />}
-        Generate
+        {t.generate}
       </Button>
-      Written by AI from the name, module and pin. Left empty, it is generated after saving.
+      {t.generateNote}
     </div>
   );
 }
@@ -432,20 +586,16 @@ function GenerateDescription({ form }: { form: any }) {
 function CalibrationFields({ form, device }: { form: any; device: Device }) {
   const { data: raw } = useGetRawReadingQuery({ id: device.id! }, { pollingInterval: 3000 });
   const current = raw ? Math.round(raw.value) : undefined;
+  const t = useTexts(TEXTS);
 
   return (
     <FieldGroup>
-      <p className="text-sm text-slate-500">
-        Hold the probe in the air, press <b>Dry now</b>; put it in water up to the line, wait for the value to
-        settle and press <b>In water now</b>. Save to send it to the board.
-      </p>
+      <p className="text-sm text-slate-500">{t.calibrationHelp}</p>
       <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
-        Raw value now:{' '}
+        {t.rawNow}{' '}
         <span className="font-mono font-semibold tabular-nums">{current ?? '—'}</span>
         <span className="ml-2 text-xs text-slate-500">
-          {raw
-            ? `${fromNow(raw.timestamp)}, the board sends it with every reading`
-            : 'none yet: the board sends it with the next reading'}
+          {raw ? t.rawSent(fromNow(raw.timestamp)) : t.rawNone}
         </span>
       </div>
       <form.Subscribe
@@ -462,7 +612,7 @@ function CalibrationFields({ form, device }: { form: any; device: Device }) {
               <div className="flex items-end gap-2">
                 <form.AppField
                   name="calibrationDry"
-                  children={(field: any) => <field.TextField label="Dry, 0 %" placeholder="default" />}
+                  children={(field: any) => <field.TextField label={t.dry} placeholder={t.byDefault} />}
                 />
                 <Button
                   type="button"
@@ -470,13 +620,13 @@ function CalibrationFields({ form, device }: { form: any; device: Device }) {
                   disabled={current === undefined}
                   onClick={() => form.setFieldValue('calibrationDry', String(current))}
                 >
-                  Dry now
+                  {t.dryNow}
                 </Button>
               </div>
               <div className="flex items-end gap-2">
                 <form.AppField
                   name="calibrationWet"
-                  children={(field: any) => <field.TextField label="In water, 100 %" placeholder="default" />}
+                  children={(field: any) => <field.TextField label={t.wet} placeholder={t.byDefault} />}
                 />
                 <Button
                   type="button"
@@ -484,15 +634,13 @@ function CalibrationFields({ form, device }: { form: any; device: Device }) {
                   disabled={current === undefined}
                   onClick={() => form.setFieldValue('calibrationWet', String(current))}
                 >
-                  In water now
+                  {t.wetNow}
                 </Button>
               </div>
               {preview !== undefined && (
-                <p className="text-sm text-slate-600">
-                  With these values the probe reads <b>{preview} %</b> now.
-                </p>
+                <p className="text-sm text-slate-600">{t.preview(preview)}</p>
               )}
-              {dry && wet && d === w && <p className="text-sm text-red-600">Dry and wet must differ.</p>}
+              {dry && wet && d === w && <p className="text-sm text-red-600">{t.mustDiffer}</p>}
             </>
           );
         }}
@@ -502,23 +650,21 @@ function CalibrationFields({ form, device }: { form: any; device: Device }) {
 }
 
 function AlertFields({ form }: { form: any }) {
+  const t = useTexts(TEXTS);
   return (
     <FieldGroup>
-      <p className="text-sm text-slate-500">
-        An alert is raised when a value goes above the upper or below the lower threshold. Leave
-        empty to disable. Notification channels are set on the Alerts page.
-      </p>
+      <p className="text-sm text-slate-500">{t.alertsHelp}</p>
       <div className="flex gap-2">
         <form.AppField
           name="criticalValue"
           children={(field: any) => (
-            <field.TextField label="Upper threshold" placeholder="not set" />
+            <field.TextField label={t.upper} placeholder={t.notSet} />
           )}
         />
         <form.AppField
           name="lowerValue"
           children={(field: any) => (
-            <field.TextField label="Lower threshold" placeholder="not set" />
+            <field.TextField label={t.lower} placeholder={t.notSet} />
           )}
         />
       </div>
@@ -528,18 +674,19 @@ function AlertFields({ form }: { form: any }) {
 
 function ForecastFields({ form, device }: { form: any; device?: Device | null }) {
   const [runForecast, { isLoading }] = usePredictMetricsMutation();
+  const t = useTexts(TEXTS);
 
   const run = async () => {
     if (!device?.id) return;
     const res = await runForecast({ deviceId: device.id });
     if ('error' in res) {
-      notification.error({ message: 'Forecast failed', description: JSON.stringify(res.error) });
+      notification.error({ message: t.forecastFailed, description: JSON.stringify(res.error) });
     } else if (!res.data.done) {
-      notification.warning({ message: res.data.message ?? 'Forecast was not built' });
+      notification.warning({ message: res.data.message ?? t.forecastNotBuilt });
     } else {
       notification.success({
-        message: `Forecast built: ${res.data.forecastHours} h ahead`,
-        description: `Trained on ${res.data.trainingHours} h. MAE ${res.data.mae?.toFixed(3)}, RMSE ${res.data.rmse?.toFixed(3)}`,
+        message: t.forecastBuilt(res.data.forecastHours ?? 0),
+        description: t.trainedOn(res.data.trainingHours ?? 0, res.data.mae?.toFixed(3), res.data.rmse?.toFixed(3)),
       });
     }
   };
@@ -548,39 +695,39 @@ function ForecastFields({ form, device }: { form: any; device?: Device | null })
     <form.Subscribe
       selector={(state: any) => state.values.forecastModel}
       children={(model: ForecastModel) => {
-        const info = FORECAST_MODELS.find(m => m.value === model);
+        const info = t.forecastModels[model];
         return (
           <FieldGroup>
             <form.AppField
               name="forecastModel"
               children={(field: any) => (
                 <field.SelectField
-                  label="Model"
+                  label={t.model}
                   className="w-[200px]"
-                  options={FORECAST_MODELS.map(m => ({ value: m.value, label: m.label }))}
+                  options={FORECAST_MODELS.map(m => ({ value: m, label: t.forecastModels[m][0] }))}
                 />
               )}
             />
-            {info && <p className="-mt-3 text-sm text-slate-500">{info.hint}</p>}
+            {info && <p className="-mt-3 text-sm text-slate-500">{info[1]}</p>}
 
             {model && model !== 'NONE' && (
               <>
                 <div className="flex gap-2">
                   <form.AppField
                     name="forecastHorizonHours"
-                    children={(field: any) => <field.TextField label="Horizon, hours" />}
+                    children={(field: any) => <field.TextField label={t.horizon} />}
                   />
                   <form.AppField
                     name="forecastHistoryDays"
-                    children={(field: any) => <field.TextField label="History, days" />}
+                    children={(field: any) => <field.TextField label={t.history} />}
                   />
                 </div>
 
                 {model === 'ARIMA' && (
                   <div className="flex gap-2">
-                    <form.AppField name="arimaP" children={(field: any) => <field.TextField label="p (AR order)" />} />
-                    <form.AppField name="arimaD" children={(field: any) => <field.TextField label="d (differencing)" />} />
-                    <form.AppField name="arimaQ" children={(field: any) => <field.TextField label="q (MA order)" />} />
+                    <form.AppField name="arimaP" children={(field: any) => <field.TextField label={t.arimaP} />} />
+                    <form.AppField name="arimaD" children={(field: any) => <field.TextField label={t.arimaD} />} />
+                    <form.AppField name="arimaQ" children={(field: any) => <field.TextField label={t.arimaQ} />} />
                   </div>
                 )}
 
@@ -589,24 +736,21 @@ function ForecastFields({ form, device }: { form: any; device?: Device | null })
                     <div className="flex gap-2">
                       <form.AppField
                         name="kalmanProcessNoise"
-                        children={(field: any) => <field.TextField label="Process noise" />}
+                        children={(field: any) => <field.TextField label={t.processNoise} />}
                       />
                       <form.AppField
                         name="kalmanMeasurementNoise"
-                        children={(field: any) => <field.TextField label="Measurement noise" />}
+                        children={(field: any) => <field.TextField label={t.measurementNoise} />}
                       />
                     </div>
-                    <p className="-mt-3 text-xs text-slate-500">
-                      Relative to the variance of hourly changes. Higher process noise follows the data faster,
-                      higher measurement noise smooths more.
-                    </p>
+                    <p className="-mt-3 text-xs text-slate-500">{t.kalmanNote}</p>
                   </>
                 )}
 
                 {model === 'XGBOOST' && (
                   <div className="flex gap-2">
-                    <form.AppField name="xgbRounds" children={(field: any) => <field.TextField label="Boosting rounds" />} />
-                    <form.AppField name="xgbMaxDepth" children={(field: any) => <field.TextField label="Max tree depth" />} />
+                    <form.AppField name="xgbRounds" children={(field: any) => <field.TextField label={t.rounds} />} />
+                    <form.AppField name="xgbMaxDepth" children={(field: any) => <field.TextField label={t.depth} />} />
                   </div>
                 )}
 
@@ -615,24 +759,21 @@ function ForecastFields({ form, device }: { form: any; device?: Device | null })
                     <div className="flex-1 text-slate-600">
                       {device.forecastUpdatedAt ? (
                         <>
-                          Last run {fromNow(device.forecastUpdatedAt)} · MAE{' '}
+                          {t.lastRun(fromNow(device.forecastUpdatedAt))} · MAE{' '}
                           <b>{device.forecastMae?.toFixed(3)}</b> · RMSE <b>{device.forecastRmse?.toFixed(3)}</b>
                         </>
                       ) : (
-                        'Not run yet. Forecasts refresh every hour.'
+                        t.notRun
                       )}
                     </div>
                     <Button type="button" size="sm" variant="secondary" disabled={isLoading} onClick={run}>
                       {isLoading && <Spinner />}
-                      Run now
+                      {t.runNow}
                     </Button>
                   </div>
                 )}
                 {device?.id && (
-                  <p className="-mt-3 text-xs text-slate-500">
-                    Run now uses the saved settings, submit changes first. Errors are measured on the last hours
-                    the model did not see.
-                  </p>
+                  <p className="-mt-3 text-xs text-slate-500">{t.runNote}</p>
                 )}
               </>
             )}

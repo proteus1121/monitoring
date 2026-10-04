@@ -12,6 +12,22 @@ import { ModalState } from './modals.types';
 import { useModal } from './modals.hook';
 import { useState } from 'react';
 import { Spinner } from '@src/components/Spinner';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    title: 'Ви впевнені?',
+    description: 'Цю дію не можна скасувати.',
+    cancel: 'Скасувати',
+    proceed: 'Продовжити',
+  },
+  en: {
+    title: 'Are you absolutely sure?',
+    description: 'This action cannot be undone. This will permanently delete this entity',
+    cancel: 'Cancel',
+    proceed: 'Continue',
+  },
+};
 
 export const AppAlertDialogModalId = 'app-alert-dialog-modal-id';
 export type AppAlertDialogModal = ModalState<
@@ -41,17 +57,16 @@ export const AppAlertDialog = () => {
     <AlertDialog open={Boolean(state)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>{pick(TEXTS).title}</AlertDialogTitle>
           <AlertDialogDescription>
-            {state?.description ??
-              'This action cannot be undone. This will permanently delete this entity'}
+            {state?.description ?? pick(TEXTS).description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={close}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel onClick={close}>{pick(TEXTS).cancel}</AlertDialogCancel>
           <AlertDialogAction disabled={isLoading} onClick={onSubmit}>
             {isLoading && <Spinner />}
-            Continue
+            {pick(TEXTS).proceed}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

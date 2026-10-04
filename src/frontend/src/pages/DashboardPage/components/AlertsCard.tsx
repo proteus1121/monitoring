@@ -6,6 +6,7 @@ import { Card } from '@src/components/Card';
 import { AiExplanation } from '@src/components/AiExplanation';
 import { SEVERITY_STYLES } from '@src/components/NotificationsBell';
 import { fromNow, serverTime } from '@src/lib/readings';
+import { useTexts } from '@src/lib/lang';
 import {
   Incident,
   useGetOpenIncidentCountQuery,
@@ -16,7 +17,37 @@ import {
 
 const POLLING_INTERVAL_MS = 30000;
 
+const TEXTS = {
+  uk: {
+    resolved: (count: number) => `Закрито сповіщень: ${count}`,
+    alerts: 'Сповіщення',
+    resolveAll: (count: number) => `Закрити всі (${count})`,
+    open: 'Відкриті',
+    all: 'Усі',
+    loading: 'Завантаження…',
+    noOpen: 'Відкритих сповіщень немає',
+    none: 'Сповіщень ще не було',
+    unknownDevice: 'Невідомий пристрій',
+    wasResolved: ' · закрито',
+    resolve: 'Закрити',
+  },
+  en: {
+    resolved: (count: number) => `Resolved ${count} alerts`,
+    alerts: 'Alerts',
+    resolveAll: (count: number) => `Resolve all (${count})`,
+    open: 'Open',
+    all: 'All',
+    loading: 'Loading…',
+    noOpen: 'No open alerts',
+    none: 'No alerts yet',
+    unknownDevice: 'Unknown device',
+    wasResolved: ' · resolved',
+    resolve: 'Resolve',
+  },
+};
+
 export function AlertsCard() {
+  const t = useTexts(TEXTS);
   const [openOnly, setOpenOnly] = useState(true);
   const { data: incidents, isLoading } = useGetRecentIncidentsQuery(
     { openOnly, limit: 100 },
@@ -29,7 +60,7 @@ export function AlertsCard() {
   const onResolveAll = async () => {
     const res = await resolveAll();
     if ('data' in res) {
-      notification.success({ message: `Resolved ${res.data} alerts` });
+      notification.success({ message: t.resolved(res.data ?? 0) });
     }
   };
 
@@ -37,7 +68,7 @@ export function AlertsCard() {
     <Card className="flex max-h-[640px] scroll-mt-24 flex-col">
       <div id="alerts" className="scroll-mt-24" />
       <div className="flex items-center justify-between gap-2 pb-3">
-        <h3 className="font-semibold">Alerts</h3>
+        <h3 className="font-semibold">{t.alerts}</h3>
         {openCount > 0 && (
           <button
             type="button"
@@ -45,15 +76,15 @@ export function AlertsCard() {
             disabled={isResolvingAll}
             className="text-xs font-medium text-blue-600 hover:underline disabled:opacity-50"
           >
-            Resolve all ({openCount})
+            {t.resolveAll(openCount)}
           </button>
         )}
       </div>
 
       <div className="mb-3 flex gap-1 rounded-lg bg-gray-100 p-1 text-sm">
         {[
-          { value: true, label: 'Open' },
-          { value: false, label: 'All' },
+          { value: true, label: t.open },
+          { value: false, label: t.all },
         ].map(tab => (
           <button
             key={tab.label}
@@ -73,12 +104,12 @@ export function AlertsCard() {
 
       <div className="-mx-4 min-h-0 flex-1 overflow-y-auto">
         {isLoading && (
-          <p className="py-8 text-center text-sm text-slate-500">Loading…</p>
+          <p className="py-8 text-center text-sm text-slate-500">{t.loading}</p>
         )}
         {!isLoading && !incidents?.length && (
           <div className="flex flex-col items-center gap-2 py-10 text-sm text-slate-500">
             <Icon icon="lucide:circle-check" className="size-6 text-green-500" />
-            {openOnly ? 'No open alerts' : 'No alerts yet'}
+            {openOnly ? t.noOpen : t.none}
           </div>
         )}
         {incidents?.map(incident => (
@@ -91,6 +122,7 @@ export function AlertsCard() {
 
 function AlertItem({ incident }: { incident: Incident }) {
   const [resolve, { isLoading }] = useResolveIncidentMutation();
+  const t = useTexts(TEXTS);
   const severity =
     SEVERITY_STYLES[incident.severity ?? ''] ?? SEVERITY_STYLES.LOW;
   const resolved =
@@ -114,15 +146,15 @@ function AlertItem({ incident }: { incident: Incident }) {
           className="mt-1 text-xs text-slate-500"
           title={serverTime(incident.created)?.format('YYYY-MM-DD HH:mm')}
         >
-          {incident.devices?.map(d => d.name).join(', ') || 'Unknown device'} ·{' '}
+          {incident.devices?.map(d => d.name).join(', ') || t.unknownDevice} ·{' '}
           {fromNow(incident.created)}
-          {resolved && ' · resolved'}
+          {resolved && t.wasResolved}
         </p>
       </div>
       {!resolved && (
         <button
           type="button"
-          title="Resolve"
+          title={t.resolve}
           disabled={isLoading}
           onClick={() => incident.id && resolve({ id: incident.id })}
           className="h-fit rounded p-1 text-slate-400 hover:bg-gray-100 hover:text-green-600 disabled:opacity-50"

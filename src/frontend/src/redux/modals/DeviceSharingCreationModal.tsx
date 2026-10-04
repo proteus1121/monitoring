@@ -18,6 +18,40 @@ import { useShareDeviceMutation } from '../generatedApi';
 import { useEffect, useMemo, useState } from 'react';
 import { MultiSelect, Option } from '@src/components/MultiSelect';
 import { useUsersWithDevices } from '@src/pages/UsersPage';
+import { pick } from '@src/lib/lang';
+
+const SHARE_TEXTS = {
+  uk: {
+    shared: 'Доступ до пристроїв надано',
+    shareFailed: 'Не вдалося надати доступ',
+    unshareFailed: 'Не вдалося забрати доступ',
+    unshared: 'Доступ до пристроїв забрано',
+    title: 'Доступ до пристроїв',
+    username: 'Ім’я користувача',
+    role: 'Роль',
+    editor: 'Редактор',
+    viewer: 'Глядач',
+    devices: 'Пристрої',
+    selectAll: 'Вибрати всі',
+    cancel: 'Скасувати',
+    submit: 'Зберегти',
+  },
+  en: {
+    shared: 'Devices shared successfully',
+    shareFailed: 'Failed to share devices',
+    unshareFailed: 'Failed to unshare devices',
+    unshared: 'Devices unshared successfully',
+    title: 'Share Devices',
+    username: 'Username',
+    role: 'Role',
+    editor: 'Editor',
+    viewer: 'Viewer',
+    devices: 'Devices',
+    selectAll: 'Select all',
+    cancel: 'Cancel',
+    submit: 'Submit',
+  },
+};
 
 export const DeviceSharingCreationModalId = 'device-sharing-creation-modal-id';
 export type DeviceSharingCreationModal = SimpleModalState<
@@ -60,11 +94,11 @@ export function DeviceSharingCreationModal() {
 
       if (res.data) {
         notification.success({
-          message: `Devices shared created succesfully`,
+          message: pick(SHARE_TEXTS).shared,
         });
       } else {
         notification.error({
-          message: 'Failed to share devices',
+          message: pick(SHARE_TEXTS).shareFailed,
           description: JSON.stringify(res.error),
         });
       }
@@ -110,14 +144,14 @@ export function DeviceSharingCreationModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Share Devices</DialogTitle>
+            <DialogTitle>{pick(SHARE_TEXTS).title}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <FieldGroup>
               <form.AppField
                 name="username"
                 children={field => (
-                  <field.TextField label="Username" placeholder="Ivan" />
+                  <field.TextField label={pick(SHARE_TEXTS).username} placeholder="Ivan" />
                 )}
               />
 
@@ -125,17 +159,17 @@ export function DeviceSharingCreationModal() {
                 name="role"
                 children={field => (
                   <field.SelectField
-                    label="Role"
-                    placeholder="Viewer"
+                    label={pick(SHARE_TEXTS).role}
+                    placeholder={pick(SHARE_TEXTS).viewer}
                     options={[
                       {
                         value: 'EDITOR',
-                        label: 'Editor',
+                        label: pick(SHARE_TEXTS).editor,
                       },
 
                       {
                         value: 'VIEWER',
-                        label: 'Viewer',
+                        label: pick(SHARE_TEXTS).viewer,
                       },
                     ]}
                   />
@@ -143,7 +177,7 @@ export function DeviceSharingCreationModal() {
               />
 
               <div className="flex flex-col gap-3">
-                <FieldLabel>Devices</FieldLabel>
+                <FieldLabel>{pick(SHARE_TEXTS).devices}</FieldLabel>
 
                 <div className="flex gap-2">
                   <MultiSelect
@@ -160,7 +194,7 @@ export function DeviceSharingCreationModal() {
                       setDeviceIds(options);
                     }}
                   >
-                    Select all
+                    {pick(SHARE_TEXTS).selectAll}
                   </Button>
                 </div>
               </div>
@@ -168,7 +202,7 @@ export function DeviceSharingCreationModal() {
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{pick(SHARE_TEXTS).cancel}</Button>
             </DialogClose>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
@@ -178,7 +212,7 @@ export function DeviceSharingCreationModal() {
                   disabled={!canSubmit || deviceIds.length <= 0}
                 >
                   {isSubmitting && <Spinner />}
-                  Submit
+                  {pick(SHARE_TEXTS).submit}
                 </Button>
               )}
             />

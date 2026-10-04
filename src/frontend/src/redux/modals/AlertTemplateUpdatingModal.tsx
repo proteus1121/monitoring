@@ -1,4 +1,10 @@
 import { useEffect } from 'react';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: { updated: 'Отримувача збережено', failed: 'Не вдалося зберегти отримувача', title: 'Редагування отримувача', cancel: 'Скасувати', save: 'Зберегти' },
+  en: { updated: 'Notification updated', failed: 'Failed to update notification', title: 'Edit notification', cancel: 'Cancel', save: 'Save' },
+};
 import { notification } from 'antd';
 import { ModalState } from './modals.types';
 import { useModal } from './modals.hook';
@@ -46,11 +52,11 @@ export function AlertTemplateUpdatingModal() {
         telegramNotificationRequest: toNotificationRequest(parsed.data),
       });
       if (res.data) {
-        notification.success({ message: 'Notification updated' });
+        notification.success({ message: pick(TEXTS).updated });
         setState(null);
       } else {
         notification.error({
-          message: 'Failed to update notification',
+          message: pick(TEXTS).failed,
           description: JSON.stringify(res.error),
         });
       }
@@ -77,19 +83,19 @@ export function AlertTemplateUpdatingModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Edit notification</DialogTitle>
+            <DialogTitle>{pick(TEXTS).title}</DialogTitle>
           </DialogHeader>
           <NotificationFormFields form={form} />
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{pick(TEXTS).cancel}</Button>
             </DialogClose>
             <form.Subscribe
               selector={s => [s.canSubmit, s.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting && <Spinner />}
-                  Save
+                  {pick(TEXTS).save}
                 </Button>
               )}
             />

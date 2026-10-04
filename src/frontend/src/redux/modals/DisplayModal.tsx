@@ -22,6 +22,40 @@ import {
   SelectValue,
 } from '@src/components/Select';
 import { DISPLAY_PIN_NAMES, getDisplayPinOptions } from '@src/lib/hardware';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    saveFailed: 'Не вдалося зберегти дисплей',
+    removed: 'Дисплей прибрано',
+    saved: 'Дисплей збережено',
+    restarts: 'Плата перезапуститься, щоб застосувати його, і за кілька секунд знову буде онлайн.',
+    whenOnline: 'Плата отримає його, коли з’явиться онлайн.',
+    title: (board: string) => (board ? `Дисплей плати ${board}` : 'Дисплей плати'),
+    theBoard: '',
+    noScreen: 'Плата працює без екрана.',
+    rotate: 'Повернути на 180°',
+    notFound: 'Плата не знайшла поточний дисплей: перевірте під’єднання й модель.',
+    remove: 'Прибрати дисплей',
+    cancel: 'Скасувати',
+    save: 'Зберегти',
+  },
+  en: {
+    saveFailed: 'Could not save the display',
+    removed: 'Display removed',
+    saved: 'Display saved',
+    restarts: 'The board restarts to apply it, it is back online in a few seconds.',
+    whenOnline: 'The board gets it when it comes online.',
+    title: (board: string) => `Display of ${board}`,
+    theBoard: 'the board',
+    noScreen: 'The board runs without a screen.',
+    rotate: 'Rotate 180°',
+    notFound: 'The board did not find the current display: check the wiring and the model.',
+    remove: 'Remove display',
+    cancel: 'Cancel',
+    save: 'Save',
+  },
+};
 import { useGetAllDevicesQuery, useGetControllersQuery, useGetSensorModelsQuery } from '../generatedApi';
 import {
   ControllerWithRole,
@@ -97,14 +131,12 @@ export function DisplayModal() {
       flip,
     });
     if ('error' in res) {
-      notification.error({ message: 'Could not save the display', description: errorMessage(res.error) });
+      notification.error({ message: pick(TEXTS).saveFailed, description: errorMessage(res.error) });
       return;
     }
     notification.success({
-      message: nextModel === 'NONE' ? 'Display removed' : 'Display saved',
-      description: controller.online
-        ? 'The board restarts to apply it, it is back online in a few seconds.'
-        : 'The board gets it when it comes online.',
+      message: nextModel === 'NONE' ? pick(TEXTS).removed : pick(TEXTS).saved,
+      description: controller.online ? pick(TEXTS).restarts : pick(TEXTS).whenOnline,
     });
     setState(null);
   };
@@ -118,8 +150,8 @@ export function DisplayModal() {
     >
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[640px]">
         <DialogHeader>
-          <DialogTitle>Display of {controller?.name ?? 'the board'}</DialogTitle>
-          <DialogDescription>{info?.description ?? 'The board runs without a screen.'}</DialogDescription>
+          <DialogTitle>{pick(TEXTS).title(controller?.name ?? pick(TEXTS).theBoard)}</DialogTitle>
+          <DialogDescription>{info?.description ?? pick(TEXTS).noScreen}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
@@ -148,7 +180,7 @@ export function DisplayModal() {
             {model !== 'NONE' && (
               <label className="flex items-center gap-2 text-sm text-slate-600">
                 <Switch checked={flip} onCheckedChange={setFlip} />
-                Rotate 180°
+                {pick(TEXTS).rotate}
               </label>
             )}
           </div>
@@ -163,7 +195,7 @@ export function DisplayModal() {
           )}
           {controller?.displayFound === false && controller.display?.model !== 'NONE' && (
             <p className="rounded-md bg-orange-50 p-2 text-sm text-orange-800">
-              The board did not find the current display: check the wiring and the model.
+              {pick(TEXTS).notFound}
             </p>
           )}
         </div>
@@ -171,18 +203,18 @@ export function DisplayModal() {
         <DialogFooter className="gap-2 sm:justify-between">
           {controller?.display?.model && controller.display.model !== 'NONE' ? (
             <Button variant="secondary" disabled={isLoading} onClick={() => save('NONE')}>
-              Remove display
+              {pick(TEXTS).remove}
             </Button>
           ) : (
             <span />
           )}
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setState(null)}>
-              Cancel
+              {pick(TEXTS).cancel}
             </Button>
             <Button disabled={isLoading || (model !== 'NONE' && !complete)} onClick={() => save(model)}>
               {isLoading && <Spinner />}
-              Save
+              {pick(TEXTS).save}
             </Button>
           </div>
         </DialogFooter>

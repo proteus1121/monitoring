@@ -25,13 +25,27 @@ import { UsersPage } from './pages/UsersPage';
 import { ConnectPage } from './pages/ConnectPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { FirmwarePage } from './pages/FirmwarePage';
+import { ConfigProvider } from 'antd';
+import ukUA from 'antd/locale/uk_UA';
+import enUS from 'antd/locale/en_US';
+import dayjs from 'dayjs';
+import 'dayjs/locale/uk';
+import { useLang } from './lib/lang';
+import z from 'zod';
 
 const App = () => {
   console.log('Backend URL:', process.env.BASE_URL);
+  const lang = useLang();
+  // date pickers and other antd parts in the interface language
+  dayjs.locale(lang);
+  // default form validation messages
+  z.config(lang === 'uk' ? z.locales.uk() : z.locales.en());
   return (
-    <Provider store={store}>
-      <RouterProvider router={router} />
-    </Provider>
+    <ConfigProvider locale={lang === 'uk' ? ukUA : enUS}>
+      <Provider store={store}>
+        <RouterProvider router={router} />
+      </Provider>
+    </ConfigProvider>
   );
 };
 

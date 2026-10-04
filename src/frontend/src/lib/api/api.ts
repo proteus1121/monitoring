@@ -1,3 +1,4 @@
+import { getLang } from '@src/lib/lang';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import {
   CreateDeviceRequest,
@@ -45,7 +46,7 @@ export class Api {
       }
       return {
         ok: false,
-        message: error?.message ?? 'Unexpected error occurred',
+        message: error?.message ?? (getLang() === 'uk' ? 'Неочікувана помилка' : 'Unexpected error occurred'),
         status: error?.status ?? undefined,
       };
     }

@@ -1,3 +1,4 @@
+import { getLang } from '@src/lib/lang';
 import type { ActionCreatorsMapObject } from '@reduxjs/toolkit';
 import { useTypedDispatch } from './store';
 
@@ -25,5 +26,6 @@ export const errorMessage = (error: unknown): string => {
     return e.data.message || e.data.error!;
   }
   if (typeof e?.data === 'string' && e.data) return e.data;
-  return e?.status ? `Request failed (${String(e.status)})` : JSON.stringify(error);
+  const failed = getLang() === 'uk' ? 'Помилка запиту' : 'Request failed';
+  return e?.status ? `${failed} (${String(e.status)})` : JSON.stringify(error);
 };

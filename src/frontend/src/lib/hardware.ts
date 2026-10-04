@@ -4,6 +4,7 @@ import type {
   SensorModelInfo,
 } from '@src/redux/generatedApi';
 import type { BoardModelValue, DisplayModelValue, DisplaySettings } from '@src/redux/controllersApi';
+import { Lang, pick } from './lang';
 
 export type PinOption = {
   value: string;
@@ -141,22 +142,55 @@ export function getPinLabel(platform: string | undefined, pin?: number) {
   );
 }
 
-export const DEVICE_TYPE_LABELS: Record<DeviceTypeValue, string> = {
-  TEMPERATURE: 'Temperature',
-  HUMIDITY: 'Humidity',
-  LPG: 'LPG',
-  CH4: 'Methane (CH4)',
-  SMOKE: 'Smoke',
-  FLAME: 'Flame',
-  LIGHT: 'Light',
-  PRESSURE: 'Pressure',
-  MOTION: 'Motion',
-  DIGITAL: 'Digital input',
-  ANALOG: 'Analog input',
-  RELAY: 'Relay',
-  SOIL_MOISTURE: 'Soil moisture',
-  UNKNOWN: 'Unknown',
+const DEVICE_TYPE_TEXTS: Record<Lang, Record<DeviceTypeValue, string>> = {
+  uk: {
+    TEMPERATURE: 'Температура',
+    HUMIDITY: 'Вологість',
+    LPG: 'Пропан (LPG)',
+    CH4: 'Метан (CH4)',
+    SMOKE: 'Дим',
+    FLAME: 'Полум’я',
+    LIGHT: 'Освітлення',
+    PRESSURE: 'Тиск',
+    MOTION: 'Рух',
+    DIGITAL: 'Цифровий вхід',
+    ANALOG: 'Аналоговий вхід',
+    RELAY: 'Реле',
+    SOIL_MOISTURE: 'Вологість ґрунту',
+    UNKNOWN: 'Невідомо',
+  },
+  en: {
+    TEMPERATURE: 'Temperature',
+    HUMIDITY: 'Humidity',
+    LPG: 'LPG',
+    CH4: 'Methane (CH4)',
+    SMOKE: 'Smoke',
+    FLAME: 'Flame',
+    LIGHT: 'Light',
+    PRESSURE: 'Pressure',
+    MOTION: 'Motion',
+    DIGITAL: 'Digital input',
+    ANALOG: 'Analog input',
+    RELAY: 'Relay',
+    SOIL_MOISTURE: 'Soil moisture',
+    UNKNOWN: 'Unknown',
+  },
 };
+
+const STATUS_TEXTS: Record<Lang, Record<string, string>> = {
+  uk: { OK: 'Норма', WARNING: 'Увага', CRITICAL: 'Критично', OFFLINE: 'Офлайн' },
+  en: { OK: 'OK', WARNING: 'Warning', CRITICAL: 'Critical', OFFLINE: 'Offline' },
+};
+
+// status of a device as shown, in the current language
+export function deviceStatusLabel(status?: string) {
+  return (status && pick(STATUS_TEXTS)[status]) ?? status ?? '';
+}
+
+// names of the measured quantities in the current language, read when rendered
+export const DEVICE_TYPE_LABELS = new Proxy({ ...DEVICE_TYPE_TEXTS.en }, {
+  get: (_, type) => pick(DEVICE_TYPE_TEXTS)[type as DeviceTypeValue],
+});
 
 export function controllerPlatform(
   controllers: Controller[] | undefined,

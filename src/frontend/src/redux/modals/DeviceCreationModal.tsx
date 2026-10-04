@@ -12,6 +12,24 @@ import {
 import { useAppForm } from '@src/components/Form';
 import { notification } from 'antd';
 import { errorMessage } from '../helpers';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    created: (name: string) => `${name} створено`,
+    createFailed: 'Не вдалося створити пристрій',
+    title: 'Новий пристрій',
+    cancel: 'Скасувати',
+    submit: 'Зберегти',
+  },
+  en: {
+    created: (name: string) => `${name} created successfully`,
+    createFailed: 'Failed to create device',
+    title: 'Create Device',
+    cancel: 'Cancel',
+    submit: 'Submit',
+  },
+};
 import { useEffect } from 'react';
 import { Device, useCreateDeviceMutation } from '../generatedApi';
 import {
@@ -49,11 +67,11 @@ export function DeviceCreationModal() {
       });
       if (res.data) {
         notification.success({
-          message: `${parsed.data.name} created succesfully`,
+          message: pick(TEXTS).created(parsed.data.name),
         });
       } else {
         notification.error({
-          message: 'Failed to create device',
+          message: pick(TEXTS).createFailed,
           description: errorMessage(res.error),
         });
         return;
@@ -85,21 +103,21 @@ export function DeviceCreationModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Create Device</DialogTitle>
+            <DialogTitle>{pick(TEXTS).title}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <DeviceFormFields form={form} />
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{pick(TEXTS).cancel}</Button>
             </DialogClose>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting && <Spinner />}
-                  Submit
+                  {pick(TEXTS).submit}
                 </Button>
               )}
             />

@@ -1,3 +1,4 @@
+import { getLang } from '@src/lib/lang';
 import * as React from 'react';
 import { Badge } from './Badge';
 import { Command, CommandGroup, CommandItem, CommandList } from './Command';
@@ -89,7 +90,7 @@ export function MultiSelect({
             onValueChange={setInputValue}
             onBlur={() => setOpen(false)}
             onFocus={() => setOpen(true)}
-            placeholder="Select"
+            placeholder={getLang() === 'uk' ? 'Виберіть' : 'Select'}
             className="placeholder:text-muted-foreground ml-2 flex-1 bg-transparent outline-none"
           />
         </div>

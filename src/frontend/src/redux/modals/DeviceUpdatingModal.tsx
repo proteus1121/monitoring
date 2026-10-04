@@ -18,6 +18,32 @@ import { useEffect } from 'react';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { Icon } from '@iconify/react';
 import { AppAlertDialogModalId } from './AlertDialog';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    deleteConfirm: (name?: string) => `Видалити ${name} разом з історією?`,
+    deleteFailed: (name?: string) => `Не вдалося видалити ${name}`,
+    deleted: (name?: string) => `Видалено ${name}`,
+    updated: (name: string) => `${name} збережено`,
+    updateFailed: 'Не вдалося зберегти пристрій',
+    title: 'Редагування пристрою',
+    delete: 'Видалити',
+    cancel: 'Скасувати',
+    submit: 'Зберегти',
+  },
+  en: {
+    deleteConfirm: (name?: string) => `Delete ${name} with its history?`,
+    deleteFailed: (name?: string) => `Failed to delete ${name}`,
+    deleted: (name?: string) => `Deleted ${name}`,
+    updated: (name: string) => `${name} updated successfully`,
+    updateFailed: 'Failed to update device',
+    title: 'Update Device',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    submit: 'Submit',
+  },
+};
 import {
   DeviceFormFields,
   DeviceSchema,
@@ -41,16 +67,16 @@ export function useDeleteDevice() {
 
   return (device: Device, onDeleted?: () => void) =>
     confirm({
-      description: `Delete ${device.name} with its history?`,
+      description: pick(TEXTS).deleteConfirm(device.name),
       callback: async () => {
         const res = await deleteDevice({ id: device.id! });
         if ('error' in res) {
           notification.error({
-            message: `Failed to delete ${device.name}`,
+            message: pick(TEXTS).deleteFailed(device.name),
             description: errorMessage(res.error),
           });
         } else {
-          notification.success({ message: `Deleted ${device.name}` });
+          notification.success({ message: pick(TEXTS).deleted(device.name) });
           onDeleted?.();
         }
       },
@@ -88,11 +114,11 @@ export function DeviceUpdatingModal() {
 
       if (res.data) {
         notification.success({
-          message: `${parsed.data.name} updated succesfully`,
+          message: pick(TEXTS).updated(parsed.data.name),
         });
       } else {
         notification.error({
-          message: 'Failed to update device',
+          message: pick(TEXTS).updateFailed,
           description: errorMessage(res.error),
         });
         return;
@@ -128,7 +154,7 @@ export function DeviceUpdatingModal() {
               {state?.sensorModel && (
                 <ModuleArt module={state.sensorModel} showLabels={false} className="h-9 w-12 shrink-0" />
               )}
-              {state?.name ?? 'Update Device'}
+              {state?.name ?? pick(TEXTS).title}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
@@ -142,17 +168,17 @@ export function DeviceUpdatingModal() {
               onClick={() => state && deleteDevice(state, () => setState(null))}
             >
               <Icon icon="lucide:trash-2" />
-              Delete
+              {pick(TEXTS).delete}
             </Button>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{pick(TEXTS).cancel}</Button>
             </DialogClose>
             <form.Subscribe
               selector={state => [state.canSubmit, state.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting && <Spinner />}
-                  Submit
+                  {pick(TEXTS).submit}
                 </Button>
               )}
             />

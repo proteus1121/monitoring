@@ -1,3 +1,4 @@
+import { getLang } from '@src/lib/lang';
 import { createFormHookContexts, createFormHook } from '@tanstack/react-form';
 import { Field, FieldError, FieldLabel } from './Field';
 import {
@@ -92,7 +93,7 @@ function SelectField(props: {
         aria-invalid={isInvalid}
       >
         <SelectTrigger className={props.className ?? 'w-[180px]'}>
-          <SelectValue placeholder={props.placeholder || 'Select an option'} />
+          <SelectValue placeholder={props.placeholder || (getLang() === 'uk' ? 'Виберіть' : 'Select an option')} />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>

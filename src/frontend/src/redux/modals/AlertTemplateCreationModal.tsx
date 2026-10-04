@@ -14,6 +14,12 @@ import {
 import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
 import { useCreateNotificationMutation } from '../generatedApi';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: { added: 'Отримувача додано', failed: 'Не вдалося додати отримувача', title: 'Новий отримувач', cancel: 'Скасувати', save: 'Зберегти' },
+  en: { added: 'Notification added', failed: 'Failed to add notification', title: 'Add notification', cancel: 'Cancel', save: 'Save' },
+};
 import {
   NotificationFormFields,
   NotificationSchema,
@@ -41,11 +47,11 @@ export function AlertTemplateCreationModal() {
         telegramNotificationRequest: toNotificationRequest(parsed.data),
       });
       if (res.data) {
-        notification.success({ message: 'Notification added' });
+        notification.success({ message: pick(TEXTS).added });
         setState(false);
       } else {
         notification.error({
-          message: 'Failed to add notification',
+          message: pick(TEXTS).failed,
           description: JSON.stringify(res.error),
         });
       }
@@ -67,19 +73,19 @@ export function AlertTemplateCreationModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Add notification</DialogTitle>
+            <DialogTitle>{pick(TEXTS).title}</DialogTitle>
           </DialogHeader>
           <NotificationFormFields form={form} />
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="secondary">Cancel</Button>
+              <Button variant="secondary">{pick(TEXTS).cancel}</Button>
             </DialogClose>
             <form.Subscribe
               selector={s => [s.canSubmit, s.isSubmitting]}
               children={([canSubmit, isSubmitting]) => (
                 <Button type="submit" disabled={!canSubmit}>
                   {isSubmitting && <Spinner />}
-                  Save
+                  {pick(TEXTS).save}
                 </Button>
               )}
             />

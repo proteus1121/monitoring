@@ -36,16 +36,64 @@ import { ControllerWithRole, DisplayModelValue, useGetDisplayModelsQuery } from 
 import { errorMessage } from '../helpers';
 import { useModal } from './modals.hook';
 import { DisplayModalId } from './DisplayModal';
+import { useLang, useTexts } from '@src/lib/lang';
 
 export const ModuleCreationModalId = 'module-creation-modal-id';
 // true opens the module gallery; controllerId pre-selects the board
 export type ModuleCreationModal = Record<typeof ModuleCreationModalId, boolean | { controllerId?: number }>;
 
-const SECTIONS: { kind: ModuleEntry['kind']; title: string }[] = [
-  { kind: 'sensor', title: 'Sensors' },
-  { kind: 'output', title: 'Outputs' },
-  { kind: 'display', title: 'Displays' },
-];
+const SECTIONS: ModuleEntry['kind'][] = ['sensor', 'output', 'display'];
+
+const TEXTS = {
+  uk: {
+    sections: { sensor: 'Датчики', output: 'Виходи', display: 'Дисплеї' },
+    back: 'Назад до модулів',
+    addModule: (label: string) => `Додати ${label}`,
+    addDevice: 'Додати пристрій',
+    chooseModule: 'Виберіть модуль, який ви під’єднали до плати.',
+    noBoards: 'Спершу підключіть плату: прошийте її й увійдіть з її сторінки (див. «Підключити нову плату» на сторінці «Мої пристрої»).',
+    chooseBoardText: 'Виберіть плату.',
+    board: 'Плата',
+    chooseBoard: 'Виберіть плату',
+    toWiring: 'Далі до під’єднання',
+    addFailed: (name: string) => `Не вдалося додати ${name}`,
+    added: (label: string) => `${label} додано`,
+    startsReading: 'Плата почне читати його за кілька секунд.',
+    whenOnline: 'Плата отримає його, коли з’явиться онлайн.',
+    measurement: 'Вимірювання',
+    measurements: 'Вимірювання, по пристрою на кожне',
+    name: 'Назва',
+    sendEvery: 'Надсилати кожні',
+    seconds: 'секунд',
+    later: 'Пороги для сповіщень і прогнози задаються на кожному пристрої потім (клацніть його в таблиці).',
+    cancel: 'Скасувати',
+    addDevices: (count: number) => (count > 1 ? `Додати ${count} пристрої` : 'Додати пристрій'),
+  },
+  en: {
+    sections: { sensor: 'Sensors', output: 'Outputs', display: 'Displays' },
+    back: 'Back to modules',
+    addModule: (label: string) => `Add ${label}`,
+    addDevice: 'Add device',
+    chooseModule: 'Choose the module you wired to the board.',
+    noBoards: 'Link a board first: flash it and sign in from its page (see “Connect a new board” on the My devices page).',
+    chooseBoardText: 'Choose a board.',
+    board: 'Board',
+    chooseBoard: 'Choose a board',
+    toWiring: 'Continue to wiring',
+    addFailed: (name: string) => `Could not add ${name}`,
+    added: (label: string) => `${label} added`,
+    startsReading: 'The board starts reading it in a few seconds.',
+    whenOnline: 'The board gets it when it comes online.',
+    measurement: 'Measurement',
+    measurements: 'Measurements, one device each',
+    name: 'Name',
+    sendEvery: 'Send every',
+    seconds: 'seconds',
+    later: 'Thresholds for alerts and forecasts are set on each device afterwards (click it in the table).',
+    cancel: 'Cancel',
+    addDevices: (count: number) => (count > 1 ? `Add ${count} devices` : 'Add device'),
+  },
+};
 
 /**
  * "Add device": pick the module first, then wire it. A sensor becomes one device per measurement
@@ -57,7 +105,10 @@ export function ModuleCreationModal() {
   const { data: sensors } = useGetSensorModelsQuery();
   const { data: displays } = useGetDisplayModelsQuery();
   const { data: controllers } = useGetControllersQuery();
-  const modules = useMemo(() => buildModules(sensors, displays), [sensors, displays]);
+  const lang = useLang();
+  const t = useTexts(TEXTS);
+  // what a module does is written in the interface language
+  const modules = useMemo(() => buildModules(sensors, displays), [sensors, displays, lang]);
   const boards = ((controllers ?? []) as ControllerWithRole[]).filter(c => !c.role || c.role === 'OWNER');
 
   const [module, setModule] = useState<ModuleEntry | null>(null);
@@ -93,31 +144,29 @@ export function ModuleCreationModal() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {module && (
-              <button type="button" title="Back to modules" onClick={() => setModule(null)}>
+              <button type="button" title={t.back} onClick={() => setModule(null)}>
                 <Icon icon="lucide:arrow-left" className="size-4" />
               </button>
             )}
-            {module ? `Add ${module.label}` : 'Add device'}
+            {module ? t.addModule(module.label) : t.addDevice}
           </DialogTitle>
           <DialogDescription>
-            {module ? module.does : 'Choose the module you wired to the board.'}
+            {module ? module.does : t.chooseModule}
           </DialogDescription>
         </DialogHeader>
 
         {boards.length === 0 && (
-          <p className="text-sm text-slate-500">
-            Link a board first: enter the code it shows in “Connect a new board” on the My devices page.
-          </p>
+          <p className="text-sm text-slate-500">{t.noBoards}</p>
         )}
 
         {!module && boards.length > 0 && (
           <div className="flex flex-col gap-5">
-            {SECTIONS.map(section => {
-              const list = modules.filter(m => m.kind === section.kind);
+            {SECTIONS.map(kind => {
+              const list = modules.filter(m => m.kind === kind);
               if (!list.length) return null;
               return (
-                <section key={section.kind} className="flex flex-col gap-2">
-                  <h3 className="text-sm font-semibold text-slate-700">{section.title}</h3>
+                <section key={kind} className="flex flex-col gap-2">
+                  <h3 className="text-sm font-semibold text-slate-700">{t.sections[kind]}</h3>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                     {list.map(entry => (
                       <ModuleCard key={entry.key} entry={entry} onClick={() => pick(entry)} />
@@ -129,15 +178,15 @@ export function ModuleCreationModal() {
           </div>
         )}
 
-        {module && board === undefined && boards.length > 0 && <p className="text-sm">Choose a board.</p>}
+        {module && board === undefined && boards.length > 0 && <p className="text-sm">{t.chooseBoardText}</p>}
 
         {module && boards.length > 0 && (
           <div className="flex flex-col gap-4">
             <label className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="w-24 text-slate-600">Board</span>
+              <span className="w-24 text-slate-600">{t.board}</span>
               <Select value={boardId} onValueChange={setBoardId}>
                 <SelectTrigger className="w-[260px]">
-                  <SelectValue placeholder="Choose a board" />
+                  <SelectValue placeholder={t.chooseBoard} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -160,7 +209,7 @@ export function ModuleCreationModal() {
                     openDisplay({ controllerId: board!.id!, model: module.key as DisplayModelValue });
                   }}
                 >
-                  Continue to wiring
+                  {t.toWiring}
                 </Button>
               </DialogFooter>
             ) : (
@@ -218,6 +267,7 @@ function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onD
   const [intervalSeconds, setIntervalSeconds] = useState('10');
   const [busy, setBusy] = useState(false);
   const [createDevice] = useCreateDeviceMutation();
+  const t = useTexts(TEXTS);
 
   const options = getPinOptions(board.platform, info, board.display);
   const signals = module.pins;
@@ -243,15 +293,15 @@ function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onD
         },
       });
       if ('error' in res) {
-        notification.error({ message: `Could not add ${names[type]}`, description: errorMessage(res.error) });
+        notification.error({ message: t.addFailed(names[type]), description: errorMessage(res.error) });
         setBusy(false);
         return;
       }
     }
     setBusy(false);
     notification.success({
-      message: `${module.label} added`,
-      description: board.online ? 'The board starts reading it in a few seconds.' : 'The board gets it when it comes online.',
+      message: t.added(module.label),
+      description: board.online ? t.startsReading : t.whenOnline,
     });
     props.onDone();
   };
@@ -267,7 +317,7 @@ function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onD
 
       <div className="flex flex-col gap-2">
         <div className="text-xs font-medium text-slate-500">
-          {single ? 'Measurement' : 'Measurements, one device each'}
+          {single ? t.measurement : t.measurements}
         </div>
         {single && types.length > 1 && (
           <Select value={selected[0]} onValueChange={value => setSelected([value as DeviceTypeValue])}>
@@ -301,7 +351,7 @@ function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onD
             <Input
               value={names[type] ?? ''}
               onChange={e => setNames({ ...names, [type]: e.target.value })}
-              placeholder="Name"
+              placeholder={t.name}
               className="h-8 w-[240px]"
               disabled={!selected.includes(type)}
             />
@@ -310,21 +360,19 @@ function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onD
       </div>
 
       <label className="flex items-center gap-2 text-sm">
-        <span className="text-slate-600">Send every</span>
+        <span className="text-slate-600">{t.sendEvery}</span>
         <Input value={intervalSeconds} onChange={e => setIntervalSeconds(e.target.value)} className="h-8 w-20" />
-        <span className="text-slate-600">seconds</span>
+        <span className="text-slate-600">{t.seconds}</span>
       </label>
-      <p className="-mt-2 text-xs text-slate-500">
-        Thresholds for alerts and forecasts are set on each device afterwards (click it in the table).
-      </p>
+      <p className="-mt-2 text-xs text-slate-500">{t.later}</p>
 
       <DialogFooter>
         <Button variant="secondary" onClick={props.onDone}>
-          Cancel
+          {t.cancel}
         </Button>
         <Button disabled={busy || !complete} onClick={create}>
           {busy && <Spinner />}
-          Add {selected.length > 1 ? `${selected.length} devices` : 'device'}
+          {t.addDevices(selected.length)}
         </Button>
       </DialogFooter>
     </>

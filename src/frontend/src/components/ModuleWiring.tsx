@@ -9,6 +9,12 @@ import {
 } from '@src/components/Select';
 import { MODULE_HEADERS, ModuleArt, ModuleKey, powerTarget } from './ModuleArt';
 import type { PinOption } from '@src/lib/hardware';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: { header: 'Пін модуля → пін плати', notUsed: 'не використовується', choosePin: 'Виберіть пін' },
+  en: { header: 'Module pin → board pin', notUsed: 'not used', choosePin: 'Choose a pin' },
+};
 
 /**
  * The module drawing next to its pin header: each signal pin with a GPIO select, power pins with where they go.
@@ -30,7 +36,7 @@ export function ModuleWiring(props: {
         <ModuleArt module={props.module} highlight={unset} className="w-full max-w-[170px]" />
       </div>
       <div className="flex flex-1 flex-col gap-1.5">
-        <div className="text-xs font-medium text-slate-500">Module pin → board pin</div>
+        <div className="text-xs font-medium text-slate-500">{pick(TEXTS).header}</div>
         {header.map(pin => (
           <div key={pin.label} className="flex items-center gap-2 text-sm">
             <span
@@ -42,7 +48,7 @@ export function ModuleWiring(props: {
             {pin.signal ? (
               <Select value={props.pins[pin.signal] ?? ''} onValueChange={value => props.onChange(pin.signal!, value)}>
                 <SelectTrigger className="h-8 w-[220px]">
-                  <SelectValue placeholder="Choose a pin" />
+                  <SelectValue placeholder={pick(TEXTS).choosePin} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -63,7 +69,7 @@ export function ModuleWiring(props: {
                 </SelectContent>
               </Select>
             ) : pin.label === 'DO' ? (
-              <span className="text-xs text-slate-400">not used</span>
+              <span className="text-xs text-slate-400">{pick(TEXTS).notUsed}</span>
             ) : (
               <span className="font-mono text-xs text-slate-600">{powerTarget(pin.label)}</span>
             )}

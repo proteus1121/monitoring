@@ -16,6 +16,54 @@ import {
   useGetFirmwareManifestQuery,
 } from '@src/redux/controllersApi';
 import { BoardFirmware, isUpdating } from './DevicesPage/BoardFirmware';
+import { useTexts } from '@src/lib/lang';
+
+const library = (text: string) => (
+  <Link to="/settings/library" className="underline">
+    {text}
+  </Link>
+);
+
+const TEXTS = {
+  uk: {
+    title: 'Оновлення прошивки',
+    description: (
+      <>
+        Одна прошивка для всіх підтримуваних плат. Встановіть її один раз через USB (файли на сторінці{' '}
+        {library('Бібліотека')}), подальші оновлення приходять із сайту.
+      </>
+    ),
+    noFirmware: 'Прошивку ще не опубліковано.',
+    version: (version: string) => `Версія ${version}`,
+    released: (when: string) => `Випущена ${when}`,
+    build: 'збірка',
+    yourBoards: 'Ваші плати',
+    noBoards: 'Плат ще немає.',
+    online: 'ОНЛАЙН',
+    offline: 'ОФЛАЙН',
+    upToDate: 'актуальна',
+    note: 'Плата завантажує оновлення з цього сайту через HTTPS, перевіряє його й перезапускається; її налаштування й пристрої зберігаються. Плати з прошивкою, старішою за 2.4.0, потрібно один раз оновити через USB.',
+  },
+  en: {
+    title: 'Firmware updates',
+    description: (
+      <>
+        One firmware for every supported board. Install it once over USB (files on the {library('Library')} page),
+        later updates come from the site.
+      </>
+    ),
+    noFirmware: 'No firmware is published yet.',
+    version: (version: string) => `Version ${version}`,
+    released: (when: string) => `Released ${when}`,
+    build: 'build',
+    yourBoards: 'Your boards',
+    noBoards: 'No boards linked yet.',
+    online: 'ONLINE',
+    offline: 'OFFLINE',
+    upToDate: 'up to date',
+    note: 'A board downloads the update from this site over HTTPS, checks it and restarts; its settings and devices stay. Boards on firmware older than 2.4.0 have to be updated over USB once.',
+  },
+};
 
 /**
  * Firmware updates: what the latest version is and updating linked boards over the internet. Files for the
@@ -28,6 +76,7 @@ export function FirmwarePage() {
     pollingInterval: polling ? 3000 : 30000,
   });
   const boards = (controllers ?? []) as ControllerWithRole[];
+  const t = useTexts(TEXTS);
 
   useEffect(() => {
     setPolling(boards.some(isUpdating));
@@ -39,22 +88,13 @@ export function FirmwarePage() {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Firmware updates</PageHeaderTitle>
-          <PageHeaderDescription>
-            One firmware for every supported board. Install it once over USB
-            (files on the{' '}
-            <Link to="/settings/library" className="underline">
-              Library
-            </Link>{' '}
-            page), later updates come from the site.
-          </PageHeaderDescription>
+          <PageHeaderTitle>{t.title}</PageHeaderTitle>
+          <PageHeaderDescription>{t.description}</PageHeaderDescription>
         </div>
       </PageHeader>
 
       {error || !manifest ? (
-        <Card className="text-sm text-slate-500">
-          No firmware is published yet.
-        </Card>
+        <Card className="text-sm text-slate-500">{t.noFirmware}</Card>
       ) : (
         <Card className="flex flex-wrap items-start gap-4">
           <div className="rounded-lg bg-blue-50 p-3 text-blue-700">
@@ -62,11 +102,11 @@ export function FirmwarePage() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-xl font-semibold">
-              Version {manifest.version}
+              {t.version(manifest.version)}
             </div>
             <div className="text-sm text-slate-500">
-              Released {fromNow(manifest.date)}
-              {manifest.commit && <> · build {manifest.commit}</>}
+              {t.released(fromNow(manifest.date))}
+              {manifest.commit && <> · {t.build} {manifest.commit}</>}
             </div>
             {manifest.notes && (
               <p className="mt-2 text-sm text-slate-700">{manifest.notes}</p>
@@ -76,9 +116,9 @@ export function FirmwarePage() {
       )}
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Your boards</h2>
+        <h2 className="font-semibold">{t.yourBoards}</h2>
         {boards.length === 0 ? (
-          <Card className="text-sm text-slate-500">No boards linked yet.</Card>
+          <Card className="text-sm text-slate-500">{t.noBoards}</Card>
         ) : (
           <Card className="divide-y divide-black/5 p-0">
             {boards.map(board => (
@@ -95,11 +135,11 @@ export function FirmwarePage() {
                 <span
                   className={`rounded-full px-2 text-xs text-white ${board.online ? 'bg-green-500' : 'bg-gray-500'}`}
                 >
-                  {board.online ? 'ONLINE' : 'OFFLINE'}
+                  {board.online ? t.online : t.offline}
                 </span>
                 <div className="ml-auto flex items-center gap-2">
                   {!board.availableFirmware && !board.firmwareUpdate && (
-                    <span className="text-xs text-slate-500">up to date</span>
+                    <span className="text-xs text-slate-500">{t.upToDate}</span>
                   )}
                   <BoardFirmware controller={board} />
                 </div>
@@ -107,11 +147,7 @@ export function FirmwarePage() {
             ))}
           </Card>
         )}
-        <p className="text-xs text-slate-500">
-          A board downloads the update from this site over HTTPS, checks it and
-          restarts; its settings and devices stay. Boards on firmware older than
-          2.4.0 have to be updated over USB once.
-        </p>
+        <p className="text-xs text-slate-500">{t.note}</p>
       </section>
     </PageLayout>
   );

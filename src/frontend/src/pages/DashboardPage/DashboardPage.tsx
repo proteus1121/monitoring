@@ -15,7 +15,8 @@ import {
 import { Card } from '@src/components/Card';
 import { Loader } from '@src/components/Loader';
 import { DeviceIcon } from '@src/pages/DevicesPage/DevicesPage';
-import { DEVICE_TYPE_LABELS } from '@src/lib/hardware';
+import { DEVICE_TYPE_LABELS, deviceStatusLabel } from '@src/lib/hardware';
+import { useTexts } from '@src/lib/lang';
 import { formatReading, fromNow, serverTime } from '@src/lib/readings';
 import {
   Device,
@@ -30,6 +31,41 @@ const { RangePicker } = DatePicker;
 
 const POLLING_INTERVAL_MS = 15000;
 
+const TEXTS = {
+  uk: {
+    title: 'Огляд',
+    description: 'Поточний стан ваших пристроїв, плат і сповіщень',
+    devicesOnline: 'Пристрої онлайн',
+    boardsOnline: 'Плати онлайн',
+    openAlerts: 'Відкриті сповіщення',
+    lastData: 'Останні дані',
+    live: 'Поточні показники',
+    noDevices: 'Пристроїв ще немає — додайте їх на сторінці «Мої пристрої».',
+    history: 'Історія',
+    historyNote: 'Значення за годину, пунктир — прогноз',
+    selectDevices: 'Виберіть пристрої',
+    removeFromChart: 'Прибрати з графіка',
+    showOnChart: 'Показати на графіку',
+    noData: 'немає даних',
+  },
+  en: {
+    title: 'Overview',
+    description: 'Live state of your devices, boards and alerts',
+    devicesOnline: 'Devices online',
+    boardsOnline: 'Boards online',
+    openAlerts: 'Open alerts',
+    lastData: 'Last data',
+    live: 'Live readings',
+    noDevices: 'No devices yet — add them on the My devices page.',
+    history: 'History',
+    historyNote: 'Hourly values, dashed line is the forecast',
+    selectDevices: 'Select devices',
+    removeFromChart: 'Remove from chart',
+    showOnChart: 'Show on chart',
+    noData: 'no data',
+  },
+};
+
 const STATUS_DOT: Record<string, string> = {
   OK: 'bg-green-500',
   WARNING: 'bg-orange-500',
@@ -38,6 +74,7 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 export const DashboardPage = () => {
+  const t = useTexts(TEXTS);
   const { data: devices, isLoading } = useGetAllDevicesQuery(undefined, {
     pollingInterval: POLLING_INTERVAL_MS,
   });
@@ -108,40 +145,38 @@ export const DashboardPage = () => {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Overview</PageHeaderTitle>
-          <PageHeaderDescription>
-            Live state of your devices, boards and alerts
-          </PageHeaderDescription>
+          <PageHeaderTitle>{t.title}</PageHeaderTitle>
+          <PageHeaderDescription>{t.description}</PageHeaderDescription>
         </div>
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat
           icon="lucide:microchip"
-          label="Devices online"
+          label={t.devicesOnline}
           value={`${onlineDevices} / ${devices?.length ?? 0}`}
         />
         <Stat
           icon="lucide:cpu"
-          label="Boards online"
+          label={t.boardsOnline}
           value={`${onlineBoards} / ${controllers?.length ?? 0}`}
         />
         <Stat
           icon="lucide:triangle-alert"
-          label="Open alerts"
+          label={t.openAlerts}
           value={String(openAlerts)}
           tone={openAlerts > 0 ? 'alert' : undefined}
           href="#alerts"
         />
         <Stat
           icon="lucide:activity"
-          label="Last data"
+          label={t.lastData}
           value={lastReading ? fromNow(lastReading) : '—'}
         />
       </div>
 
       <section>
-        <h2 className="mb-3 font-semibold">Live readings</h2>
+        <h2 className="mb-3 font-semibold">{t.live}</h2>
         {devices?.length ? (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
             {devices.map(device => (
@@ -156,7 +191,7 @@ export const DashboardPage = () => {
           </div>
         ) : (
           <Card className="text-sm text-slate-500">
-            No devices yet — add them on the My devices page.
+            {t.noDevices}
           </Card>
         )}
       </section>
@@ -166,10 +201,8 @@ export const DashboardPage = () => {
           <div id="chart" className="scroll-mt-24" />
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
             <div>
-              <h3 className="font-semibold">History</h3>
-              <span className="text-sm text-gray-500">
-                Hourly values, dashed line is the forecast
-              </span>
+              <h3 className="font-semibold">{t.history}</h3>
+              <span className="text-sm text-gray-500">{t.historyNote}</span>
             </div>
             <RangePicker
               value={[startDate, endDate]}
@@ -182,7 +215,7 @@ export const DashboardPage = () => {
           {devices && devices.length > 0 && (
             <Select
               mode="multiple"
-              placeholder="Select devices"
+              placeholder={t.selectDevices}
               className="mb-4 w-full"
               value={chosenDeviceIds}
               onChange={(ids: number[]) => setChosenDeviceIds(ids)}
@@ -251,6 +284,7 @@ function ReadingTile(props: {
   onClick: () => void;
 }) {
   const { device, reading } = props;
+  const t = useTexts(TEXTS);
   const formatted = formatReading(device, reading?.value);
   // a reading older than 10 minutes is shown as stale
   const stale =
@@ -260,7 +294,7 @@ function ReadingTile(props: {
     <button
       type="button"
       onClick={props.onClick}
-      title={props.selected ? 'Remove from chart' : 'Show on chart'}
+      title={props.selected ? t.removeFromChart : t.showOnChart}
       className={clsx(
         'flex flex-col gap-2 rounded-xl border bg-white p-3 text-left transition-colors hover:border-blue-300',
         props.selected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-black/10'
@@ -274,7 +308,7 @@ function ReadingTile(props: {
             'size-2 shrink-0 rounded-full',
             STATUS_DOT[device.status ?? 'OFFLINE']
           )}
-          title={device.status}
+          title={deviceStatusLabel(device.status)}
         />
       </div>
       <div className={clsx('flex items-baseline gap-1', stale && 'opacity-40')}>
@@ -285,7 +319,7 @@ function ReadingTile(props: {
       </div>
       <div className="flex justify-between text-xs text-slate-400">
         <span>{device.type ? DEVICE_TYPE_LABELS[device.type] : ''}</span>
-        <span>{reading ? fromNow(reading.timestamp) : 'no data'}</span>
+        <span>{reading ? fromNow(reading.timestamp) : t.noData}</span>
       </div>
     </button>
   );

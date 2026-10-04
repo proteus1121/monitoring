@@ -21,6 +21,46 @@ import {
   useGetNotificationsQuery,
   useTestNotificationMutation,
 } from '@src/redux/generatedApi';
+import { useTexts } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    title: 'Сповіщення',
+    description: 'Куди надходять сповіщення. Пороги задаються для кожного пристрою на сторінці «Мої пристрої».',
+    add: 'Додати отримувача',
+    none: 'Отримувачів ще немає — додайте чат Telegram або адресу e-mail.',
+    checking: 'Перевірка…',
+    configured: 'Налаштовано на сервері',
+    noEmail: 'Не налаштовано: задайте секрети MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD',
+    noTelegram: 'Не налаштовано: задайте секрет TELEGRAM_BOT_TOKEN',
+    testFailed: 'Не вдалося надіслати тестове повідомлення',
+    testSent: (channel: string) => `Тестове повідомлення надіслано через ${channel}`,
+    chat: 'Чат',
+    severities: { CRITICAL: 'Критичні', WARNING: 'Попередження', INFO: 'Інформація' } as Record<string, string>,
+    test: 'Тест',
+    edit: 'Редагувати',
+    delete: 'Видалити',
+    deleteConfirm: 'Видалити цього отримувача?',
+  },
+  en: {
+    title: 'Alerts',
+    description: 'Where alerts are delivered. Thresholds are set per device on the My devices page.',
+    add: 'Add notification',
+    none: 'No notifications yet — add a Telegram chat or an e-mail address.',
+    checking: 'Checking…',
+    configured: 'Configured on the server',
+    noEmail: 'Not configured: set MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD secrets',
+    noTelegram: 'Not configured: set TELEGRAM_BOT_TOKEN secret',
+    testFailed: 'Test message failed',
+    testSent: (channel: string) => `Test message sent via ${channel}`,
+    chat: 'Chat',
+    severities: { CRITICAL: 'CRITICAL', WARNING: 'WARNING', INFO: 'INFO' } as Record<string, string>,
+    test: 'Test',
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this notification?',
+  },
+};
 
 const CHANNELS = {
   TELEGRAM: { label: 'Telegram', icon: 'logos:telegram' },
@@ -37,6 +77,7 @@ const AlertsPage = () => {
   const { data: notifications, isLoading } = useGetNotificationsQuery();
   const { data: channels } = useGetNotificationChannelsQuery();
   const { setState: openCreation } = useModal(AlertTemplateCreationModalId);
+  const t = useTexts(TEXTS);
 
   if (isLoading) {
     return <Loader />;
@@ -46,14 +87,12 @@ const AlertsPage = () => {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Alerts</PageHeaderTitle>
-          <PageHeaderDescription>
-            Where alerts are delivered. Thresholds are set per device on the My devices page.
-          </PageHeaderDescription>
+          <PageHeaderTitle>{t.title}</PageHeaderTitle>
+          <PageHeaderDescription>{t.description}</PageHeaderDescription>
         </div>
         <Button onClick={() => openCreation(true)} className="ml-2 shrink-0">
           <Icon icon="lucide:plus" className="size-4" />
-          Add notification
+          {t.add}
         </Button>
       </PageHeader>
 
@@ -72,7 +111,7 @@ const AlertsPage = () => {
       ) : (
         <Card className="flex flex-col items-center gap-2 py-10 text-sm text-slate-500">
           <Icon icon="lucide:bell-off" className="size-6" />
-          No notifications yet — add a Telegram chat or an e-mail address.
+          {t.none}
         </Card>
       )}
     </PageLayout>
@@ -83,6 +122,7 @@ export default AlertsPage;
 
 function ChannelStatus(props: { channel: keyof typeof CHANNELS; enabled?: boolean }) {
   const { label, icon } = CHANNELS[props.channel];
+  const t = useTexts(TEXTS);
   return (
     <Card className="flex items-center gap-3 text-sm">
       <Icon icon={icon} className="size-5 text-slate-600" />
@@ -90,12 +130,12 @@ function ChannelStatus(props: { channel: keyof typeof CHANNELS; enabled?: boolea
         <div className="font-medium">{label}</div>
         <div className="text-xs text-slate-500">
           {props.enabled === undefined
-            ? 'Checking…'
+            ? t.checking
             : props.enabled
-              ? 'Configured on the server'
+              ? t.configured
               : props.channel === 'EMAIL'
-                ? 'Not configured: set MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD secrets'
-                : 'Not configured: set TELEGRAM_BOT_TOKEN secret'}
+                ? t.noEmail
+                : t.noTelegram}
         </div>
       </div>
       <span
@@ -114,16 +154,17 @@ function NotificationCard({ item }: { item: TelegramNotification }) {
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const [deleteNotification] = useDeleteNotificationMutation();
   const [testNotification, { isLoading: isTesting }] = useTestNotificationMutation();
+  const t = useTexts(TEXTS);
 
   const test = async () => {
     const res = await testNotification({ id: item.id! });
     if ('error' in res) {
       notification.error({
-        message: 'Test message failed',
+        message: t.testFailed,
         description: JSON.stringify(res.error),
       });
     } else {
-      notification.success({ message: `Test message sent via ${channel.label}` });
+      notification.success({ message: t.testSent(channel.label) });
     }
   };
 
@@ -134,7 +175,7 @@ function NotificationCard({ item }: { item: TelegramNotification }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">
-              {item.channel === 'EMAIL' ? item.email : `Chat ${item.telegramChatId}`}
+              {item.channel === 'EMAIL' ? item.email : `${t.chat} ${item.telegramChatId}`}
             </span>
             <span
               className={clsx(
@@ -142,7 +183,7 @@ function NotificationCard({ item }: { item: TelegramNotification }) {
                 SEVERITY_STYLE[item.type ?? 'INFO']
               )}
             >
-              {item.type}
+              {t.severities[item.type ?? 'INFO'] ?? item.type}
             </span>
           </div>
           <pre className="mt-2 max-h-28 overflow-hidden font-sans text-xs whitespace-pre-wrap text-slate-500">
@@ -153,18 +194,18 @@ function NotificationCard({ item }: { item: TelegramNotification }) {
       <div className="flex shrink-0 gap-1 self-end sm:self-start">
         <Button size="sm" variant="secondary" disabled={isTesting} onClick={test}>
           <Icon icon="lucide:send" />
-          Test
+          {t.test}
         </Button>
-        <Button size="icon" variant="ghost" title="Edit" onClick={() => edit(item)}>
+        <Button size="icon" variant="ghost" title={t.edit} onClick={() => edit(item)}>
           <Icon icon="lucide:edit" />
         </Button>
         <Button
           size="icon"
           variant="ghost"
-          title="Delete"
+          title={t.delete}
           onClick={() =>
             confirm({
-              description: 'Delete this notification?',
+              description: t.deleteConfirm,
               callback: async () => {
                 await deleteNotification({ id: item.id! });
               },

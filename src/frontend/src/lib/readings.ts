@@ -1,7 +1,9 @@
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
+import 'dayjs/locale/uk';
 import type { Device } from '@src/redux/generatedApi';
+import { getLang, Lang, pick } from './lang';
 
 dayjs.extend(relativeTime);
 dayjs.extend(utc);
@@ -12,7 +14,7 @@ export function serverTime(timestamp?: string) {
 }
 
 export function fromNow(timestamp?: string) {
-  return serverTime(timestamp)?.fromNow() ?? '—';
+  return serverTime(timestamp)?.locale(getLang()).fromNow() ?? '—';
 }
 
 const UNITS: Partial<Record<NonNullable<Device['type']>, string>> = {
@@ -36,12 +38,21 @@ function isBinary(device: Device) {
   );
 }
 
-const BINARY_LABELS: Partial<Record<NonNullable<Device['type']>, [string, string]>> = {
-  FLAME: ['Flame!', 'No flame'],
-  MOTION: ['Motion', 'Still'],
-  LIGHT: ['Light', 'Dark'],
-  RELAY: ['On', 'Off'],
-  DIGITAL: ['High', 'Low'],
+const BINARY_LABELS: Record<Lang, Partial<Record<NonNullable<Device['type']>, [string, string]>>> = {
+  uk: {
+    FLAME: ['Полум’я!', 'Немає'],
+    MOTION: ['Рух', 'Спокій'],
+    LIGHT: ['Світло', 'Темно'],
+    RELAY: ['Увімк.', 'Вимк.'],
+    DIGITAL: ['Високий', 'Низький'],
+  },
+  en: {
+    FLAME: ['Flame!', 'No flame'],
+    MOTION: ['Motion', 'Still'],
+    LIGHT: ['Light', 'Dark'],
+    RELAY: ['On', 'Off'],
+    DIGITAL: ['High', 'Low'],
+  },
 };
 
 export function formatReading(device: Device, value?: number) {
@@ -49,9 +60,10 @@ export function formatReading(device: Device, value?: number) {
     return { value: '—', unit: '' };
   }
   if (isBinary(device)) {
-    const [on, off] = BINARY_LABELS[device.type!] ?? ['1', '0'];
+    const [on, off] = pick(BINARY_LABELS)[device.type!] ?? ['1', '0'];
     return { value: value >= 0.5 ? on : off, unit: '' };
   }
   const digits = Math.abs(value) >= 100 ? 0 : 1;
-  return { value: value.toFixed(digits), unit: UNITS[device.type!] ?? '' };
+  const unit = device.type === 'PRESSURE' && getLang() === 'uk' ? 'гПа' : UNITS[device.type!];
+  return { value: value.toFixed(digits), unit: unit ?? '' };
 }

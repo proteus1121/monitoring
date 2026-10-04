@@ -11,17 +11,50 @@ import {
 } from '@src/components/Command';
 import { DeviceIcon } from '@src/pages/DevicesPage/DevicesPage';
 import { DEVICE_TYPE_LABELS } from '@src/lib/hardware';
+import { useTexts } from '@src/lib/lang';
 import {
   useGetAllDevicesQuery,
   useGetControllersQuery,
   useGetRecentIncidentsQuery,
 } from '@src/redux/generatedApi';
 
+const TEXTS = {
+  uk: {
+    search: 'Пошук',
+    searchHint: 'Пошук пристроїв, плат, сповіщень і сторінок',
+    placeholder: 'Пристрої, плати, сповіщення…',
+    nothing: 'Нічого не знайдено.',
+    devices: 'Пристрої',
+    boards: 'Плати',
+    alerts: 'Сповіщення',
+    pages: 'Сторінки',
+    online: 'онлайн',
+    offline: 'офлайн',
+    pageNames: ['Огляд', 'Мої пристрої', 'Оновлення', 'Бібліотека', 'Користувачі', 'Сповіщення'],
+  },
+  en: {
+    search: 'Search',
+    searchHint: 'Search devices, boards, alerts and pages',
+    placeholder: 'Search devices, boards, alerts…',
+    nothing: 'Nothing found.',
+    devices: 'Devices',
+    boards: 'Boards',
+    alerts: 'Alerts',
+    pages: 'Pages',
+    online: 'online',
+    offline: 'offline',
+    pageNames: ['Overview', 'My devices', 'Updates', 'Library', 'Users', 'Alerts'],
+  },
+};
+
+// names in TEXTS.pageNames, in this order
 const PAGES = [
-  { label: 'Overview', icon: 'lucide:home', to: '/dashboard/overview' },
-  { label: 'Devices', icon: 'lucide:microchip', to: '/settings/devices' },
-  { label: 'Users', icon: 'lucide:users', to: '/settings/users' },
-  { label: 'Alerts & notifications', icon: 'lucide:bell', to: '/settings/alerts' },
+  { icon: 'lucide:layout-dashboard', to: '/dashboard/overview' },
+  { icon: 'lucide:microchip', to: '/settings/devices' },
+  { icon: 'lucide:refresh-cw', to: '/settings/firmware' },
+  { icon: 'lucide:library', to: '/settings/library' },
+  { icon: 'lucide:users', to: '/settings/users' },
+  { icon: 'lucide:bell', to: '/settings/alerts' },
 ];
 
 /**
@@ -30,6 +63,7 @@ const PAGES = [
 export function SearchDialog() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const t = useTexts(TEXTS);
   // only fetch while the dialog is open, the lists are cached afterwards
   const { data: devices } = useGetAllDevicesQuery(undefined, { skip: !open });
   const { data: controllers } = useGetControllersQuery(undefined, { skip: !open });
@@ -60,10 +94,10 @@ export function SearchDialog() {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex h-9 items-center gap-2 rounded-md px-2 text-sm text-slate-500 transition-colors hover:bg-gray-100 sm:border sm:border-black/10 sm:pr-1.5 sm:pl-3"
-        aria-label="Search"
+        aria-label={t.search}
       >
         <Icon icon="lucide:search" className="size-4 sm:size-4" />
-        <span className="hidden sm:inline">Search…</span>
+        <span className="hidden sm:inline">{t.search}…</span>
         <kbd className="hidden rounded border border-black/10 bg-gray-50 px-1.5 text-[11px] text-slate-400 sm:inline">
           Ctrl K
         </kbd>
@@ -72,15 +106,15 @@ export function SearchDialog() {
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
-        title="Search"
-        description="Search devices, boards, alerts and pages"
+        title={t.search}
+        description={t.searchHint}
       >
-        <CommandInput placeholder="Search devices, boards, alerts…" />
+        <CommandInput placeholder={t.placeholder} />
         <CommandList>
-          <CommandEmpty>Nothing found.</CommandEmpty>
+          <CommandEmpty>{t.nothing}</CommandEmpty>
 
           {!!devices?.length && (
-            <CommandGroup heading="Devices">
+            <CommandGroup heading={t.devices}>
               {devices.map(device => (
                 <CommandItem
                   key={device.id}
@@ -98,7 +132,7 @@ export function SearchDialog() {
           )}
 
           {!!controllers?.length && (
-            <CommandGroup heading="Boards">
+            <CommandGroup heading={t.boards}>
               {controllers.map(controller => (
                 <CommandItem
                   key={controller.id}
@@ -108,7 +142,7 @@ export function SearchDialog() {
                   <Icon icon="lucide:cpu" />
                   <span>{controller.name}</span>
                   <span className="ml-auto text-xs text-slate-400">
-                    {controller.online ? 'online' : 'offline'}
+                    {controller.online ? t.online : t.offline}
                   </span>
                 </CommandItem>
               ))}
@@ -116,7 +150,7 @@ export function SearchDialog() {
           )}
 
           {!!incidents?.length && (
-            <CommandGroup heading="Alerts">
+            <CommandGroup heading={t.alerts}>
               {incidents.map(incident => (
                 <CommandItem
                   key={incident.id}
@@ -130,15 +164,15 @@ export function SearchDialog() {
             </CommandGroup>
           )}
 
-          <CommandGroup heading="Pages">
-            {PAGES.map(page => (
+          <CommandGroup heading={t.pages}>
+            {PAGES.map((page, i) => (
               <CommandItem
                 key={page.to}
-                value={`page ${page.label}`}
+                value={`page ${t.pageNames[i]}`}
                 onSelect={() => go(page.to)}
               >
                 <Icon icon={page.icon} />
-                <span>{page.label}</span>
+                <span>{t.pageNames[i]}</span>
               </CommandItem>
             ))}
           </CommandGroup>

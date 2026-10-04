@@ -88,7 +88,8 @@ export const MainLayout = () => {
 
       <div className="h-full min-h-full lg:pl-64">
         <Header />
-        <Outlet />
+        {/* pages build labels in helpers too: render them again in the new language */}
+        <Outlet key={lang} />
       </div>
 
       <aside

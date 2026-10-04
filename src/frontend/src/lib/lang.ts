@@ -37,6 +37,21 @@ function subscribe(listener: () => void) {
 }
 
 /**
+ * The language outside of components (labels built in helpers); components use useLang / useTexts so they
+ * render again when it changes.
+ */
+export function getLang(): Lang {
+  return current;
+}
+
+/**
+ * Texts of the current language outside of components.
+ */
+export function pick<T>(texts: Record<Lang, T>): T {
+  return texts[current];
+}
+
+/**
  * The interface language, Ukrainian by default; one choice for the sign-in page and the app.
  */
 export function useLang(): Lang {

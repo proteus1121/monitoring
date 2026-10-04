@@ -25,6 +25,56 @@ import {
   useUpdateDisplayMutation,
 } from '@src/redux/controllersApi';
 import { errorMessage } from '@src/redux/helpers';
+import { getLang, useTexts } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    scanFailed: 'Не вдалося почати сканування',
+    title: 'Сканування плати',
+    note: 'лише вільні піни: пристрої, дисплей і реле не зачіпаються',
+    again: 'Сканувати ще раз',
+    close: 'Закрити',
+    checking: 'Плата перевіряє вільні піни, це займає кілька секунд…',
+    timeout: 'Плата не відповіла. Вона має бути онлайн і мати прошивку 2.3.0 або новішу (оновіть її через Wi-Fi).',
+    nothing: (pins: string) =>
+      `На вільних пінах ${pins} нічого не знайдено. Модулі, які лише приймають сигнали (реле, SPI-дисплеї), виявити не можна, додайте їх вручну.`,
+    scanned: (pins: string) =>
+      `Проскановано ${pins}. Реле й SPI-дисплеї лише приймають сигнали, сканування їх не знаходить.`,
+    addFailed: (name: string) => `Не вдалося додати ${name}`,
+    addedMessage: (names: string) => `Додано: ${names}`,
+    displayFailed: 'Не вдалося задати дисплей',
+    displaySet: 'Дисплей задано',
+    displayRestart: 'Плата перезапуститься, щоб його використати.',
+    added: 'додано',
+    add: 'Додати',
+    devices: (count: number) => `${count} пристрої`,
+    openForm: 'Відкрити заповнену форму пристрою',
+    useAsDisplay: 'Використати як дисплей',
+  },
+  en: {
+    scanFailed: 'Could not start the scan',
+    title: 'Board scan',
+    note: 'free pins only: devices, display and relays are not touched',
+    again: 'Scan again',
+    close: 'Close',
+    checking: 'The board is checking its free pins, it takes a few seconds…',
+    timeout: 'The board did not answer. It has to be online and run firmware 2.3.0 or newer (update it over Wi-Fi).',
+    nothing: (pins: string) =>
+      `Nothing found on the free pins ${pins}. Modules that only receive signals (relays, SPI displays) cannot be detected, add them by hand.`,
+    scanned: (pins: string) =>
+      `Scanned ${pins}. Relays and SPI displays only receive signals and are not found by a scan.`,
+    addFailed: (name: string) => `Could not add ${name}`,
+    addedMessage: (names: string) => `Added ${names}`,
+    displayFailed: 'Could not set the display',
+    displaySet: 'Display set',
+    displayRestart: 'The board restarts to use it.',
+    added: 'added',
+    add: 'Add',
+    devices: (count: number) => `${count} devices`,
+    openForm: 'Open the device form pre-filled',
+    useAsDisplay: 'Use as display',
+  },
+};
 
 const DEFAULT_DELAY_MS = 10000;
 
@@ -40,7 +90,7 @@ function formatReadings(readings: Record<string, number>) {
     .map(([key, value]) => {
       if (key === 'TEMPERATURE') return `${value.toFixed(1)} °C`;
       if (key === 'HUMIDITY') return `${value.toFixed(0)} %`;
-      if (key === 'PRESSURE') return `${value.toFixed(1)} hPa`;
+      if (key === 'PRESSURE') return `${value.toFixed(1)} ${getLang() === 'uk' ? 'гПа' : 'hPa'}`;
       if (key === 'LEVEL') return value >= 0.5 ? 'HIGH' : 'LOW';
       if (key === 'ANALOG') return `ADC ${value.toFixed(0)}`;
       return `${key} ${value}`;
@@ -65,6 +115,7 @@ function toDevice(suggested: SuggestedDevice, controllerId: number): Device {
  */
 export function ScanPanel(props: { controller: ControllerWithRole; onClose: () => void }) {
   const { controller } = props;
+  const t = useTexts(TEXTS);
   const id = controller.id!;
   const [pending, setPending] = useState(true);
   const { data: scan } = useGetBoardScanQuery({ id }, { pollingInterval: pending ? 1500 : 0 });
@@ -81,7 +132,7 @@ export function ScanPanel(props: { controller: ControllerWithRole; onClose: () =
     setAdded(new Set());
     const res = await rescan({ id });
     if ('error' in res) {
-      notification.error({ message: 'Could not start the scan', description: errorMessage(res.error) });
+      notification.error({ message: t.scanFailed, description: errorMessage(res.error) });
     }
   };
 
@@ -89,16 +140,14 @@ export function ScanPanel(props: { controller: ControllerWithRole; onClose: () =
     <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3 text-sm">
       <div className="mb-2 flex items-center gap-2">
         <Icon icon="lucide:scan-search" className="size-4 text-slate-600" />
-        <span className="font-medium">Board scan</span>
-        <span className="text-xs text-slate-500">
-          free pins only: devices, display and relays are not touched
-        </span>
+        <span className="font-medium">{t.title}</span>
+        <span className="text-xs text-slate-500">{t.note}</span>
         <div className="ml-auto flex gap-1">
           <Button size="sm" variant="ghost" disabled={isStarting || pending} onClick={again}>
             <Icon icon="lucide:refresh-cw" />
-            Scan again
+            {t.again}
           </Button>
-          <Button size="icon" variant="ghost" title="Close" onClick={props.onClose}>
+          <Button size="icon" variant="ghost" title={t.close} onClick={props.onClose}>
             <Icon icon="lucide:x" />
           </Button>
         </div>
@@ -107,23 +156,18 @@ export function ScanPanel(props: { controller: ControllerWithRole; onClose: () =
       {(!scan || scan.status === 'PENDING') && (
         <div className="flex items-center gap-2 text-slate-600">
           <Spinner />
-          The board is checking its free pins, it takes a few seconds…
+          {t.checking}
         </div>
       )}
 
       {scan?.status === 'TIMEOUT' && (
-        <p className="text-orange-800">
-          The board did not answer. It has to be online and run firmware 2.3.0 or newer (update it over Wi-Fi).
-        </p>
+        <p className="text-orange-800">{t.timeout}</p>
       )}
 
       {scan?.status === 'DONE' && (
         <div className="flex flex-col gap-2">
           {scan.findings.length === 0 && (
-            <p className="text-slate-600">
-              Nothing found on the free pins {pinText(scan.scannedPins)}. Modules that only receive signals (relays,
-              SPI displays) cannot be detected, add them by hand.
-            </p>
+            <p className="text-slate-600">{t.nothing(pinText(scan.scannedPins))}</p>
           )}
           {scan.findings.map((finding, index) => (
             <FindingRow
@@ -136,10 +180,7 @@ export function ScanPanel(props: { controller: ControllerWithRole; onClose: () =
             />
           ))}
           {scan.findings.length > 0 && (
-            <p className="text-xs text-slate-500">
-              Scanned {pinText(scan.scannedPins)}. Relays and SPI displays only receive signals and are not found by a
-              scan.
-            </p>
+            <p className="text-xs text-slate-500">{t.scanned(pinText(scan.scannedPins))}</p>
           )}
         </div>
       )}
@@ -155,6 +196,7 @@ function FindingRow(props: {
   onAdded: () => void;
 }) {
   const { finding, controller } = props;
+  const t = useTexts(TEXTS);
   const [choice, setChoice] = useState(0);
   const [displayModel, setDisplayModel] = useState<DisplayModelValue>(finding.display?.model ?? 'SSD1306');
   const [busy, setBusy] = useState(false);
@@ -173,13 +215,13 @@ function FindingRow(props: {
         deviceRequest: { ...device, delay: DEFAULT_DELAY_MS, name: device.name!, forecastModel: 'NONE' },
       });
       if ('error' in res) {
-        notification.error({ message: `Could not add ${suggested.name}`, description: errorMessage(res.error) });
+        notification.error({ message: t.addFailed(suggested.name ?? ''), description: errorMessage(res.error) });
         setBusy(false);
         return;
       }
     }
     setBusy(false);
-    notification.success({ message: `Added ${option.devices.map(d => d.name).join(', ')}` });
+    notification.success({ message: t.addedMessage(option.devices.map(d => d.name).join(', ')) });
     props.onAdded();
   };
 
@@ -189,10 +231,10 @@ function FindingRow(props: {
     const res = await updateDisplay({ id: controller.id!, model: displayModel, pins: finding.display.pins, flip: false });
     setBusy(false);
     if ('error' in res) {
-      notification.error({ message: 'Could not set the display', description: errorMessage(res.error) });
+      notification.error({ message: t.displayFailed, description: errorMessage(res.error) });
       return;
     }
-    notification.success({ message: 'Display set', description: 'The board restarts to use it.' });
+    notification.success({ message: t.displaySet, description: t.displayRestart });
     props.onAdded();
   };
 
@@ -214,7 +256,7 @@ function FindingRow(props: {
 
       {props.added ? (
         <span className="flex items-center gap-1 text-xs text-green-700">
-          <Icon icon="lucide:check" /> added
+          <Icon icon="lucide:check" /> {t.added}
         </span>
       ) : (
         <>
@@ -238,12 +280,12 @@ function FindingRow(props: {
             <>
               <Button size="sm" disabled={busy} onClick={addDevices}>
                 {busy ? <Spinner /> : <Icon icon="lucide:plus" />}
-                Add {option.devices.length > 1 ? `${option.devices.length} devices` : ''}
+                {t.add} {option.devices.length > 1 ? t.devices(option.devices.length) : ''}
               </Button>
               <Button
                 size="icon"
                 variant="ghost"
-                title="Open the device form pre-filled"
+                title={t.openForm}
                 onClick={() => openCreation(toDevice(option.devices[0], controller.id!))}
               >
                 <Icon icon="lucide:pencil" />
@@ -265,7 +307,7 @@ function FindingRow(props: {
               </Select>
               <Button size="sm" disabled={busy} onClick={useAsDisplay}>
                 {busy ? <Spinner /> : <Icon icon="lucide:monitor" />}
-                Use as display
+                {t.useAsDisplay}
               </Button>
             </>
           )}

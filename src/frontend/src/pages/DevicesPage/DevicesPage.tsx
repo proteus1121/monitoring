@@ -17,7 +17,8 @@ import {
 } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
 import { PageLayout } from '@src/layouts/PageLayout';
-import { DEVICE_TYPE_LABELS, DISPLAY_PIN_NAMES, getPinLabel } from '@src/lib/hardware';
+import { DEVICE_TYPE_LABELS, DISPLAY_PIN_NAMES, deviceStatusLabel, getPinLabel } from '@src/lib/hardware';
+import { useTexts } from '@src/lib/lang';
 import { ControllerWithRole, useUpdateDisplayMutation } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { formatReading, fromNow } from '@src/lib/readings';
@@ -44,7 +45,81 @@ const FORECAST_LABELS: Record<string, string> = {
   XGBOOST: 'XGBoost',
 };
 
+const TEXTS = {
+  uk: {
+    loadFailed: 'Не вдалося завантажити пристрої',
+    title: 'Мої пристрої',
+    description: 'Ваші плати, під’єднані до них датчики й налаштування кожного пристрою',
+    addDevice: 'Додати пристрій',
+    boards: 'Плати',
+    noBoards: 'Плат ще немає. Прошийте плату й увійдіть з її сторінки, як описано вище.',
+    unwired: 'Не під’єднані до плати',
+    unwiredNote: 'Ці пристрої не отримують налаштувань: відкрийте пристрій і виберіть плату, модуль і пін.',
+    noDevices: 'Пристроїв ще немає.',
+    device: 'Пристрій',
+    modulePin: 'Модуль · пін',
+    boardModulePin: 'Плата · модуль · пін',
+    lastValue: 'Останнє значення',
+    status: 'Стан',
+    forecast: 'Прогноз',
+    edit: 'Редагувати',
+    board: 'Плата',
+    noModule: 'без модуля',
+    notWired: 'не під’єднано',
+    configure: 'Налаштувати',
+    delete: 'Видалити',
+    display: 'Дисплей',
+    showsReadings: 'показує показники',
+    notFoundHint: 'Плата його не знайшла: перевірте під’єднання й модель',
+    notFound: 'НЕ ЗНАЙДЕНО',
+    found: 'OK',
+    unknown: 'НЕВІДОМО',
+    remove: 'Прибрати',
+    removeDisplay: (board: string) => `Прибрати дисплей плати ${board}? Плата перезапуститься без екрана.`,
+    removeFailed: 'Не вдалося прибрати дисплей',
+    commandFailed: 'Не вдалося надіслати команду',
+    on: 'Увімк.',
+    off: 'Вимк.',
+  },
+  en: {
+    loadFailed: 'Failed to load devices',
+    title: 'My devices',
+    description: 'Your linked boards, the sensors wired to them and the configuration of every device',
+    addDevice: 'Add Device',
+    boards: 'Boards',
+    noBoards: 'No boards yet. Flash a board and sign in from its page, as described above.',
+    unwired: 'Not wired to a board',
+    unwiredNote: 'These devices do not receive configuration; edit one and choose a board, module and pin.',
+    noDevices: 'No devices yet.',
+    device: 'Device',
+    modulePin: 'Module · pin',
+    boardModulePin: 'Board · module · pin',
+    lastValue: 'Last value',
+    status: 'Status',
+    forecast: 'Forecast',
+    edit: 'Edit',
+    board: 'Board',
+    noModule: 'no module',
+    notWired: 'not wired',
+    configure: 'Configure',
+    delete: 'Delete',
+    display: 'Display',
+    showsReadings: 'shows the readings',
+    notFoundHint: 'The board did not find it: check the wiring and the model',
+    notFound: 'NOT FOUND',
+    found: 'OK',
+    unknown: 'UNKNOWN',
+    remove: 'Remove',
+    removeDisplay: (board: string) => `Remove the display of ${board}? The board restarts without a screen.`,
+    removeFailed: 'Failed to remove the display',
+    commandFailed: 'Failed to send command',
+    on: 'On',
+    off: 'Off',
+  },
+};
+
 const DevicesPage = () => {
+  const t = useTexts(TEXTS);
   const { data: devices, isLoading, error } = useGetAllDevicesQuery(undefined, {
     pollingInterval: POLLING_INTERVAL_MS,
   });
@@ -66,7 +141,7 @@ const DevicesPage = () => {
 
   useEffect(() => {
     if (error) {
-      notification.error({ message: `Failed to load devices: ${JSON.stringify(error)}` });
+      notification.error({ message: `${t.loadFailed}: ${JSON.stringify(error)}` });
     }
   }, [error]);
 
@@ -85,21 +160,19 @@ const DevicesPage = () => {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>My devices</PageHeaderTitle>
-          <PageHeaderDescription>
-            Your linked boards, the sensors wired to them and the configuration of every device
-          </PageHeaderDescription>
+          <PageHeaderTitle>{t.title}</PageHeaderTitle>
+          <PageHeaderDescription>{t.description}</PageHeaderDescription>
         </div>
         <Button onClick={() => openCreation(true)} className="ml-2 shrink-0">
           <Icon icon="lucide:plus" className="size-4" />
-          Add Device
+          {t.addDevice}
         </Button>
       </PageHeader>
 
       <SetupHint />
 
       <section className="space-y-4">
-        <h2 className="font-semibold">Boards</h2>
+        <h2 className="font-semibold">{t.boards}</h2>
         {controllers?.length ? (
           controllers.map(controller => (
             <ControllerPanel
@@ -122,7 +195,7 @@ const DevicesPage = () => {
           ))
         ) : (
           <Card className="text-sm text-slate-500">
-            No boards yet. Enter the code the board shows in “Connect a new board” above.
+            {t.noBoards}
           </Card>
         )}
       </section>
@@ -130,10 +203,8 @@ const DevicesPage = () => {
       {unwired.length > 0 && (
         <section className="space-y-3">
           <div>
-            <h2 className="font-semibold">Not wired to a board</h2>
-            <p className="text-sm text-slate-500">
-              These devices do not receive configuration; edit one and choose a board, module and pin.
-            </p>
+            <h2 className="font-semibold">{t.unwired}</h2>
+            <p className="text-sm text-slate-500">{t.unwiredNote}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {unwired.map(device => (
@@ -176,6 +247,7 @@ function DevicesTable(props: {
   compact?: boolean;
 }) {
   const compact = !!props.compact;
+  const t = useTexts(TEXTS);
   const deleteDevice = useDeleteDevice();
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: edit } = useModal(DeviceUpdatingModalId);
@@ -187,7 +259,7 @@ function DevicesTable(props: {
   );
 
   if (props.devices.length === 0 && displays.length === 0) {
-    return compact ? null : <Card className="text-sm text-slate-500">No devices yet.</Card>;
+    return compact ? null : <Card className="text-sm text-slate-500">{t.noDevices}</Card>;
   }
 
   return (
@@ -195,11 +267,11 @@ function DevicesTable(props: {
       <table className={clsx('w-full text-left text-sm', compact ? 'min-w-[480px]' : 'min-w-[760px]')}>
         <thead className="border-b border-black/10 text-xs text-slate-500">
           <tr>
-            <th className="px-4 py-2 font-medium">Device</th>
-            <th className="px-4 py-2 font-medium">{compact ? 'Module · pin' : 'Board · module · pin'}</th>
-            <th className="px-4 py-2 font-medium">Last value</th>
-            <th className="px-4 py-2 font-medium">Status</th>
-            {!compact && <th className="px-4 py-2 font-medium">Forecast</th>}
+            <th className="px-4 py-2 font-medium">{t.device}</th>
+            <th className="px-4 py-2 font-medium">{compact ? t.modulePin : t.boardModulePin}</th>
+            <th className="px-4 py-2 font-medium">{t.lastValue}</th>
+            <th className="px-4 py-2 font-medium">{t.status}</th>
+            {!compact && <th className="px-4 py-2 font-medium">{t.forecast}</th>}
             <th className="px-4 py-2" />
           </tr>
         </thead>
@@ -213,7 +285,7 @@ function DevicesTable(props: {
               <tr
                 key={device.id}
                 className="cursor-pointer border-b border-black/5 last:border-b-0 hover:bg-gray-50"
-                title="Edit"
+                title={t.edit}
                 onClick={() => edit(device)}
               >
                 <td className="px-4 py-2.5">
@@ -234,14 +306,14 @@ function DevicesTable(props: {
                 <td className="px-4 py-2.5 text-slate-600">
                   {device.controllerId ? (
                     <>
-                      {!compact && <>{controller?.name ?? `Board #${device.controllerId}`} · </>}
-                      {model?.label ?? device.sensorModel ?? 'no module'} ·{' '}
+                      {!compact && <>{controller?.name ?? `${t.board} #${device.controllerId}`} · </>}
+                      {model?.label ?? device.sensorModel ?? t.noModule} ·{' '}
                       {getPinLabel(controller?.platform, device.pin)}
                       {device.secondaryPin !== undefined && device.secondaryPin !== null &&
                         ` / ${getPinLabel(controller?.platform, device.secondaryPin)}`}
                     </>
                   ) : (
-                    <span className="text-slate-400">not wired</span>
+                    <span className="text-slate-400">{t.notWired}</span>
                   )}
                 </td>
                 <td className="px-4 py-2.5">
@@ -258,7 +330,7 @@ function DevicesTable(props: {
                       getColorByStatus(device.status)
                     )}
                   >
-                    {device.status}
+                    {deviceStatusLabel(device.status)}
                   </span>
                 </td>
                 {!compact && <td className="px-4 py-2.5 text-slate-600">
@@ -276,13 +348,13 @@ function DevicesTable(props: {
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                     {model?.output && device.controllerId && <RelayControls deviceId={device.id!} />}
-                    <Button size="icon" variant="ghost" title="Configure" onClick={() => edit(device)}>
+                    <Button size="icon" variant="ghost" title={t.configure} onClick={() => edit(device)}>
                       <Icon icon="lucide:settings-2" />
                     </Button>
                     <Button
                       size="icon"
                       variant="ghost"
-                      title="Delete"
+                      title={t.delete}
                       onClick={() => deleteDevice(device)}
                     >
                       <Icon icon="lucide:trash-2" />
@@ -301,14 +373,14 @@ function DevicesTable(props: {
               <tr
                 key={`display-${board.id}`}
                 className="cursor-pointer border-b border-black/5 last:border-b-0 hover:bg-gray-50"
-                title="Edit"
+                title={t.edit}
                 onClick={() => openDisplay({ controllerId: board.id! })}
               >
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <ModuleArt module={display.model} showLabels={false} className="h-6 w-8 shrink-0" />
                     <div className="min-w-0">
-                      <div className="font-medium">Display</div>
+                      <div className="font-medium">{t.display}</div>
                       <div className="text-xs text-slate-500">{display.model}</div>
                     </div>
                   </div>
@@ -317,16 +389,16 @@ function DevicesTable(props: {
                   {!compact && <>{board.name} · </>}
                   {display.model} · {pins}
                 </td>
-                <td className="px-4 py-2.5 text-xs text-slate-400">shows the readings</td>
+                <td className="px-4 py-2.5 text-xs text-slate-400">{t.showsReadings}</td>
                 <td className="px-4 py-2.5">
                   <span
                     className={clsx(
                       'rounded-full px-2 py-0.5 text-xs text-white',
                       board.displayFound === false ? 'bg-orange-500' : board.displayFound ? 'bg-green-500' : 'bg-gray-400'
                     )}
-                    title={board.displayFound === false ? 'The board did not find it: check the wiring and the model' : undefined}
+                    title={board.displayFound === false ? t.notFoundHint : undefined}
                   >
-                    {board.displayFound === false ? 'NOT FOUND' : board.displayFound ? 'OK' : 'UNKNOWN'}
+                    {board.displayFound === false ? t.notFound : board.displayFound ? t.found : t.unknown}
                   </span>
                 </td>
                 {!compact && <td className="px-4 py-2.5 text-slate-400">—</td>}
@@ -335,7 +407,7 @@ function DevicesTable(props: {
                     <Button
                       size="icon"
                       variant="ghost"
-                      title="Configure"
+                      title={t.configure}
                       onClick={() => openDisplay({ controllerId: board.id! })}
                     >
                       <Icon icon="lucide:settings-2" />
@@ -343,15 +415,15 @@ function DevicesTable(props: {
                     <Button
                       size="icon"
                       variant="ghost"
-                      title="Remove"
+                      title={t.remove}
                       onClick={() =>
                         confirm({
-                          description: `Remove the display of ${board.name}? The board restarts without a screen.`,
+                          description: t.removeDisplay(board.name ?? ''),
                           callback: async () => {
                             const res = await updateDisplay({ id: board.id!, model: 'NONE', pins: [], flip: false });
                             if ('error' in res) {
                               notification.error({
-                                message: 'Failed to remove the display',
+                                message: t.removeFailed,
                                 description: errorMessage(res.error),
                               });
                             }
@@ -374,21 +446,22 @@ function DevicesTable(props: {
 
 function RelayControls({ deviceId }: { deviceId: number }) {
   const [sendCommand, { isLoading }] = useSendCommandMutation();
+  const t = useTexts(TEXTS);
 
   const send = async (value: number) => {
     const res = await sendCommand({ id: deviceId, deviceCommandRequest: { value } });
     if (res.error) {
-      notification.error({ message: 'Failed to send command', description: JSON.stringify(res.error) });
+      notification.error({ message: t.commandFailed, description: JSON.stringify(res.error) });
     }
   };
 
   return (
     <div className="mr-1 flex gap-1">
       <Button size="sm" disabled={isLoading} onClick={() => send(1)}>
-        On
+        {t.on}
       </Button>
       <Button size="sm" variant="secondary" disabled={isLoading} onClick={() => send(0)}>
-        Off
+        {t.off}
       </Button>
     </div>
   );

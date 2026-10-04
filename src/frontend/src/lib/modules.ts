@@ -2,6 +2,24 @@ import type { ModuleKey } from '@src/components/ModuleArt';
 import type { DisplayModelInfo, DisplayModelValue } from '@src/redux/controllersApi';
 import type { DeviceTypeValue, SensorModelInfo } from '@src/redux/generatedApi';
 import { DEVICE_TYPE_LABELS } from './hardware';
+import { pick } from './lang';
+
+const TEXTS = {
+  uk: {
+    and: 'і',
+    switches: 'Вмикає й вимикає навантаження із сайту',
+    readsVoltage: 'Читає напругу: будь-який аналоговий датчик',
+    measures: (what: string) => `Вимірює: ${what}`,
+    display: 'Показує на платі показники та дані для налаштування',
+  },
+  en: {
+    and: 'and',
+    switches: 'Switches a load on and off from the site',
+    readsVoltage: 'Reads a voltage: any analog sensor',
+    measures: (what: string) => `Measures ${what}`,
+    display: 'Shows the readings and the setup info on the board',
+  },
+};
 
 /**
  * A module the user can wire to a board: a sensor / output (becomes devices) or a display (a board setting).
@@ -21,11 +39,12 @@ export type ModuleEntry = {
 };
 
 // "Temperature" -> "temperature", acronyms stay: "LPG", "methane (CH4)"
-const inSentence = (label: string) => label.replace(/^[A-Z](?=[a-z])/, c => c.toLowerCase());
+const inSentence = (label: string) => label.replace(/^\p{Lu}(?=\p{Ll})/u, c => c.toLowerCase());
 
 function joinTypes(types: DeviceTypeValue[]) {
   const names = types.map(type => inSentence(DEVICE_TYPE_LABELS[type]));
-  return names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] ?? '';
+  const and = pick(TEXTS).and;
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} ${and} ${names[names.length - 1]}` : names[0] ?? '';
 }
 
 export function buildModules(sensors?: SensorModelInfo[], displays?: DisplayModelInfo[]): ModuleEntry[] {
@@ -35,10 +54,10 @@ export function buildModules(sensors?: SensorModelInfo[], displays?: DisplayMode
     label: sensor.label ?? sensor.model!,
     description: sensor.description ?? '',
     does: sensor.output
-      ? 'Switches a load on and off from the site'
+      ? pick(TEXTS).switches
       : sensor.model === 'ANALOG_INPUT'
-        ? 'Reads a voltage: any analog sensor'
-        : `Measures ${joinTypes(sensor.supportedTypes ?? [])}`,
+        ? pick(TEXTS).readsVoltage
+        : pick(TEXTS).measures(joinTypes(sensor.supportedTypes ?? [])),
     pins: sensor.pins ?? [],
     sensor,
   }));
@@ -49,7 +68,7 @@ export function buildModules(sensors?: SensorModelInfo[], displays?: DisplayMode
       kind: 'display',
       label: display.label,
       description: display.description,
-      does: 'Shows the readings, the link code and the setup info on the board',
+      does: pick(TEXTS).display,
       pins: display.pins,
       display,
     }));

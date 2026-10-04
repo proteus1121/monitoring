@@ -1,6 +1,26 @@
 import { useMemo } from 'react';
 import type { ControllerWithRole } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
+import { pick } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    module: 'Модуль',
+    display: 'Дисплей',
+    pin: 'пін',
+    editDisplay: 'Редагувати дисплей',
+    edit: (name: string) => `Редагувати ${name}`,
+    wiring: (board: string) => `Схема під’єднання ${board}`,
+  },
+  en: {
+    module: 'Module',
+    display: 'Display',
+    pin: 'pin',
+    editDisplay: 'Edit the display',
+    edit: (name: string) => `Edit ${name}`,
+    wiring: (board: string) => `Wiring of ${board}`,
+  },
+};
 import {
   BoardPin,
   DEVICE_TYPE_LABELS,
@@ -111,7 +131,7 @@ export function BoardDiagram(props: {
       const pins = gpios.map(findPin);
       return {
         key,
-        label: info?.label ?? first.sensorModel ?? 'Module',
+        label: info?.label ?? first.sensorModel ?? pick(TEXTS).module,
         art: first.sensorModel,
         pinNames: info?.pins ?? [],
         pins,
@@ -128,7 +148,7 @@ export function BoardDiagram(props: {
       const pins = display.pins.map(findPin);
       list.push({
         key: 'display',
-        label: `Display · ${display.model}`,
+        label: `${pick(TEXTS).display} · ${display.model}`,
         pinNames: DISPLAY_PIN_NAMES[display.model],
         pins,
         gpios: display.pins,
@@ -242,7 +262,7 @@ export function BoardDiagram(props: {
     const pinText = module.gpios
       .map((gpio, i) => {
         const pin = findPin(gpio);
-        return `${module.pinNames[i] ?? 'pin'}→${pin?.pin.label ?? `GPIO${gpio}`}`;
+        return `${module.pinNames[i] ?? pick(TEXTS).pin}→${pin?.pin.label ?? `GPIO${gpio}`}`;
       })
       // five display pins only fit with single spaces
       .join(module.display ? ' ' : '  ');
@@ -262,7 +282,7 @@ export function BoardDiagram(props: {
           className="cursor-pointer"
           onClick={() => (module.display ? onDisplayClick?.() : module.devices[0] && onDeviceClick(module.devices[0]))}
         >
-          <title>{module.display ? 'Edit the display' : `Edit ${module.devices[0]?.name ?? ''}`}</title>
+          <title>{module.display ? pick(TEXTS).editDisplay : pick(TEXTS).edit(module.devices[0]?.name ?? '')}</title>
           <rect
             x={x}
             y={module.y}
@@ -341,7 +361,7 @@ export function BoardDiagram(props: {
       // grow on wide screens, shrink on phones; the aspect ratio comes from the viewBox
       style={{ width: '100%', maxWidth: width * 1.35, height: 'auto' }}
       role="img"
-      aria-label={`Wiring of ${controller.name}`}
+      aria-label={pick(TEXTS).wiring(controller.name ?? '')}
     >
       {/* board */}
       <rect
