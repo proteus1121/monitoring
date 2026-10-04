@@ -15,6 +15,7 @@ import { notification } from 'antd';
 import { errorMessage } from '../helpers';
 import { Device, useUpdateDeviceMutation } from '../generatedApi';
 import { useEffect } from 'react';
+import { ModuleArt } from '@src/components/ModuleArt';
 import {
   DeviceFormFields,
   DeviceSchema,
@@ -95,7 +96,12 @@ export function DeviceUpdatingModal() {
           }}
         >
           <DialogHeader>
-            <DialogTitle>Update Device</DialogTitle>
+            <DialogTitle className="flex items-center gap-3">
+              {state?.sensorModel && (
+                <ModuleArt module={state.sensorModel} showLabels={false} className="h-9 w-12 shrink-0" />
+              )}
+              {state?.name ?? 'Update Device'}
+            </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4">
             <DeviceFormFields form={form} device={state} />

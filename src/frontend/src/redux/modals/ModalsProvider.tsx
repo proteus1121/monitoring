@@ -5,6 +5,8 @@ import { AlertTemplateUpdatingModal } from './AlertTemplateUpdatingModal';
 import { DeviceUpdatingModal } from './DeviceUpdatingModal';
 import { DeviceSharingCreationModal } from './DeviceSharingCreationModal';
 import { DeviceSharingUpdatingModal } from './DeviceSharingUpdatingModal';
+import { DisplayModal } from './DisplayModal';
+import { ModuleCreationModal } from './ModuleCreationModal';
 
 export function ModalsProvider() {
   return (
@@ -16,6 +18,8 @@ export function ModalsProvider() {
       <AlertTemplateCreationModal />
       <DeviceSharingCreationModal />
       <DeviceSharingUpdatingModal />
+      <ModuleCreationModal />
+      <DisplayModal />
       <AppAlertDialog />
     </>
   );

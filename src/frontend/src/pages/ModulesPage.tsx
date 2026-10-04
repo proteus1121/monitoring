@@ -1,4 +1,3 @@
-import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
 import { Loader } from '@src/components/Loader';
 import {
@@ -10,7 +9,7 @@ import { PageLayout } from '@src/layouts/PageLayout';
 import { DEVICE_TYPE_LABELS } from '@src/lib/hardware';
 import { useGetSensorModelsQuery } from '@src/redux/generatedApi';
 import { useGetDisplayModelsQuery } from '@src/redux/controllersApi';
-import { DeviceIcon } from './DevicesPage/DevicesPage';
+import { ModuleArt } from '@src/components/ModuleArt';
 
 function Pins({ pins }: { pins: string[] }) {
   return (
@@ -57,8 +56,8 @@ export function ModulesPage() {
           {(sensors ?? []).map(sensor => (
             <Card key={sensor.model} className="flex flex-col gap-3">
               <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
-                  <DeviceIcon type={sensor.supportedTypes?.[0]} className="size-5" />
+                <div className="shrink-0 rounded-lg bg-gray-50 p-1.5">
+                  <ModuleArt module={sensor.model} className="h-20 w-24" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">{sensor.label}</div>
@@ -97,8 +96,8 @@ export function ModulesPage() {
             .map(display => (
               <Card key={display.model} className="flex flex-col gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-lg bg-gray-100 p-2 text-gray-600">
-                    <Icon icon="lucide:monitor" className="size-5" />
+                  <div className="shrink-0 rounded-lg bg-gray-50 p-1.5">
+                    <ModuleArt module={display.model} className="h-20 w-24" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold">{display.label}</div>

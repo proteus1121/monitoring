@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { notification } from 'antd';
 import { Icon } from '@iconify/react';
 import clsx from 'clsx';
-import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
+import { ModuleCreationModalId } from '@src/redux/modals/ModuleCreationModal';
+import { DisplayModalId } from '@src/redux/modals/DisplayModal';
 import { DeviceUpdatingModalId } from '@src/redux/modals/DeviceUpdatingModal';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
 import { useModal } from '@src/redux/modals/modals.hook';
@@ -16,7 +17,9 @@ import {
 } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
 import { PageLayout } from '@src/layouts/PageLayout';
-import { DEVICE_TYPE_LABELS, getPinLabel } from '@src/lib/hardware';
+import { DEVICE_TYPE_LABELS, DISPLAY_PIN_NAMES, getPinLabel } from '@src/lib/hardware';
+import { ControllerWithRole, useUpdateDisplayMutation } from '@src/redux/controllersApi';
+import { ModuleArt } from '@src/components/ModuleArt';
 import { formatReading, fromNow } from '@src/lib/readings';
 import {
   Controller,
@@ -57,7 +60,7 @@ const DevicesPage = () => {
   const { data: readings } = useGetLatestReadingsQuery(undefined, {
     pollingInterval: POLLING_INTERVAL_MS,
   });
-  const { setState: openCreation } = useModal(DeviceCreationModalId);
+  const { setState: openCreation } = useModal(ModuleCreationModalId);
 
   useEffect(() => {
     if (error) {
@@ -168,8 +171,14 @@ function DevicesTable(props: {
   const [deleteDevice] = useDeleteDeviceMutation();
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: edit } = useModal(DeviceUpdatingModalId);
+  const { setState: openDisplay } = useModal(DisplayModalId);
+  const [updateDisplay] = useUpdateDisplayMutation();
+  // a board's display is listed like a device
+  const displays = ((props.controllers ?? []) as ControllerWithRole[]).filter(
+    c => c.display && c.display.model !== 'NONE'
+  );
 
-  if (props.devices.length === 0) {
+  if (props.devices.length === 0 && displays.length === 0) {
     return <Card className="text-sm text-slate-500">No devices yet.</Card>;
   }
 
@@ -193,10 +202,19 @@ function DevicesTable(props: {
             const reading = props.readings.get(device.id!);
             const value = formatReading(device, reading?.value);
             return (
-              <tr key={device.id} className="border-b border-black/5 last:border-b-0 hover:bg-gray-50">
+              <tr
+                key={device.id}
+                className="cursor-pointer border-b border-black/5 last:border-b-0 hover:bg-gray-50"
+                title="Edit"
+                onClick={() => edit(device)}
+              >
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <DeviceIcon type={device.type} className="size-4 text-slate-500" />
+                    {device.sensorModel ? (
+                      <ModuleArt module={device.sensorModel} showLabels={false} className="h-6 w-8 shrink-0" />
+                    ) : (
+                      <DeviceIcon type={device.type} className="size-4 text-slate-500" />
+                    )}
                     <div className="min-w-0">
                       <div className="font-medium">{device.name}</div>
                       <div className="text-xs text-slate-500">
@@ -248,7 +266,7 @@ function DevicesTable(props: {
                   )}
                 </td>
                 <td className="px-4 py-2.5">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
                     {model?.output && device.controllerId && <RelayControls deviceId={device.id!} />}
                     <Button size="icon" variant="ghost" title="Configure" onClick={() => edit(device)}>
                       <Icon icon="lucide:settings-2" />
@@ -269,6 +287,79 @@ function DevicesTable(props: {
                               });
                             } else {
                               notification.success({ message: `Deleted ${device.name}` });
+                            }
+                          },
+                        })
+                      }
+                    >
+                      <Icon icon="lucide:trash-2" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+          {displays.map(board => {
+            const display = board.display!;
+            const pins = display.pins
+              .map((gpio, i) => `${DISPLAY_PIN_NAMES[display.model][i]} ${getPinLabel(board.platform, gpio)}`)
+              .join(' / ');
+            return (
+              <tr
+                key={`display-${board.id}`}
+                className="cursor-pointer border-b border-black/5 last:border-b-0 hover:bg-gray-50"
+                title="Edit"
+                onClick={() => openDisplay({ controllerId: board.id! })}
+              >
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <ModuleArt module={display.model} showLabels={false} className="h-6 w-8 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-medium">Display</div>
+                      <div className="text-xs text-slate-500">{display.model}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-slate-600">
+                  {board.name} · {display.model} · {pins}
+                </td>
+                <td className="px-4 py-2.5 text-xs text-slate-400">shows the readings</td>
+                <td className="px-4 py-2.5">
+                  <span
+                    className={clsx(
+                      'rounded-full px-2 py-0.5 text-xs text-white',
+                      board.displayFound === false ? 'bg-orange-500' : board.displayFound ? 'bg-green-500' : 'bg-gray-400'
+                    )}
+                    title={board.displayFound === false ? 'The board did not find it: check the wiring and the model' : undefined}
+                  >
+                    {board.displayFound === false ? 'NOT FOUND' : board.displayFound ? 'OK' : 'UNKNOWN'}
+                  </span>
+                </td>
+                <td className="px-4 py-2.5 text-slate-400">—</td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center justify-end gap-1" onClick={e => e.stopPropagation()}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Configure"
+                      onClick={() => openDisplay({ controllerId: board.id! })}
+                    >
+                      <Icon icon="lucide:settings-2" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      title="Remove"
+                      onClick={() =>
+                        confirm({
+                          description: `Remove the display of ${board.name}? The board restarts without a screen.`,
+                          callback: async () => {
+                            const res = await updateDisplay({ id: board.id!, model: 'NONE', pins: [], flip: false });
+                            if ('error' in res) {
+                              notification.error({
+                                message: 'Failed to remove the display',
+                                description: errorMessage(res.error),
+                              });
                             }
                           },
                         })

@@ -25,7 +25,7 @@ import {
   useUpdateControllerMutation,
 } from '@src/redux/generatedApi';
 import { BoardDiagram } from './BoardDiagram';
-import { DisplaySettingsPanel } from './DisplaySettingsPanel';
+import { DisplayModalId } from '@src/redux/modals/DisplayModal';
 import { ScanPanel } from './ScanPanel';
 
 /**
@@ -140,6 +140,7 @@ export function ControllerPanel(props: {
   const isOwner = !(controller as ControllerWithRole).role || (controller as ControllerWithRole).role === 'OWNER';
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: editDevice } = useModal(DeviceUpdatingModalId);
+  const { setState: openDisplay } = useModal(DisplayModalId);
 
   const id = controller.id!;
 
@@ -272,15 +273,9 @@ export function ControllerPanel(props: {
 
       {showScan && <ScanPanel controller={controller as ControllerWithRole} onClose={() => setShowScan(false)} />}
 
-      <DisplaySettingsPanel
-        controller={controller as ControllerWithRole}
-        devices={props.devices}
-        models={props.models}
-      />
-
       {props.devices.length === 0 && (
         <p className="text-sm text-slate-500">
-          No sensors on this board yet. Add a device and choose this board.
+          No sensors on this board yet: “Add Device” and choose the module you wired.
         </p>
       )}
       {(props.devices.length > 0 || hasDisplay((controller as ControllerWithRole).display?.model)) && (
@@ -290,6 +285,7 @@ export function ControllerPanel(props: {
             devices={props.devices}
             models={props.models}
             onDeviceClick={editDevice}
+            onDisplayClick={() => openDisplay({ controllerId: id })}
           />
         </div>
       )}

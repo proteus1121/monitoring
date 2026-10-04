@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { ControllerWithRole } from '@src/redux/controllersApi';
+import { ModuleArt } from '@src/components/ModuleArt';
 import {
   BoardPin,
   DEVICE_TYPE_LABELS,
@@ -63,6 +64,8 @@ type Module = {
   height: number;
   // the board's display: no device rows, the pins are listed in the body
   display?: boolean;
+  // module drawn in the header (SensorModel or display model)
+  art?: string;
 };
 
 const DISPLAY_COLOR = '#334155';
@@ -76,8 +79,9 @@ export function BoardDiagram(props: {
   devices: Device[];
   models: SensorModelInfo[] | undefined;
   onDeviceClick: (device: Device) => void;
+  onDisplayClick?: () => void;
 }) {
-  const { controller, devices, models, onDeviceClick } = props;
+  const { controller, devices, models, onDeviceClick, onDisplayClick } = props;
   const display = (controller as ControllerWithRole).display;
   const layout = boardLayout(controller.platform);
 
@@ -108,6 +112,7 @@ export function BoardDiagram(props: {
       return {
         key,
         label: info?.label ?? first.sensorModel ?? 'Module',
+        art: first.sensorModel,
         pinNames: info?.pins ?? [],
         pins,
         gpios,
@@ -134,6 +139,7 @@ export function BoardDiagram(props: {
         // wires end 10 px apart below the header line
         height: Math.max(MODULE_HEADER + 26, MODULE_HEADER / 2 + display.pins.length * 10 + 8),
         display: true,
+        art: display.model,
       });
     }
 
@@ -252,18 +258,28 @@ export function BoardDiagram(props: {
           stroke={module.color}
           strokeWidth={2}
         />
-        <rect
-          x={x}
-          y={module.y}
-          width={MODULE_W}
-          height={MODULE_HEADER - 4}
-          rx={8}
-          fill={module.color}
-          fillOpacity={0.12}
-        />
-        <text x={x + 10} y={module.y + 17} fontSize={12} fontWeight={600} fill="#0f172a">
-          {module.label}
-        </text>
+        <g
+          className="cursor-pointer"
+          onClick={() => (module.display ? onDisplayClick?.() : module.devices[0] && onDeviceClick(module.devices[0]))}
+        >
+          <title>{module.display ? 'Edit the display' : `Edit ${module.devices[0]?.name ?? ''}`}</title>
+          <rect
+            x={x}
+            y={module.y}
+            width={MODULE_W}
+            height={MODULE_HEADER - 4}
+            rx={8}
+            fill={module.color}
+            fillOpacity={0.12}
+            className="hover:fill-opacity-25"
+          />
+          {module.art && (
+            <ModuleArt module={module.art} showLabels={false} x={x + 5} y={module.y + 3} width={28} height={19} />
+          )}
+          <text x={x + (module.art ? 38 : 10)} y={module.y + 17} fontSize={12} fontWeight={600} fill="#0f172a">
+            {module.label}
+          </text>
+        </g>
         <text
           x={module.display ? x + 10 : x + MODULE_W - 10}
           y={module.display ? module.y + MODULE_HEADER + 14 : module.y + 17}
