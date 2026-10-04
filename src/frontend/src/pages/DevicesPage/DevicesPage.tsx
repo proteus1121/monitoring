@@ -86,9 +86,9 @@ const DevicesPage = () => {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Devices</PageHeaderTitle>
+          <PageHeaderTitle>My devices</PageHeaderTitle>
           <PageHeaderDescription>
-            Boards, how sensors are wired to them, and the configuration of every device
+            Your linked boards, the sensors wired to them and the configuration of every device
           </PageHeaderDescription>
         </div>
         <Button onClick={() => openCreation(true)} className="ml-2 shrink-0">

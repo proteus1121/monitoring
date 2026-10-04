@@ -24,7 +24,7 @@ export function PairPage() {
         <div>
           <PageHeaderTitle>Link a board</PageHeaderTitle>
           <PageHeaderDescription>
-            The board joins your account and appears on the Devices page
+            The board joins your account and appears on the My devices page
           </PageHeaderDescription>
         </div>
       </PageHeader>

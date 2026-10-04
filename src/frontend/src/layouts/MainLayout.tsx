@@ -121,15 +121,15 @@ export const MainLayout = () => {
             <Collapsible.Content className="radix-state-open:animate-collapsible-slide-down radix-state-closed:animate-collapsible-slide-up mt-2 ml-4 space-y-2 overflow-hidden">
               <Link to={'/settings/devices'}>
                 <Icon icon={'lucide:microchip'} className="size-5" />
-                Devices
+                My devices
               </Link>
-              <Link to={'/settings/modules'}>
-                <Icon icon={'lucide:boxes'} className="size-5" />
-                Modules
+              <Link to={'/settings/library'}>
+                <Icon icon={'lucide:library'} className="size-5" />
+                Library
               </Link>
               <Link to={'/settings/firmware'}>
-                <Icon icon={'lucide:hard-drive-download'} className="size-5" />
-                Firmware
+                <Icon icon={'lucide:refresh-cw'} className="size-5" />
+                Updates
               </Link>
               <Link to={'/settings/users'}>
                 <Icon icon={'lucide:users'} className="size-5" />

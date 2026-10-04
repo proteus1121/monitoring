@@ -23,7 +23,7 @@ import AlertsPage from './pages/AlertsPage';
 import { DashboardPage } from './pages/DashboardPage/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
 import { PairPage } from './pages/PairPage';
-import { ModulesPage } from './pages/ModulesPage';
+import { LibraryPage } from './pages/LibraryPage';
 import { FirmwarePage } from './pages/FirmwarePage';
 
 const App = () => {
@@ -64,7 +64,10 @@ export const router = createBrowserRouter(
           {/* the board links here with its pairing code */}
           <Route path="pair" element={<PairPage />} />
           <Route path="settings/configurations" element={<Navigate to="/settings/devices" replace />} />
-          <Route path="settings/modules" element={<ModulesPage />} />
+          <Route path="settings/library" element={<LibraryPage />} />
+          {/* Modules became the Library: firmware for the first install, then the modules */}
+          <Route path="settings/modules" element={<Navigate to="/settings/library" replace />} />
+          <Route path="settings/hardware" element={<Navigate to="/settings/library" replace />} />
           <Route path="settings/firmware" element={<FirmwarePage />} />
           <Route path="settings/users" element={<UsersPage />} />
           <Route path="settings/alerts" element={<AlertsPage />} />

@@ -76,7 +76,7 @@ export function BoardSharingCard() {
       </div>
 
       {own.length === 0 ? (
-        <p className="text-sm text-slate-500">You have no boards yet. Link one on the Devices page.</p>
+        <p className="text-sm text-slate-500">You have no boards yet. Link one on the My devices page.</p>
       ) : (
         <form
           className="flex flex-wrap items-end gap-2"

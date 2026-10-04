@@ -106,7 +106,7 @@ export function ModuleCreationModal() {
 
         {boards.length === 0 && (
           <p className="text-sm text-slate-500">
-            Link a board first: enter the code it shows in “Connect a new board” on the Devices page.
+            Link a board first: enter the code it shows in “Connect a new board” on the My devices page.
           </p>
         )}
 

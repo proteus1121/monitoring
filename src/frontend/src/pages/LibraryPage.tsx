@@ -8,8 +8,9 @@ import {
 import { PageLayout } from '@src/layouts/PageLayout';
 import { DEVICE_TYPE_LABELS } from '@src/lib/hardware';
 import { useGetSensorModelsQuery } from '@src/redux/generatedApi';
-import { useGetDisplayModelsQuery } from '@src/redux/controllersApi';
+import { useGetDisplayModelsQuery, useGetFirmwareManifestQuery } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
+import { FirmwareDownloads } from '@src/components/FirmwareDownloads';
 
 function Pins({ pins }: { pins: string[] }) {
   return (
@@ -28,13 +29,15 @@ function Tag({ children, className }: { children: string; className: string }) {
 }
 
 /**
- * Everything the firmware can drive, read from the server so the list always matches it.
+ * What to start with: the firmware for every board to flash over USB once, then everything it can drive (read
+ * from the server so the list always matches it).
  */
-export function ModulesPage() {
+export function LibraryPage() {
+  const { data: manifest, isLoading: manifestLoading } = useGetFirmwareManifestQuery();
   const { data: sensors, isLoading: sensorsLoading } = useGetSensorModelsQuery();
   const { data: displays, isLoading: displaysLoading } = useGetDisplayModelsQuery();
 
-  if (sensorsLoading || displaysLoading) {
+  if (manifestLoading || sensorsLoading || displaysLoading) {
     return <Loader />;
   }
 
@@ -42,16 +45,25 @@ export function ModulesPage() {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Supported modules</PageHeaderTitle>
+          <PageHeaderTitle>Library</PageHeaderTitle>
           <PageHeaderDescription>
-            Modules the board firmware drives. Wire one to an ESP32 or ESP8266 and choose it on the Devices
-            page, nothing has to be flashed.
+            Everything available for the boards: the firmware to flash to a new board over USB once, and the
+            modules it drives. Wire one and add it on the My devices page. Nothing else has to be flashed, later updates come from the site.
           </PageHeaderDescription>
         </div>
       </PageHeader>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Sensors and outputs</h2>
+        <h2 className="font-semibold">Firmware</h2>
+        {manifest ? (
+          <FirmwareDownloads manifest={manifest} />
+        ) : (
+          <Card className="text-sm text-slate-500">No firmware is published yet.</Card>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-semibold">Modules: sensors and outputs</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {(sensors ?? []).map(sensor => (
             <Card key={sensor.model} className="flex flex-col gap-3">
@@ -87,7 +99,7 @@ export function ModulesPage() {
         <div>
           <h2 className="font-semibold">Displays</h2>
           <p className="text-sm text-slate-500">
-            Set on the board card of the Devices page. Every display shows the same screens.
+            Set on the board card of the My devices page. Every display shows the same screens.
           </p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

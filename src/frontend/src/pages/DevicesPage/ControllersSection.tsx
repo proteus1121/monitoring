@@ -98,7 +98,10 @@ export function SetupHint() {
       </div>
       {open && (
         <ol className="mt-3 list-decimal space-y-1 pl-5 text-slate-700">
-          <li>Flash the universal firmware to the board.</li>
+          <li>
+            Flash the universal firmware to the board over USB (download it on the{' '}
+            <Link to="/settings/library" className="underline">Library</Link> page).
+          </li>
           <li>
             Join the board Wi-Fi <b>ESP32-Setup</b> / <b>ESP8266-Setup</b>, open <b>http://192.168.4.1</b> and
             enter your home Wi-Fi.
@@ -110,7 +113,7 @@ export function SetupHint() {
           </li>
           <li>
             Add devices with <b>Add Device</b>: choose the board, the module and the pin (see{' '}
-            <Link to="/settings/modules" className="underline">supported modules</Link>). The display is set on
+            <Link to="/settings/library" className="underline">supported modules</Link>). The display is set on
             the board card.
           </li>
           <li>Settings page again later: hold FLASH / BOOT for 3 s, a short press leaves it. On the readings screen a short press flips the pages.</li>

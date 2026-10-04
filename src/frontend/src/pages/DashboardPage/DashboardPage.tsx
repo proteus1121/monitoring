@@ -156,7 +156,7 @@ export const DashboardPage = () => {
           </div>
         ) : (
           <Card className="text-sm text-slate-500">
-            No devices yet — add them on the Devices page.
+            No devices yet — add them on the My devices page.
           </Card>
         )}
       </section>

@@ -48,7 +48,7 @@ const AlertsPage = () => {
         <div>
           <PageHeaderTitle>Alerts</PageHeaderTitle>
           <PageHeaderDescription>
-            Where alerts are delivered. Thresholds are set per device on the Devices page.
+            Where alerts are delivered. Thresholds are set per device on the My devices page.
           </PageHeaderDescription>
         </div>
         <Button onClick={() => openCreation(true)} className="ml-2 shrink-0">
