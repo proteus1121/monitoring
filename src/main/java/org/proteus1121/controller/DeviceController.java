@@ -1,5 +1,7 @@
 package org.proteus1121.controller;
 
+import org.proteus1121.model.dto.device.RawReading;
+import org.proteus1121.service.RawReadingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -44,6 +46,7 @@ public class DeviceController {
     private final UserDeviceService userDeviceService;
     private final DeviceMapper deviceMapper;
     private final UserService userService;
+    private final RawReadingService rawReadingService;
 
     @GetMapping
     @Operation(summary = "Get all devices for current user", description = "Returns a list of devices owned or shared with the current user")
@@ -57,6 +60,14 @@ public class DeviceController {
     public ResponseEntity<Device> getDeviceById(@PathVariable Long id) {
         Device device = deviceService.checkDevice(id, DeviceRole.VIEWER);
         return ResponseEntity.ok(device);
+    }
+
+    @GetMapping("/{id}/raw")
+    @Operation(summary = "Raw value of an analog sensor", description = "Last raw ADC value the board reported, to calibrate a soil moisture probe; 204 when none since the server started")
+    public ResponseEntity<RawReading> getRawReading(@PathVariable Long id) {
+        deviceService.checkDevice(id, DeviceRole.VIEWER);
+        RawReading reading = rawReadingService.get(id);
+        return reading == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(reading);
     }
 
     @PostMapping

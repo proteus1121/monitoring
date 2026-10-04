@@ -48,6 +48,7 @@ export enum DeviceType {
   DIGITAL = 'DIGITAL',
   ANALOG = 'ANALOG',
   RELAY = 'RELAY',
+  SOIL_MOISTURE = 'SOIL_MOISTURE',
   UNKNOWN = 'UNKNOWN',
 }
 

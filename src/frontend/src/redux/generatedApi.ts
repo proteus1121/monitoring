@@ -560,6 +560,8 @@ export type Device = ForecastSettingsFields & {
   sensorModel?: SensorModel;
   pin?: number;
   secondaryPin?: number;
+  calibrationDry?: number;
+  calibrationWet?: number;
   userDevices?: UserDevices[];
 };
 export type DeviceRequest = ForecastSettingsFields & {
@@ -573,6 +575,8 @@ export type DeviceRequest = ForecastSettingsFields & {
   sensorModel?: SensorModel;
   pin?: number;
   secondaryPin?: number;
+  calibrationDry?: number;
+  calibrationWet?: number;
   userIds?: number[];
 };
 export type DeviceTypeValue =

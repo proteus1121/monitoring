@@ -133,6 +133,9 @@ public class DeviceService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     model + " cannot measure " + device.getType() + ", supported: " + model.getSupportedTypes());
         }
+        if (device.getCalibrationDry() != null && device.getCalibrationDry().equals(device.getCalibrationWet())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dry and wet calibration values must differ");
+        }
         if (device.getPin() == null || device.getPin() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pin is required for " + model);
         }

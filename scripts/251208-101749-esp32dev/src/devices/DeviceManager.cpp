@@ -43,6 +43,9 @@ struct Channel {
     uint32_t delay;
     float minValue;
     float maxValue;
+    // calibration of a soil moisture probe (raw ADC for 0 % / 100 %), -1 when not set
+    int dry;
+    int wet;
     ISensor *sensor;
     unsigned long lastSent;
     bool sentOnce;
@@ -133,7 +136,7 @@ bool applyDisplay(JsonObject display) {
     return true;
 }
 
-ISensor *createSensor(const String &model, uint8_t pin, uint8_t pin2) {
+ISensor *createSensor(const String &model, uint8_t pin, uint8_t pin2, int dry, int wet) {
     if (model == "DHT11")
         return new DHTSensor(pin, DHTesp::DHT11);
     if (model == "DHT22")
@@ -149,19 +152,19 @@ ISensor *createSensor(const String &model, uint8_t pin, uint8_t pin2) {
     if (model == "ANALOG_INPUT")
         return new AnalogInputSensor(pin);
     if (model == "SOIL_MOISTURE")
-        return new SoilMoistureSensor(pin);
+        return new SoilMoistureSensor(pin, dry, wet);
     if (model == "RELAY")
         return new RelayOutput(pin);
     return nullptr;
 }
 
-ISensor *driverFor(const String &model, uint8_t pin, uint8_t pin2) {
+ISensor *driverFor(const String &model, uint8_t pin, uint8_t pin2, int dry = -1, int wet = -1) {
     String key = model + ":" + String(pin) + ":" + String(pin2);
     for (Driver &d : drivers) {
         if (d.key == key)
             return d.sensor;
     }
-    ISensor *sensor = createSensor(model, pin, pin2);
+    ISensor *sensor = createSensor(model, pin, pin2, dry, wet);
     if (sensor == nullptr)
         return nullptr;
     sensor->init();
@@ -293,6 +296,8 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
         c.pin2 = pin2 < 0 ? NONE : (uint8_t)pin2;
         uint32_t delayMs = d["delay"] | 0UL;
         c.delay = delayMs == 0 ? DEFAULT_DELAY_MS : max(delayMs, MIN_DELAY_MS);
+        c.dry = d["dry"] | -1;
+        c.wet = d["wet"] | -1;
         c.minValue = d["min"] | NAN;
         c.maxValue = d["max"] | NAN;
         c.lastSent = 0;
@@ -319,7 +324,7 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
             continue;
         }
 
-        c.sensor = driverFor(c.model, c.pin, c.model == "BMP180" ? c.pin2 : NONE);
+        c.sensor = driverFor(c.model, c.pin, c.model == "BMP180" ? c.pin2 : NONE, c.dry, c.wet);
         if (c.sensor == nullptr) {
             Serial.printf("[CONFIG] Skipping device %lu: unknown model %s\n", (unsigned long)c.id, c.model.c_str());
             continue;
@@ -393,6 +398,9 @@ void loop() {
         }
 
         if (publishMeasurement(c.id, value)) {
+            float raw;
+            if (c.sensor->raw(raw))
+                publishRaw(c.id, raw);
             c.lastSent = now;
             c.sentOnce = true;
             c.forcePublish = false;

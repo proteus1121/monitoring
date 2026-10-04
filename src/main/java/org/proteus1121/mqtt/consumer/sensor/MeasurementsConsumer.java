@@ -1,5 +1,6 @@
 package org.proteus1121.mqtt.consumer.sensor;
 
+import org.proteus1121.service.RawReadingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.model.enums.ActionType;
@@ -26,6 +27,7 @@ public class MeasurementsConsumer implements Consumer {
 
     private final MetricService metricService;
     private final DeviceService deviceService;
+    private final RawReadingService rawReadingService;
 
     @Override
     public Optional<Topic> parseTopic(String topic) {
@@ -60,6 +62,10 @@ public class MeasurementsConsumer implements Consumer {
             return;
         }
         double value = Double.parseDouble(message);
+        if (topic.getType() == TopicType.RAW) {
+            rawReadingService.put(topic.getDeviceId(), value);
+            return;
+        }
         metricService.processMetrics(topic.getDeviceId(), value);
     }
 }

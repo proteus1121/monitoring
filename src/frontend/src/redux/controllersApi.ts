@@ -112,8 +112,15 @@ export type BoardScan = {
   findings: ScanFinding[];
 };
 
+// last raw ADC value of an analog sensor, to calibrate it (RawReadingService on the server)
+export type RawReading = { value: number; timestamp: string };
+
 export const controllersApi = generatedApi.injectEndpoints({
   endpoints: build => ({
+    // null (204) when the board sent none since the server started
+    getRawReading: build.query<RawReading | null, { id: number }>({
+      query: ({ id }) => ({ url: `/devices/${id}/raw` }),
+    }),
     getDisplayModels: build.query<DisplayModelInfo[], void>({
       query: () => ({ url: `/controllers/display-models` }),
       providesTags: ['Controller Management'],
@@ -176,6 +183,7 @@ export const {
   useGetDisplayModelsQuery,
   useUpdateDisplayMutation,
   useUpdateBoardModelMutation,
+  useGetRawReadingQuery,
   useConnectControllerMutation,
   useGetControllerSharesQuery,
   useShareControllerMutation,

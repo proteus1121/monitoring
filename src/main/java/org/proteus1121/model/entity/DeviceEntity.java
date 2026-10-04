@@ -75,6 +75,16 @@ public class DeviceEntity {
     @Column(name = "secondary_pin")
     private Integer secondaryPin;
 
+    /**
+     * Raw ADC values of a soil moisture probe when dry and in water (0 % and 100 %); null for the defaults of
+     * the firmware. Set from the raw values the board reports, see RawReadingService.
+     */
+    @Column(name = "calibration_dry")
+    private Integer calibrationDry;
+
+    @Column(name = "calibration_wet")
+    private Integer calibrationWet;
+
     // --- forecast configuration, see service.forecast ---
 
     @Enumerated(EnumType.STRING)

@@ -11,6 +11,8 @@ import java.util.Optional;
 public enum TopicType {
 
     MEASUREMENTS("measurements"),
+    // raw ADC value of an analog sensor, for calibrating it
+    RAW("raw"),
     CONFIGURATION("configuration");
 
     private final String value;

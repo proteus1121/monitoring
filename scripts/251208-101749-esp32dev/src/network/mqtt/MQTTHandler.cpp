@@ -302,6 +302,15 @@ bool publishScanResult(const String &payload) {
     return ok;
 }
 
+bool publishRaw(uint32_t deviceId, float value) {
+    if (!client.connected() || userId.length() == 0)
+        return false;
+    String topic = commandTopicPrefix + String(deviceId) + "/raw";
+    char valueStr[16];
+    snprintf(valueStr, sizeof(valueStr), "%.0f", value);
+    return client.publish(topic.c_str(), valueStr);
+}
+
 bool publishMeasurement(uint32_t deviceId, float value) {
     if (!client.connected() || userId.length() == 0)
         return false;

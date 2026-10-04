@@ -5,7 +5,7 @@
 
 // may be set by the build, e.g. PLATFORMIO_BUILD_FLAGS=-DFIRMWARE_VERSION=\"2.3.9\" for a test build
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "2.5.0"
+#define FIRMWARE_VERSION "2.5.1"
 #endif
 
 // env name of platformio.ini, the site picks update files by it
@@ -24,6 +24,7 @@
  *             {"unpair":true} instead when the board was deleted on the site
  *   subscribe users/<userId>/devices/+/command                       value for an output device
  *   publish   users/<userId>/devices/<deviceId>/measurements         value
+ *   publish   users/<userId>/devices/<deviceId>/raw                  raw ADC value of an analog sensor
  *   subscribe users/<userId>/controllers/<hardwareId>/scan           look for modules on free pins
  *   publish   users/<userId>/controllers/<hardwareId>/scan-result    what was found
  *   subscribe users/<userId>/controllers/<hardwareId>/update         new firmware to install
@@ -34,6 +35,8 @@ void initMQTT();
 void mqttLoop();
 bool mqttConnected();
 bool publishMeasurement(uint32_t deviceId, float value);
+// raw ADC value behind a measurement, for calibrating the sensor: users/<userId>/devices/<deviceId>/raw
+bool publishRaw(uint32_t deviceId, float value);
 // result of a board scan (system/Scanner.h) to users/<userId>/controllers/<hardwareId>/scan-result
 bool publishScanResult(const String &payload);
 // progress of a firmware update (system/FirmwareUpdate.h)

@@ -24,6 +24,9 @@ public:
 
     // Inputs that should be published as soon as they change (flame, motion, ...).
     virtual bool isEventDriven() { return false; }
+
+    // Raw ADC value behind the reading, published next to it for calibrating the sensor on the site.
+    virtual bool raw(float &value) { return false; }
 };
 
 #endif

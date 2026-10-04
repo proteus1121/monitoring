@@ -206,4 +206,26 @@ class ControllerServiceTest {
         assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 1L, BoardModel.ESP32_DEVKIT));
         assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 2L, BoardModel.D1_MINI));
     }
+
+    @Test
+    void soilCalibrationGoesToTheBoardOnlyForTheSoilProbe() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setPlatform("esp8266");
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+        DeviceEntity soil = device(11L, DeviceType.SOIL_MOISTURE, SensorModel.SOIL_MOISTURE, 17);
+        soil.setCalibrationDry(1024);
+        soil.setCalibrationWet(420);
+        DeviceEntity dht = device(12L, DeviceType.TEMPERATURE, SensorModel.DHT11, 16);
+        dht.setCalibrationDry(1);
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of(soil, dht));
+
+        List<ControllerConfiguration.Channel> channels = controllerService.buildConfiguration(5L).devices();
+
+        assertEquals(1024, channels.get(0).dry());
+        assertEquals(420, channels.get(0).wet());
+        assertEquals(null, channels.get(1).dry());
+        assertEquals(null, channels.get(1).wet());
+    }
 }

@@ -1,5 +1,7 @@
 package org.proteus1121.model.request;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 import org.proteus1121.model.enums.ForecastModel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -34,6 +36,13 @@ public class DeviceRequest {
     private SensorModel sensorModel;
     private Integer pin;
     private Integer secondaryPin;
+    // raw ADC values of a soil moisture probe when dry and in water, see DeviceEntity
+    @Min(0)
+    @Max(4095)
+    private Integer calibrationDry;
+    @Min(0)
+    @Max(4095)
+    private Integer calibrationWet;
     private ForecastModel forecastModel;
     private Integer forecastHorizonHours;
     private Integer forecastHistoryDays;

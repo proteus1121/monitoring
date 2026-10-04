@@ -360,7 +360,9 @@ public class ControllerService {
                         device.getSensorModel(),
                         device.getPin(),
                         device.getSecondaryPin(),
-                        device.getDelay()))
+                        device.getDelay(),
+                        device.getSensorModel() == SensorModel.SOIL_MOISTURE ? device.getCalibrationDry() : null,
+                        device.getSensorModel() == SensorModel.SOIL_MOISTURE ? device.getCalibrationWet() : null))
                 .toList();
         ControllerConfiguration.Display payload =
                 new ControllerConfiguration.Display(display.model(), display.pins(), display.flip());

@@ -25,7 +25,7 @@ import {
   useGetLlmStatusQuery,
   useDescribeDeviceMutation,
 } from '../generatedApi';
-import type { ControllerWithRole } from '../controllersApi';
+import { useGetRawReadingQuery, type ControllerWithRole } from '../controllersApi';
 
 // value of the controller select when the device is not wired to a board
 export const NO_CONTROLLER = 'none';
@@ -49,6 +49,8 @@ export const DeviceSchema = z
     sensorModel: z.string().optional(),
     pin: z.string().optional(),
     secondaryPin: z.string().optional(),
+    calibrationDry: optionalNumber,
+    calibrationWet: optionalNumber,
     forecastModel: z.string().optional(),
     forecastHorizonHours: optionalNumber,
     forecastHistoryDays: optionalNumber,
@@ -99,6 +101,8 @@ export function toDeviceFormValues(device: Device | null): DeviceFormValues {
     sensorModel: opt(device?.sensorModel),
     pin: str(device?.pin),
     secondaryPin: str(device?.secondaryPin),
+    calibrationDry: str(device?.calibrationDry),
+    calibrationWet: str(device?.calibrationWet),
     forecastModel: device?.forecastModel ?? 'NONE',
     forecastHorizonHours: str(device?.forecastHorizonHours, '24'),
     forecastHistoryDays: str(device?.forecastHistoryDays, '30'),
@@ -129,6 +133,8 @@ export function toDeviceRequest(
     sensorModel: bound ? (value.sensorModel as SensorModel) : undefined,
     pin: bound ? num(value.pin) : undefined,
     secondaryPin: bound ? num(value.secondaryPin) : undefined,
+    calibrationDry: num(value.calibrationDry),
+    calibrationWet: num(value.calibrationWet),
     forecastModel: (value.forecastModel ?? 'NONE') as ForecastModel,
     forecastHorizonHours: num(value.forecastHorizonHours),
     forecastHistoryDays: num(value.forecastHistoryDays),
@@ -165,7 +171,7 @@ const FORECAST_MODELS: { value: ForecastModel; label: string; hint: string }[] =
   },
 ];
 
-type Tab = 'general' | 'alerts' | 'forecast';
+type Tab = 'general' | 'alerts' | 'forecast' | 'calibration';
 
 const FIELD_LABELS: Record<string, string> = {
   name: 'Device name',
@@ -200,6 +206,8 @@ export function notifyInvalidDevice(value: unknown) {
 // TanStack form instance created with useAppForm in the parent modal
 export function DeviceFormFields({ form, device }: { form: any; device?: Device | null }) {
   const [tab, setTab] = useState<Tab>('general');
+  // a soil probe is calibrated from the raw values its board reports, so only once it is saved on a board
+  const calibratable = !!device?.id && !!device.controllerId && device.sensorModel === 'SOIL_MOISTURE';
 
   return (
     <div className="flex flex-col gap-4">
@@ -209,6 +217,7 @@ export function DeviceFormFields({ form, device }: { form: any; device?: Device 
             ['general', 'General'],
             ['alerts', 'Alerts'],
             ['forecast', 'Forecast'],
+            ...(calibratable ? [['calibration', 'Calibration']] : []),
           ] as [Tab, string][]
         ).map(([value, label]) => (
           <button
@@ -228,6 +237,7 @@ export function DeviceFormFields({ form, device }: { form: any; device?: Device 
       {tab === 'general' && <GeneralFields form={form} />}
       {tab === 'alerts' && <AlertFields form={form} />}
       {tab === 'forecast' && <ForecastFields form={form} device={device} />}
+      {tab === 'calibration' && calibratable && <CalibrationFields form={form} device={device!} />}
     </div>
   );
 }
@@ -412,6 +422,82 @@ function GenerateDescription({ form }: { form: any }) {
       </Button>
       Written by AI from the name, module and pin. Left empty, it is generated after saving.
     </div>
+  );
+}
+
+/**
+ * Soil moisture probe: the raw ADC value its board reports, taken as 0 % when dry and 100 % in water. The values
+ * go to the board with the configuration after saving.
+ */
+function CalibrationFields({ form, device }: { form: any; device: Device }) {
+  const { data: raw } = useGetRawReadingQuery({ id: device.id! }, { pollingInterval: 3000 });
+  const current = raw ? Math.round(raw.value) : undefined;
+
+  return (
+    <FieldGroup>
+      <p className="text-sm text-slate-500">
+        Hold the probe in the air, press <b>Dry now</b>; put it in water up to the line, wait for the value to
+        settle and press <b>In water now</b>. Save to send it to the board.
+      </p>
+      <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm">
+        Raw value now:{' '}
+        <span className="font-mono font-semibold tabular-nums">{current ?? '—'}</span>
+        <span className="ml-2 text-xs text-slate-500">
+          {raw
+            ? `${fromNow(raw.timestamp)}, the board sends it with every reading`
+            : 'none yet: the board sends it with the next reading'}
+        </span>
+      </div>
+      <form.Subscribe
+        selector={(state: any) => [state.values.calibrationDry, state.values.calibrationWet]}
+        children={([dry, wet]: [string | undefined, string | undefined]) => {
+          const d = Number(dry);
+          const w = Number(wet);
+          const preview =
+            current !== undefined && dry && wet && d !== w
+              ? Math.min(100, Math.max(0, Math.round(((d - current) * 100) / (d - w))))
+              : undefined;
+          return (
+            <>
+              <div className="flex items-end gap-2">
+                <form.AppField
+                  name="calibrationDry"
+                  children={(field: any) => <field.TextField label="Dry, 0 %" placeholder="default" />}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={current === undefined}
+                  onClick={() => form.setFieldValue('calibrationDry', String(current))}
+                >
+                  Dry now
+                </Button>
+              </div>
+              <div className="flex items-end gap-2">
+                <form.AppField
+                  name="calibrationWet"
+                  children={(field: any) => <field.TextField label="In water, 100 %" placeholder="default" />}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={current === undefined}
+                  onClick={() => form.setFieldValue('calibrationWet', String(current))}
+                >
+                  In water now
+                </Button>
+              </div>
+              {preview !== undefined && (
+                <p className="text-sm text-slate-600">
+                  With these values the probe reads <b>{preview} %</b> now.
+                </p>
+              )}
+              {dry && wet && d === w && <p className="text-sm text-red-600">Dry and wet must differ.</p>}
+            </>
+          );
+        }}
+      />
+    </FieldGroup>
   );
 }
 

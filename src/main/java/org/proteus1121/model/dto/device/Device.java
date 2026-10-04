@@ -30,6 +30,12 @@ public class Device {
     private SensorModel sensorModel;
     private Integer pin;
     private Integer secondaryPin;
+    /**
+     * Raw ADC values of a soil moisture probe when dry and in water (0 % and 100 %); null for the defaults of
+     * the firmware. Set from the raw values the board reports, see RawReadingService.
+     */
+    private Integer calibrationDry;
+    private Integer calibrationWet;
     private ForecastModel forecastModel;
     private Integer forecastHorizonHours;
     private Integer forecastHistoryDays;
