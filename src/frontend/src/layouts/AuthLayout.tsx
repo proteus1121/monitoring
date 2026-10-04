@@ -1,39 +1,16 @@
 import { notification } from 'antd';
 import clsx from 'clsx';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
-import {
-  AUTH_TEXTS,
-  AuthTexts,
-  Lang,
-  UNIVERSITY_URL,
-} from '@src/pages/auth/authTexts';
+import { AUTH_TEXTS, AuthTexts, UNIVERSITY_URL } from '@src/pages/auth/authTexts';
+import { Lang, setLang, useLang } from '@src/lib/lang';
 import { SsoButtons } from '@src/pages/auth/SsoButtons';
 import Logo from '@src/components/logo/Logo';
 
-const LANG_KEY = 'auth-lang';
-
-function loadLang(): Lang {
-  try {
-    return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'uk';
-  } catch {
-    return 'uk';
-  }
-}
-
 const AuthLayout = () => {
-  const [lang, setLang] = useState<Lang>(loadLang);
+  const lang = useLang();
   const t = AUTH_TEXTS[lang];
   const [searchParams, setSearchParams] = useSearchParams();
-
-  const changeLang = (next: Lang) => {
-    setLang(next);
-    try {
-      localStorage.setItem(LANG_KEY, next);
-    } catch {
-      // the choice is just not remembered
-    }
-  };
 
   useEffect(() => {
     if (searchParams.has('sso_error')) {
@@ -58,7 +35,7 @@ const AuthLayout = () => {
               <button
                 key={code}
                 type="button"
-                onClick={() => changeLang(code)}
+                onClick={() => setLang(code)}
                 className={clsx(
                   'underline-offset-4',
                   lang === code

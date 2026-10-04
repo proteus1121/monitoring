@@ -5,18 +5,70 @@ import Logo from '@src/components/logo/Logo';
 import { removeCookie } from '@src/lib/cookieUtils';
 import { useUi } from '@src/redux/ui/ui.hook';
 import clsx from 'clsx';
-import { Collapsible } from 'radix-ui';
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { NavLink, Outlet, To, useNavigate } from 'react-router-dom';
+import { LANGS, setLang, useLang } from '@src/lib/lang';
+import { useGetUserQuery } from '@src/redux/generatedApi';
+
+const TEXTS = {
+  uk: {
+    overview: 'Огляд',
+    alerts: 'Сповіщення',
+    hardware: 'Обладнання',
+    devices: 'Мої пристрої',
+    updates: 'Оновлення',
+    library: 'Бібліотека',
+    access: 'Доступ',
+    users: 'Користувачі',
+    logout: 'Вийти',
+  },
+  en: {
+    overview: 'Overview',
+    alerts: 'Alerts',
+    hardware: 'Hardware',
+    devices: 'My devices',
+    updates: 'Updates',
+    library: 'Library',
+    access: 'Access',
+    users: 'Users',
+    logout: 'Log out',
+  },
+};
+
+type TextKey = keyof (typeof TEXTS)['en'];
+
+// what is watched day to day first, then the hardware, then who else sees it
+const NAV: { title?: TextKey; items: { to: string; icon: string; label: TextKey }[] }[] = [
+  {
+    items: [
+      { to: '/dashboard/overview', icon: 'lucide:layout-dashboard', label: 'overview' },
+      { to: '/settings/alerts', icon: 'lucide:bell', label: 'alerts' },
+    ],
+  },
+  {
+    title: 'hardware',
+    items: [
+      { to: '/settings/devices', icon: 'lucide:microchip', label: 'devices' },
+      { to: '/settings/firmware', icon: 'lucide:refresh-cw', label: 'updates' },
+      { to: '/settings/library', icon: 'lucide:library', label: 'library' },
+    ],
+  },
+  {
+    title: 'access',
+    items: [{ to: '/settings/users', icon: 'lucide:users', label: 'users' }],
+  },
+];
 
 export const MainLayout = () => {
   const { state, setState } = useUi();
 
   const navigate = useNavigate();
-  const [isSettingsCollapsed, setIsSettingsCollapsed] = useState<boolean>(true);
-
-  const [isDashboardCollapsed, setIsDashboardCollapsed] =
-    useState<boolean>(true);
+  const lang = useLang();
+  const t = TEXTS[lang];
+  const { data: me } = useGetUserQuery();
+  const name = me?.name;
+  // on a phone the menu covers the page: close it once a page is picked
+  const closeOnPhone = () => setState({ ...state, isSidebarCollapsed: true });
 
   return (
     <main className="min-h-dvh bg-gray-50">
@@ -56,121 +108,69 @@ export const MainLayout = () => {
             </div>
           </div>
         </div>
-        <nav className="h-screen-minus-header flex flex-col gap-2 p-4">
-          <Collapsible.Root open={isDashboardCollapsed} className="group">
-            <Collapsible.Trigger className="contents">
-              <NavLink
-                to={'/dashboard'}
-                onClick={e => {
-                  e.preventDefault();
-                  setIsDashboardCollapsed(prev => !prev);
-                }}
-                className={({ isActive }) =>
-                  clsx(
-                    [
-                      isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100',
-                    ],
-                    'flex w-full items-center gap-3 rounded-lg px-4 py-3 font-medium transition-colors'
-                  )
-                }
-              >
-                <Icon icon={'lucide:home'} className="size-5" />
-                Dashboard
-                <Icon
-                  icon={'lucide:chevron-down'}
-                  className="group-radix-state-open:rotate-180 ml-auto size-5 transition"
-                />
-              </NavLink>
-            </Collapsible.Trigger>
-            <Collapsible.Content className="radix-state-open:animate-collapsible-slide-down radix-state-closed:animate-collapsible-slide-up mt-2 ml-4 space-y-2 overflow-hidden">
-              <Link to={'/dashboard/overview'}>
-                <Icon icon={'lucide:home'} className="size-5" />
-                Overview
-              </Link>
-            </Collapsible.Content>
-          </Collapsible.Root>
-          <Collapsible.Root open={isSettingsCollapsed} className="group">
-            <Collapsible.Trigger className="contents">
-              <NavLink
-                to={'/settings'}
-                onClick={e => {
-                  e.preventDefault();
-                  setIsSettingsCollapsed(prev => !prev);
-                }}
-                className={({ isActive }) =>
-                  clsx(
-                    [
-                      isActive
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 hover:bg-gray-100',
-                    ],
-                    'flex w-full items-center gap-3 rounded-lg px-4 py-3 font-medium transition-colors'
-                  )
-                }
-              >
-                <Icon icon={'lucide:settings'} className="size-5" />
-                Settings
-                <Icon
-                  icon={'lucide:chevron-down'}
-                  className="group-radix-state-open:rotate-180 ml-auto size-5 transition"
-                />
-              </NavLink>
-            </Collapsible.Trigger>
-            <Collapsible.Content className="radix-state-open:animate-collapsible-slide-down radix-state-closed:animate-collapsible-slide-up mt-2 ml-4 space-y-2 overflow-hidden">
-              <Link to={'/settings/devices'}>
-                <Icon icon={'lucide:microchip'} className="size-5" />
-                My devices
-              </Link>
-              <Link to={'/settings/library'}>
-                <Icon icon={'lucide:library'} className="size-5" />
-                Library
-              </Link>
-              <Link to={'/settings/firmware'}>
-                <Icon icon={'lucide:refresh-cw'} className="size-5" />
-                Updates
-              </Link>
-              <Link to={'/settings/users'}>
-                <Icon icon={'lucide:users'} className="size-5" />
-                Users
-              </Link>
-              <Link to={'/settings/alerts'}>
-                <Icon icon={'lucide:bell'} className="size-5" />
-                Alerts
-              </Link>
-            </Collapsible.Content>
-          </Collapsible.Root>
+        <nav className="h-screen-minus-header flex flex-col gap-4 overflow-y-auto p-4">
+          {NAV.map((group, i) => (
+            <div key={i} className="space-y-1">
+              {group.title && (
+                <div className="px-4 pb-1 text-xs font-medium tracking-wide text-gray-400 uppercase">
+                  {t[group.title]}
+                </div>
+              )}
+              {group.items.map(item => (
+                <Link key={item.to} to={item.to} onNavigate={closeOnPhone}>
+                  <Icon icon={item.icon} className="size-5" />
+                  {t[item.label]}
+                </Link>
+              ))}
+            </div>
+          ))}
 
-          {/* <div className="border-t border-black/10 bg-gray-50 p-4"> */}
-          {/*   <div className="text-xs text-gray-500"> */}
-          {/*     <p className="mb-1 font-medium">System Status</p> */}
-          {/*     <p className="flex items-center gap-2"> */}
-          {/*       <span className="h-2 w-2 rounded-full bg-green-500"></span>All */}
-          {/*       systems operational */}
-          {/*     </p> */}
-          {/*   </div> */}
-          {/* </div> */}
-
-          <Button
-            className="mt-auto w-full"
-            onClick={() => {
-              removeCookie('SESSION');
-              navigate('/auth/login');
-            }}
-            variant="destructive"
-          >
-            Logout
-          </Button>
+          <div className="mt-auto space-y-3 border-t border-black/10 pt-4">
+            <div className="flex items-center gap-3 px-2">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-medium text-blue-700">
+                {name ? name.slice(0, 2).toUpperCase() : <Icon icon="lucide:user" className="size-4" />}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium" title={name}>
+                {name ?? '…'}
+              </span>
+              <div className="flex rounded-md border border-black/10 text-xs">
+                {LANGS.map(option => (
+                  <button
+                    key={option.code}
+                    type="button"
+                    onClick={() => setLang(option.code)}
+                    className={clsx(
+                      'px-2 py-1 first:rounded-l-md last:rounded-r-md',
+                      lang === option.code ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+                    )}
+                  >
+                    {option.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => {
+                removeCookie('SESSION');
+                navigate('/auth/login');
+              }}
+            >
+              <Icon icon="lucide:log-out" className="size-4" />
+              {t.logout}
+            </Button>
+          </div>
         </nav>
       </aside>
     </main>
   );
 };
 
-function Link(props: { children: ReactNode; to: To }) {
+function Link(props: { children: ReactNode; to: To; onNavigate?: () => void }) {
   return (
     <NavLink
+      onClick={props.onNavigate}
       className={({ isActive }) =>
         clsx(
           [
@@ -178,7 +178,7 @@ function Link(props: { children: ReactNode; to: To }) {
               ? 'bg-blue-100 text-blue-700'
               : 'text-gray-600 hover:bg-gray-100',
           ],
-          'flex w-full items-center gap-3 rounded-lg px-4 py-2 text-sm font-normal transition-colors'
+          'flex w-full items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-colors'
         )
       }
       to={props.to}

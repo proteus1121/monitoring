@@ -1,6 +1,5 @@
 import { useOutletContext } from 'react-router-dom';
-
-export type Lang = 'uk' | 'en';
+import type { Lang } from '@src/lib/lang';
 
 export const UNIVERSITY_URL = 'https://suitt.edu.ua';
 

@@ -11,6 +11,34 @@ import { useGetSensorModelsQuery } from '@src/redux/generatedApi';
 import { useGetDisplayModelsQuery, useGetFirmwareManifestQuery } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { FirmwareDownloads } from '@src/components/FirmwareDownloads';
+import { useTexts } from '@src/lib/lang';
+
+const TEXTS = {
+  uk: {
+    title: 'Бібліотека',
+    description:
+      'Усе, що підтримують плати: прошивка, яку один раз записують на нову плату через USB, і модулі, якими вона керує. Під’єднайте модуль і додайте його на сторінці «Мої пристрої». Більше нічого прошивати не треба, подальші оновлення приходять із сайту.',
+    boards: 'Плати й прошивка',
+    boardsNote: 'Одна прошивка для всіх плат.',
+    modules: 'Модулі: датчики й виходи',
+    analog: 'аналоговий',
+    output: 'вихід',
+    displays: 'Дисплеї',
+    displaysNote: 'Задається на картці плати на сторінці «Мої пристрої». Усі дисплеї показують ті самі екрани.',
+  },
+  en: {
+    title: 'Library',
+    description:
+      'Everything available for the boards: the firmware to flash to a new board over USB once, and the modules it drives. Wire one and add it on the My devices page. Nothing else has to be flashed, later updates come from the site.',
+    boards: 'Boards and firmware',
+    boardsNote: 'One firmware for every board.',
+    modules: 'Modules: sensors and outputs',
+    analog: 'analog',
+    output: 'output',
+    displays: 'Displays',
+    displaysNote: 'Set on the board card of the My devices page. Every display shows the same screens.',
+  },
+};
 
 function Pins({ pins }: { pins: string[] }) {
   return (
@@ -29,13 +57,14 @@ function Tag({ children, className }: { children: string; className: string }) {
 }
 
 /**
- * What to start with: the firmware for every board to flash over USB once, then everything it can drive (read
- * from the server so the list always matches it).
+ * What to start with: the supported boards with the firmware to flash over USB once, then everything they can
+ * drive (read from the server so the list always matches it).
  */
 export function LibraryPage() {
   const { data: manifest, isLoading: manifestLoading } = useGetFirmwareManifestQuery();
   const { data: sensors, isLoading: sensorsLoading } = useGetSensorModelsQuery();
   const { data: displays, isLoading: displaysLoading } = useGetDisplayModelsQuery();
+  const t = useTexts(TEXTS);
 
   if (manifestLoading || sensorsLoading || displaysLoading) {
     return <Loader />;
@@ -45,25 +74,21 @@ export function LibraryPage() {
     <PageLayout className="space-y-6">
       <PageHeader className="pb-0">
         <div>
-          <PageHeaderTitle>Library</PageHeaderTitle>
-          <PageHeaderDescription>
-            Everything available for the boards: the firmware to flash to a new board over USB once, and the
-            modules it drives. Wire one and add it on the My devices page. Nothing else has to be flashed, later updates come from the site.
-          </PageHeaderDescription>
+          <PageHeaderTitle>{t.title}</PageHeaderTitle>
+          <PageHeaderDescription>{t.description}</PageHeaderDescription>
         </div>
       </PageHeader>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Firmware</h2>
-        {manifest ? (
-          <FirmwareDownloads manifest={manifest} />
-        ) : (
-          <Card className="text-sm text-slate-500">No firmware is published yet.</Card>
-        )}
+        <div>
+          <h2 className="font-semibold">{t.boards}</h2>
+          <p className="text-sm text-slate-500">{t.boardsNote}</p>
+        </div>
+        <FirmwareDownloads manifest={manifest} />
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Modules: sensors and outputs</h2>
+        <h2 className="font-semibold">{t.modules}</h2>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {(sensors ?? []).map(sensor => (
             <Card key={sensor.model} className="flex flex-col gap-3">
@@ -76,8 +101,8 @@ export function LibraryPage() {
                   <div className="text-sm text-slate-500">{sensor.description}</div>
                 </div>
                 <div className="flex gap-1">
-                  {sensor.analog && <Tag className="bg-purple-50 text-purple-700">analog</Tag>}
-                  {sensor.output && <Tag className="bg-amber-50 text-amber-800">output</Tag>}
+                  {sensor.analog && <Tag className="bg-purple-50 text-purple-700">{t.analog}</Tag>}
+                  {sensor.output && <Tag className="bg-amber-50 text-amber-800">{t.output}</Tag>}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
@@ -97,10 +122,8 @@ export function LibraryPage() {
 
       <section className="space-y-3">
         <div>
-          <h2 className="font-semibold">Displays</h2>
-          <p className="text-sm text-slate-500">
-            Set on the board card of the My devices page. Every display shows the same screens.
-          </p>
+          <h2 className="font-semibold">{t.displays}</h2>
+          <p className="text-sm text-slate-500">{t.displaysNote}</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {(displays ?? [])
@@ -122,13 +145,6 @@ export function LibraryPage() {
             ))}
         </div>
       </section>
-
-      <Card className="text-sm text-slate-600">
-        <div className="mb-1 font-semibold text-slate-900">Boards</div>
-        ESP32 DevKit and NodeMCU v2 (ESP8266) with the same firmware. Analog modules need an ADC pin: GPIO32-39
-        on ESP32, A0 on ESP8266. GPIO0 is the BOOT / FLASH button: a short press flips the display pages,
-        holding it 3 s opens the setup page.
-      </Card>
     </PageLayout>
   );
 }
