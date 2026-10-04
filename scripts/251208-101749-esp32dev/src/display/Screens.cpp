@@ -205,6 +205,19 @@ void link(const String &address) {
     oled.show();
 }
 
+void linkFromAccessPoint(const String &ssid, const String &pass, const String &ip) {
+    if (!oled.isInitialized())
+        return;
+    oled.clear();
+    statusBar("Link to account");
+    oled.text(2, 14, "1. Join Wi-Fi", DisplayManager::SMALL);
+    oled.text(8, 22, fitted(ssid, DisplayManager::NORMAL, 118), DisplayManager::NORMAL);
+    oled.text(8, 33, "pass " + pass, DisplayManager::SMALL);
+    oled.text(2, 44, "2. Open, press Sign in", DisplayManager::SMALL);
+    oled.text(8, 53, "http://" + ip, DisplayManager::NORMAL);
+    oled.show();
+}
+
 void waitingForDevices(const char *site, const String &hardwareId) {
     if (!oled.isInitialized())
         return;

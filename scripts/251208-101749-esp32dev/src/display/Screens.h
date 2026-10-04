@@ -23,9 +23,10 @@ void connecting(const String &ssid);
 // access point of the setup page
 void setupMode(const String &ssid, const String &pass, const String &ip);
 
-// code to enter on the site, empty while it is being requested
 // no account yet: the address of the board's page, where "Sign in" links it
 void link(const String &address);
+// no account yet, the access point reaches the internet through the board: sign in right from it
+void linkFromAccessPoint(const String &ssid, const String &pass, const String &ip);
 
 void waitingForDevices(const char *site, const String &hardwareId);
 

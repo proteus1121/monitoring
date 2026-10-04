@@ -3,6 +3,7 @@
 #include "../display/Screens.h"
 #include "../storage/Storage.h"
 #include "../network/mqtt/MQTTHandler.h"
+#include "../network/setup-server/ServerManager.h"
 #include "../sensors/ISensor.h"
 #include "../sensors/analog/AnalogInputSensor.h"
 #include "../sensors/soil/SoilMoistureSensor.h"
@@ -412,7 +413,10 @@ void render() {
     if (!oled.isInitialized())
         return;
     if (!isLinked()) {
-        Screens::link(WiFi.localIP().toString());
+        if (ServerManager::accessPointRoutes())
+            Screens::linkFromAccessPoint(ServerManager::getSsid(), ServerManager::getPass(), WiFi.softAPIP().toString());
+        else
+            Screens::link(WiFi.localIP().toString());
         return;
     }
     if (channels.empty()) {

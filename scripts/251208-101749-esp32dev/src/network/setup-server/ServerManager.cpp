@@ -5,9 +5,18 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <base64.h> // required by ESP8266WebServer implementation
+#include <lwip/napt.h>
 #else
 #include <WebServer.h>
 #include <WiFi.h>
+#endif
+
+// The board can route its access point to its Wi-Fi (NAPT): the phone on the access point then reaches the
+// site and signs in without leaving the board's page. The ESP32 Arduino core 2.x is built without IP forwarding.
+#if defined(ESP8266) && IP_NAPT
+#define SETUP_NAPT 1
+#else
+#define SETUP_NAPT 0
 #endif
 
 #if defined(ESP8266)
@@ -26,6 +35,21 @@ static unsigned long apStartedAt = 0;
 // in setup mode with saved WiFi, reboot after this time so a temporary outage does not need a manual reset
 static const unsigned long AP_RESTART_TIMEOUT_MS = 5UL * 60UL * 1000UL;
 static const unsigned long WIFI_ATTEMPT_TIMEOUT_MS = 20000;
+
+// Wi-Fi saved on the setup page and joined without a restart, next to the access point (SETUP_NAPT only)
+enum class Join { None, Pending, Connecting, Connected, Failed };
+static Join join = Join::None;
+static unsigned long joinStartedAt = 0;
+static bool naptOn = false;
+#if SETUP_NAPT
+// connections of the phone through the board at once: enough for the site, small for the ESP8266 heap
+static const uint16_t NAPT_ENTRIES = 256;
+static const uint8_t NAPT_PORT_MAPS = 4;
+// DNS server for the phone on the access point, reached through NAPT. A public one: the phone may get it before
+// the board is on Wi-Fi, and the DHCP server offers one address only, while a network's first one may not answer
+// (the board itself falls back to the second).
+static const IPAddress SETUP_DNS(8, 8, 8, 8);
+#endif
 
 #if defined(ESP8266)
 String ServerManager::apSsid = "ESP8266-Setup";
@@ -108,6 +132,10 @@ String ServerManager::getSavedSsid() {
     return savedSSID;
 }
 
+bool ServerManager::accessPointRoutes() {
+    return naptOn;
+}
+
 // =========================
 //  Pages
 // =========================
@@ -146,7 +174,7 @@ static String linkPage() {
     html += "<p class=\"m\">Wi-Fi <b>" + escape(savedSSID) + "</b> is connected.</p>";
 
     String lan = WiFi.localIP().toString();
-    if (servedOnAccessPoint()) {
+    if (servedOnAccessPoint() && !naptOn) {
         // the phone has no internet on the board's network, so signing in starts from the home network
         html += "<div class=\"c\"><ol><li>Switch your phone back to <b>" + escape(savedSSID) + "</b>.</li>";
         html += "<li>Open <a href=\"http://" + lan + "/\">http://" + lan + "</a> (it is also on the board display).</li>";
@@ -165,7 +193,8 @@ static String linkPage() {
     html += "<div class=\"c\"><p>Sign in on " SITE_HOST ": with a password, Google or GitHub. The site gives the "
             "board its own login and brings you back here.</p>";
     html += "<a href=\"" + link + "\"><button type=\"button\">Sign in</button></a>";
-    html += "<p class=\"m\">Keep this phone or computer on " + escape(savedSSID) + " until you are back on this page.</p></div>";
+    String network = servedOnAccessPoint() ? ServerManager::getSsid() : savedSSID;
+    html += "<p class=\"m\">Keep this phone or computer on " + escape(network) + " until you are back on this page.</p></div>";
     return html;
 }
 
@@ -181,7 +210,11 @@ static String setupPage() {
     html += linked ? "Board settings" : "Step 1 of 2";
     html += "</div><h1>";
     html += linked ? "Wi-Fi and server" : "Connect the board to Wi-Fi";
-    html += "</h1><form class=\"c\" method=\"post\" action=\"/save\">";
+    html += "</h1>";
+    if (join == Join::Failed) {
+        html += "<p>The board could not connect to <b>" + escape(savedSSID) + "</b>. Check the network name and password.</p>";
+    }
+    html += "<form class=\"c\" method=\"post\" action=\"/save\">";
 
     // networks around, so the name does not have to be typed
     html += "<label for=\"ssid\">Network</label><input id=\"ssid\" name=\"ssid\" list=\"nets\" required value=\"" + escape(curSsid) + "\">";
@@ -215,7 +248,7 @@ static String setupPage() {
 
 void ServerManager::handleRootPage() {
     String html = FPSTR(PAGE_HEAD);
-    bool waitingForLink = wifiConfigured && !isLinked();
+    bool waitingForLink = (wifiConfigured || join == Join::Connected) && !isLinked();
     html += waitingForLink ? linkPage() : setupPage();
     html += footer();
     server.send(200, "text/html; charset=utf-8", html);
@@ -236,6 +269,18 @@ void ServerManager::handleSavePage() {
     uint16_t port = (uint16_t)server.arg("mqtt_port").toInt();
     if (port > 0) Storage::saveMqttPort(port);
     Storage::sync();
+    savedSSID = Storage::loadSSID();
+    savedPASS = Storage::loadPASS();
+
+#if SETUP_NAPT
+    if (!hasAccount() && savedSSID.length() > 0) {
+        // join next to the access point and sign in from this page; loop() starts the connection
+        join = Join::Pending;
+        server.sendHeader("Location", "/joining", true);
+        server.send(303, "text/plain", "");
+        return;
+    }
+#endif
 
     String html = FPSTR(PAGE_HEAD);
     html += "<div class=\"k\">Saved</div><h1>Connecting…</h1><div class=\"c\"><p>The board restarts and connects to <b>" + escape(ssid) +
@@ -245,6 +290,35 @@ void ServerManager::handleSavePage() {
     server.send(200, "text/html; charset=utf-8", html);
     delay(1500);
     ESP.restart();
+}
+
+// waits for the Wi-Fi joined after /save, then opens the page again: it has "Sign in" there
+static const char JOINING_SCRIPT[] PROGMEM = R"JS(<script>
+var fails=0;
+function poll(){fetch('/status',{cache:'no-store'}).then(function(r){return r.text()}).then(function(s){
+fails=0;if(s!='connecting'){location.replace('/');return}setTimeout(poll,1500)
+}).catch(function(){if(++fails>3)document.getElementById('lost').hidden=false;setTimeout(poll,2000)})}
+setTimeout(poll,1500);
+</script>)JS";
+
+void ServerManager::handleJoining() {
+    String html = FPSTR(PAGE_HEAD);
+    html += "<div class=\"k\">Step 1 of 2</div><h1>Connecting to " + escape(savedSSID) + "…</h1><div class=\"c\">"
+            "<p>This takes up to half a minute. Stay on this page: it moves on to signing in by itself.</p>"
+            "<p class=\"m\" id=\"lost\" hidden>The board does not answer. If your phone left the <b>" + apSsid +
+            "</b> network, join it again; this page goes on.</p></div>";
+    html += FPSTR(JOINING_SCRIPT);
+    html += footer();
+    server.send(200, "text/html; charset=utf-8", html);
+}
+
+void ServerManager::handleStatus() {
+    const char *state = "idle";
+    if (join == Join::Pending || join == Join::Connecting) state = "connecting";
+    else if (join == Join::Connected) state = "connected";
+    else if (join == Join::Failed) state = "failed";
+    server.sendHeader("Cache-Control", "no-store");
+    server.send(200, "text/plain", state);
 }
 
 void ServerManager::handleUnpair() {
@@ -338,6 +412,8 @@ void ServerManager::startServer() {
         server.on("/save", HTTP_POST, ServerManager::handleSavePage);
         server.on("/unpair", HTTP_POST, ServerManager::handleUnpair);
         server.on("/connect", HTTP_GET, ServerManager::handleConnect);
+        server.on("/joining", HTTP_GET, ServerManager::handleJoining);
+        server.on("/status", HTTP_GET, ServerManager::handleStatus);
         // phones probe these to detect a captive portal; send them to the page
         server.onNotFound([]() {
             server.sendHeader("Location", "http://" + servedAddress() + "/", true);
@@ -355,18 +431,44 @@ void ServerManager::enterSetupMode() {
 void ServerManager::startAPMode() {
     Serial.println("Starting WiFi setup AP…");
     wifiConfigured = false;
+    join = Join::None;
 
     WiFi.disconnect(false);
     delay(200);
+#if SETUP_NAPT
+    // The Wi-Fi joined from the page moves the access point to its channel and drops the phone for a moment.
+    // Start on the channel it most likely has: the saved network, or else the strongest one around.
+    WiFi.mode(WIFI_STA);
+    int found = WiFi.scanNetworks(false);
+    int channel = 1;
+    int best = -1000;
+    for (int i = 0; i < found; i++) {
+        if (savedSSID.length() > 0 && WiFi.SSID(i) == savedSSID) {
+            channel = WiFi.channel(i);
+            break;
+        }
+        if (WiFi.RSSI(i) > best) {
+            best = WiFi.RSSI(i);
+            channel = WiFi.channel(i);
+        }
+    }
+    // the station stays on, idle, to join the Wi-Fi saved on the page without a restart
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.softAPDhcpServer().setDns(SETUP_DNS);
+#else
     WiFi.mode(WIFI_AP);
+    int channel = 1;
+#endif
     delay(200);
-    if (!WiFi.softAP(apSsid.c_str(), apPass.c_str(), 1, false)) {
+    if (!WiFi.softAP(apSsid.c_str(), apPass.c_str(), channel, false)) {
         Serial.println("[ERROR] softAP start failed!");
         return;
     }
     apStartedAt = millis();
+#if !SETUP_NAPT
     // fill the network list of the page
     WiFi.scanNetworks(true);
+#endif
 
     Serial.println("Connect to AP: " + apSsid + " / " + apPass + ", open http://" + WiFi.softAPIP().toString());
     startServer();
@@ -375,7 +477,11 @@ void ServerManager::startAPMode() {
 void ServerManager::startLinkPortal() {
     // the access point follows the channel of the Wi-Fi connection
     WiFi.mode(WIFI_AP_STA);
+#if SETUP_NAPT
+    WiFi.softAPDhcpServer().setDns(SETUP_DNS);
+#endif
     WiFi.softAP(apSsid.c_str(), apPass.c_str());
+    startNapt();
     Serial.println("[LINK] Sign in from the board's page: http://" + WiFi.localIP().toString() + " (or join " + apSsid +
                    " and open http://" + WiFi.softAPIP().toString() + ")");
     startServer();
@@ -414,10 +520,65 @@ void ServerManager::connect() {
     startAPMode();
 }
 
+void ServerManager::startNapt() {
+#if SETUP_NAPT
+    if (naptOn) return;
+    static bool tablesReady = false;
+    uint32_t heap = ESP.getFreeHeap();
+    if (!tablesReady) {
+        if (ip_napt_init(NAPT_ENTRIES, NAPT_PORT_MAPS) != ERR_OK) {
+            Serial.println("[NAPT] No memory for the tables");
+            return;
+        }
+        tablesReady = true;
+    }
+    if (ip_napt_enable_no(SOFTAP_IF, 1) != ERR_OK) {
+        Serial.println("[NAPT] Could not route the access point");
+        return;
+    }
+    naptOn = true;
+    Serial.printf("[NAPT] The access point reaches the internet through %s, heap %u -> %u\n",
+                  WiFi.localIP().toString().c_str(), heap, ESP.getFreeHeap());
+#endif
+}
+
+// the Wi-Fi saved on the page, joined next to the access point
+void ServerManager::joinLoop() {
+    if (join == Join::Pending) {
+        Serial.println("[JOIN] Connecting to " + savedSSID + " next to the access point");
+        WiFi.disconnect(false);
+#if defined(ESP8266)
+        WiFi.setPhyMode(WIFI_PHY_MODE_11G);
+#endif
+        WiFi.begin(savedSSID.c_str(), savedPASS.c_str());
+        joinStartedAt = millis();
+        join = Join::Connecting;
+        return;
+    }
+    if (join != Join::Connecting) return;
+
+    wl_status_t status = WiFi.status();
+    if (status == WL_CONNECTED) {
+        Serial.println("[JOIN] Connected, IP: " + WiFi.localIP().toString());
+        startNapt();
+        join = Join::Connected;
+    } else if (millis() - joinStartedAt > WIFI_ATTEMPT_TIMEOUT_MS
+#if defined(ESP8266)
+               || status == WL_WRONG_PASSWORD
+#endif
+    ) {
+        Serial.printf("[JOIN] Not connected, status %d\n", status);
+        // stop retrying in the background: its scans hop channels and take the access point along
+        WiFi.disconnect(false);
+        join = Join::Failed;
+    }
+}
+
 void ServerManager::loop() {
     if (serverStarted) {
         server.handleClient();
     }
+    joinLoop();
 
     if (!wifiConfigured && apStartedAt != 0 && savedSSID.length() > 0 &&
         millis() - apStartedAt > AP_RESTART_TIMEOUT_MS && WiFi.softAPgetStationNum() == 0) {

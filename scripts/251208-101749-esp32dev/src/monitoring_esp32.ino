@@ -25,7 +25,7 @@
 //
 // Setup page: hold BOOT / FLASH for 3 s (a short press flips pages, or leaves the setup page); join the
 // ESP32-Setup / ESP8266-Setup Wi-Fi and open http://192.168.4.1. The board is
-// linked to an account with a code shown on its display, no user id is typed.
+// linked to an account with "Sign in" on that page, no user id is typed (see ServerManager.h).
 //
 // Only the BOOT / FLASH button on GPIO0 is fixed. The display is configured on the site as well
 // (ST7565 SPI, SSD1306 / SH1106 I2C) and saved to flash; until then the board uses the one it shipped with:

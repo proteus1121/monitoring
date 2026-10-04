@@ -8,9 +8,10 @@
  *  - setup:   Wi-Fi (and, folded away, MQTT) settings; shown when Wi-Fi is not configured or does not
  *             connect, and after holding BOOT / FLASH for 3 s;
  *  - link:    Wi-Fi works but the board has no account; the access point stays up next to the Wi-Fi
- *             connection. On the home network the page has "Sign in": the site links the board and sends the
- *             browser back to /connect with the board's own MQTT login; on the access point it shows that
- *             address, the phone has no internet there;
+ *             connection. The page has "Sign in": the site links the board and sends the browser back to
+ *             /connect with the board's own MQTT login. On the ESP8266 the board routes the access point to
+ *             its Wi-Fi (NAPT), so this works right on the access point, and Wi-Fi saved there is joined
+ *             without a restart. The ESP32 sends the phone to the board's home network address instead;
  *  - linked:  reached by holding BOOT / FLASH for 3 s; Wi-Fi settings plus "unlink from account".
  */
 class ServerManager {
@@ -32,6 +33,8 @@ public:
     static String getSsid();
     static String getPass();
     static String getSavedSsid();
+    // the access point reaches the internet through the board: signing in works right from it
+    static bool accessPointRoutes();
     // station mode with the saved Wi-Fi, one attempt
     static bool tryConnectWiFi();
 
@@ -42,6 +45,11 @@ private:
     static void handleSavePage();
     static void handleUnpair();
     static void handleConnect();
+    static void handleJoining();
+    static void handleStatus();
+    static void joinLoop();
+    // route the access point to the Wi-Fi, to sign in on the site from it (ESP8266)
+    static void startNapt();
 
     static String apSsid;
     static String apPass;
