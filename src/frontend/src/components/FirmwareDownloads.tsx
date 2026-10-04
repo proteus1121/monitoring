@@ -99,12 +99,16 @@ export function FirmwareDownloads({
 
 function BuildCard({ build }: { build: FirmwareBuild }) {
   const base = `${window.location.origin}/firmware/`;
+  // the application image is the download itself on boards without a separate full image
+  const fullSha256 =
+    build.fullSha256 ??
+    (build.fullFile === build.file ? build.sha256 : undefined);
   return (
     <Card className="flex flex-col gap-3">
       <div>
         <div className="font-semibold">{build.label}</div>
         <div className="text-xs text-slate-500">
-          {build.chip} · {formatSize(build.size)}
+          {build.chip} · {formatSize(build.fullSize ?? build.size)}
         </div>
       </div>
 
@@ -136,22 +140,14 @@ function BuildCard({ build }: { build: FirmwareBuild }) {
 
       <div className="flex flex-col gap-1 text-xs text-slate-500">
         <span>{build.fullFile} · flash at 0x0</span>
-        {build.fullFile !== build.file && (
-          <a
-            className="flex items-center gap-1.5 text-blue-700 hover:underline"
-            href={base + build.file}
-            download
+        {fullSha256 && (
+          <div
+            className="truncate font-mono text-[11px] text-slate-400"
+            title={fullSha256}
           >
-            <Icon icon="lucide:download" className="size-3.5" />
-            {build.file} (application only, for OTA)
-          </a>
+            SHA-256 {fullSha256}
+          </div>
         )}
-        <div
-          className="truncate font-mono text-[11px] text-slate-400"
-          title={build.sha256}
-        >
-          SHA-256 {build.sha256}
-        </div>
       </div>
     </Card>
   );

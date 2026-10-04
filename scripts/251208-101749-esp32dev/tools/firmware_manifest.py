@@ -113,6 +113,9 @@ def main(out_dir):
             'md5': digest(app_out, 'md5'),
             'sha256': digest(app_out, 'sha256'),
             'fullFile': full_name,
+            # the file people download, for checking it
+            'fullSize': os.path.getsize(os.path.join(out_dir, full_name)),
+            'fullSha256': digest(os.path.join(out_dir, full_name), 'sha256'),
             'install': install_name,
         })
 

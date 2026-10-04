@@ -62,6 +62,9 @@ export type FirmwareBuild = {
   md5: string;
   sha256: string;
   fullFile: string;
+  // the file to download; missing in manifests published before them
+  fullSize?: number;
+  fullSha256?: string;
   install: string;
 };
 
