@@ -54,7 +54,12 @@ def esptool():
     found = glob.glob(os.path.join(home, 'packages', 'tool-esptoolpy*', 'esptool.py'))
     if not found:
         raise SystemExit('esptool.py not found in ' + home)
-    return found[0]
+
+    # ESP8266 brings esptool 3.0 (1.30000.x) without merge_bin next to the ESP32 one: take the newest
+    def version(path):
+        with open(os.path.join(os.path.dirname(path), 'package.json'), encoding='utf-8') as f:
+            return tuple(int(part) for part in json.load(f)['version'].split('.'))
+    return max(found, key=version)
 
 
 def merge_esp32(build_dir, out_path):
