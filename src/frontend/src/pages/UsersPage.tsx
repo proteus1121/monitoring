@@ -34,7 +34,7 @@ export const useUsersWithDevices = () => {
 
     const arr = Object.entries(items);
     const flatArr = arr
-      .map(i => ({ username: i[0], devices: i[1] }))
+      .map(i => ({ username: i[0], devices: i[1] ?? [] }))
       .filter(i => i.username !== me?.name);
 
     return flatArr;
@@ -43,7 +43,8 @@ export const useUsersWithDevices = () => {
   const owner: FlatUserWithDevices | undefined = useMemo(() => {
     if (!items) return undefined;
     if (!me || !me.name) return undefined;
-    return { devices: items[me.name], username: me.name };
+    // a user without devices is missing from the map
+    return { devices: items[me.name] ?? [], username: me.name };
   }, [items, me]);
 
   return { owner, users, isLoading: isUsersLoading || isMeLoading };
