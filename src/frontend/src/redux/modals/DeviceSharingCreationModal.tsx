@@ -113,11 +113,11 @@ export function DeviceSharingCreationModal() {
   const options = useMemo(() => {
     return (owner?.devices ?? [])
       .filter(i => i.role === 'OWNER')
-      .filter(i => !!i.deviceName && !!i.id)
+      .filter(i => !!i.deviceName && !!i.deviceId)
       .map(i => {
         return {
           label: i.deviceName,
-          value: i.id,
+          value: i.deviceId,
         } as any as Option;
       })
       .filter(i => !deviceIds.some(selected => selected.value == i.value));

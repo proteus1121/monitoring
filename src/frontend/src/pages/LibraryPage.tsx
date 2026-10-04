@@ -11,13 +11,15 @@ import {
 import { PageLayout } from '@src/layouts/PageLayout';
 import { DEVICE_TYPE_LABELS } from '@src/lib/hardware';
 import { cn } from '@src/lib/classnameUtils';
-import { DeviceTypeValue, SensorModel, useGetSensorModelsQuery } from '@src/redux/generatedApi';
 import {
-  BoardModelValue,
-  DisplayModelValue,
+  DeviceType,
+  SensorModel,
+  useGetSensorModelsQuery,
+  BoardModel,
+  DisplayModel,
   useGetDisplayModelsQuery,
-  useGetFirmwareManifestQuery,
-} from '@src/redux/controllersApi';
+} from '@src/redux/generatedApi';
+import { useGetFirmwareManifestQuery } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { BOARDS, FirmwareDownloads } from '@src/components/FirmwareDownloads';
 import { Lang, useLang, useTexts } from '@src/lib/lang';
@@ -170,9 +172,9 @@ const SENSOR_ABOUT: Record<SensorModel, About> = {
 
 // SSD1306 and SH1106 are the same module to the user, the board card picks the chip
 const DISPLAYS: {
-  models: DisplayModelValue[];
+  models: DisplayModel[];
   label: string;
-  art: DisplayModelValue;
+  art: DisplayModel;
   pins: string[];
   bus: Bus;
   text: Record<Lang, string>;
@@ -201,7 +203,7 @@ const DISPLAYS: {
   },
 ];
 
-const BOARD_ABOUT: Record<BoardModelValue, { bus: Bus[]; text: Record<Lang, string> }> = {
+const BOARD_ABOUT: Record<BoardModel, { bus: Bus[]; text: Record<Lang, string> }> = {
   NODEMCU: {
     bus: ['esp8266', 'wifi'],
     text: {
@@ -323,7 +325,7 @@ export function LibraryPage() {
 
   const groupTag = (group: Group): CardTag => ({ kind: 'group', label: GROUP_TEXTS[lang][group] });
   const busTag = (bus: Bus): CardTag => ({ kind: 'bus', label: BUS_TEXTS[lang][bus] });
-  const typeTag = (type: DeviceTypeValue): CardTag => ({ kind: 'type', label: DEVICE_TYPE_LABELS[type] });
+  const typeTag = (type: DeviceType): CardTag => ({ kind: 'type', label: DEVICE_TYPE_LABELS[type] });
   const tagLabels = (tags: CardTag[]) => tags.map(tag => tag.label).join(' ');
 
   const boards = BOARDS.map(board => {

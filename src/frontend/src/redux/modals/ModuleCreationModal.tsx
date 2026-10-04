@@ -26,13 +26,15 @@ import {
 import { DEVICE_TYPE_LABELS, getPinOptions } from '@src/lib/hardware';
 import { ModuleEntry, buildModules, defaultDeviceName } from '@src/lib/modules';
 import {
-  DeviceTypeValue,
+  DeviceType,
   SensorModel,
   useCreateDeviceMutation,
   useGetControllersQuery,
   useGetSensorModelsQuery,
+  Controller,
+  DisplayModel,
+  useGetDisplayModelsQuery,
 } from '../generatedApi';
-import { ControllerWithRole, DisplayModelValue, useGetDisplayModelsQuery } from '../controllersApi';
 import { errorMessage } from '../helpers';
 import { useModal } from './modals.hook';
 import { DisplayModalId } from './DisplayModal';
@@ -109,7 +111,7 @@ export function ModuleCreationModal() {
   const t = useTexts(TEXTS);
   // what a module does is written in the interface language
   const modules = useMemo(() => buildModules(sensors, displays), [sensors, displays, lang]);
-  const boards = ((controllers ?? []) as ControllerWithRole[]).filter(c => !c.role || c.role === 'OWNER');
+  const boards = (controllers ?? []).filter(c => !c.role || c.role === 'OWNER');
 
   const [module, setModule] = useState<ModuleEntry | null>(null);
   const [boardId, setBoardId] = useState<string>('');
@@ -127,7 +129,7 @@ export function ModuleCreationModal() {
   const pick = (entry: ModuleEntry) => {
     if (entry.kind === 'display' && boards.length === 1) {
       close();
-      openDisplay({ controllerId: boards[0].id!, model: entry.key as DisplayModelValue });
+      openDisplay({ controllerId: boards[0].id!, model: entry.key as DisplayModel });
       return;
     }
     setModule(entry);
@@ -206,7 +208,7 @@ export function ModuleCreationModal() {
                   disabled={!board}
                   onClick={() => {
                     close();
-                    openDisplay({ controllerId: board!.id!, model: module.key as DisplayModelValue });
+                    openDisplay({ controllerId: board!.id!, model: module.key as DisplayModel });
                   }}
                 >
                   {t.toWiring}
@@ -252,15 +254,15 @@ function ModuleCard({ entry, onClick }: { entry: ModuleEntry; onClick: () => voi
   );
 }
 
-function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onDone: () => void }) {
+function SensorForm(props: { module: ModuleEntry; board: Controller; onDone: () => void }) {
   const { module, board } = props;
   const info = module.sensor!;
-  const types = (info.supportedTypes ?? []) as DeviceTypeValue[];
+  const types = (info.supportedTypes ?? []) as DeviceType[];
   // a plain analog input is one measurement, chosen; multi-sensors give all of theirs
   const single = module.key === 'ANALOG_INPUT' || types.length === 1;
 
   const [pins, setPins] = useState<Record<string, string>>({});
-  const [selected, setSelected] = useState<DeviceTypeValue[]>(single ? [types[0]] : types);
+  const [selected, setSelected] = useState<DeviceType[]>(single ? [types[0]] : types);
   const [names, setNames] = useState<Record<string, string>>(() =>
     Object.fromEntries(types.map(type => [type, defaultDeviceName(module, type)]))
   );
@@ -320,7 +322,7 @@ function SensorForm(props: { module: ModuleEntry; board: ControllerWithRole; onD
           {single ? t.measurement : t.measurements}
         </div>
         {single && types.length > 1 && (
-          <Select value={selected[0]} onValueChange={value => setSelected([value as DeviceTypeValue])}>
+          <Select value={selected[0]} onValueChange={value => setSelected([value as DeviceType])}>
             <SelectTrigger className="w-[220px]">
               <SelectValue />
             </SelectTrigger>

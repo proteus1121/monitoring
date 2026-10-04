@@ -11,7 +11,7 @@ import {
 } from '@src/components/PageHeader';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { errorMessage } from '@src/redux/helpers';
-import { useConnectControllerMutation } from '@src/redux/controllersApi';
+import { useConnectControllerMutation } from '@src/redux/generatedApi';
 import { useTexts } from '@src/lib/lang';
 
 const TEXTS = {
@@ -89,7 +89,7 @@ export function ConnectPage() {
 
   const link = async () => {
     setError(null);
-    const res = await connect({ hardwareId, platform, firmwareVersion, back });
+    const res = await connect({ connectControllerRequest: { hardwareId, platform, firmwareVersion, back } });
     if ('error' in res) {
       setError(errorMessage(res.error));
       return;

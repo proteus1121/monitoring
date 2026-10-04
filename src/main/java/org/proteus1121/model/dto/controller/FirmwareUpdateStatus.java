@@ -1,8 +1,11 @@
 package org.proteus1121.model.dto.controller;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * Progress of a firmware update ordered from the site, as the board reports it.
@@ -12,7 +15,10 @@ import java.time.LocalDateTime;
  * @param version  firmware being installed
  * @param error    why it failed, from the board
  */
-public record FirmwareUpdateStatus(String state, int progress, String version, String error,
-                                   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
+public record FirmwareUpdateStatus(@Schema(requiredMode = REQUIRED) String state,
+                                   @Schema(requiredMode = REQUIRED) int progress,
+                                   String version,
+                                   String error,
+                                   @Schema(requiredMode = REQUIRED) @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
                                    LocalDateTime updatedAt) {
 }

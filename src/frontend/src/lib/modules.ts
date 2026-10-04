@@ -1,6 +1,5 @@
 import type { ModuleKey } from '@src/components/ModuleArt';
-import type { DisplayModelInfo, DisplayModelValue } from '@src/redux/controllersApi';
-import type { DeviceTypeValue, SensorModelInfo } from '@src/redux/generatedApi';
+import type { DeviceType, SensorModelInfo, DisplayModelInfo, DisplayModel } from '@src/redux/generatedApi';
 import { DEVICE_TYPE_LABELS } from './hardware';
 import { pick } from './lang';
 
@@ -41,7 +40,7 @@ export type ModuleEntry = {
 // "Temperature" -> "temperature", acronyms stay: "LPG", "methane (CH4)"
 const inSentence = (label: string) => label.replace(/^\p{Lu}(?=\p{Ll})/u, c => c.toLowerCase());
 
-function joinTypes(types: DeviceTypeValue[]) {
+function joinTypes(types: DeviceType[]) {
   const names = types.map(type => inSentence(DEVICE_TYPE_LABELS[type]));
   const and = pick(TEXTS).and;
   return names.length > 1 ? `${names.slice(0, -1).join(', ')} ${and} ${names[names.length - 1]}` : names[0] ?? '';
@@ -75,13 +74,13 @@ export function buildModules(sensors?: SensorModelInfo[], displays?: DisplayMode
   return [...sensorModules, ...displayModules];
 }
 
-export const isDisplayModule = (key?: string): key is Exclude<DisplayModelValue, 'NONE'> =>
+export const isDisplayModule = (key?: string): key is Exclude<DisplayModel, 'NONE'> =>
   key === 'ST7565' || key === 'SSD1306' || key === 'SH1106';
 
 /**
  * Name of a new device: "DHT11 temperature" for a module with several measurements, "Flame sensor" otherwise.
  */
-export function defaultDeviceName(module: ModuleEntry, type: DeviceTypeValue) {
+export function defaultDeviceName(module: ModuleEntry, type: DeviceType) {
   const types = module.sensor?.supportedTypes ?? [];
   if (types.length > 1 && module.key !== 'ANALOG_INPUT') {
     return `${module.label} ${inSentence(DEVICE_TYPE_LABELS[type])}`;

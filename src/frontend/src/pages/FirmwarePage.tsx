@@ -11,10 +11,7 @@ import {
 import { PageLayout } from '@src/layouts/PageLayout';
 import { fromNow } from '@src/lib/readings';
 import { useGetControllersQuery } from '@src/redux/generatedApi';
-import {
-  ControllerWithRole,
-  useGetFirmwareManifestQuery,
-} from '@src/redux/controllersApi';
+import { useGetFirmwareManifestQuery } from '@src/redux/controllersApi';
 import { BoardFirmware, isUpdating } from './DevicesPage/BoardFirmware';
 import { useTexts } from '@src/lib/lang';
 
@@ -75,7 +72,7 @@ export function FirmwarePage() {
   const { data: controllers } = useGetControllersQuery(undefined, {
     pollingInterval: polling ? 3000 : 30000,
   });
-  const boards = (controllers ?? []) as ControllerWithRole[];
+  const boards = (controllers ?? []);
   const t = useTexts(TEXTS);
 
   useEffect(() => {

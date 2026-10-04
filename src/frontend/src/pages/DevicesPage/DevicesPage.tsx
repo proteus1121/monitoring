@@ -19,7 +19,6 @@ import { Loader } from '@src/components/Loader';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { DEVICE_TYPE_LABELS, DISPLAY_PIN_NAMES, deviceStatusLabel, getPinLabel } from '@src/lib/hardware';
 import { useTexts } from '@src/lib/lang';
-import { ControllerWithRole, useUpdateDisplayMutation } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { formatReading, fromNow } from '@src/lib/readings';
 import {
@@ -34,6 +33,7 @@ import {
   useGetSensorModelsQuery,
   useGetUserQuery,
   useSendCommandMutation,
+  useUpdateDisplayMutation,
 } from '@src/redux/generatedApi';
 import { ControllerPanel, SetupHint } from './ControllersSection';
 import { isUpdating } from './BoardFirmware';
@@ -140,7 +140,7 @@ const DevicesPage = () => {
   });
   useEffect(() => {
     setWaitingForBoard(
-      Boolean(controllers?.some(c => (c.online && !c.synced) || isUpdating(c as ControllerWithRole)))
+      Boolean(controllers?.some(c => (c.online && !c.synced) || isUpdating(c)))
     );
   }, [controllers]);
   const { data: models } = useGetSensorModelsQuery();
@@ -308,7 +308,7 @@ function DevicesTable(props: {
   const { setState: openDisplay } = useModal(DisplayModalId);
   const [updateDisplay] = useUpdateDisplayMutation();
   // a board's display is listed like a device
-  const displays = ((props.controllers ?? []) as ControllerWithRole[]).filter(
+  const displays = (props.controllers ?? []).filter(
     c => c.display && c.display.model !== 'NONE'
   );
 
@@ -474,7 +474,10 @@ function DevicesTable(props: {
                         confirm({
                           description: t.removeDisplay(board.name ?? ''),
                           callback: async () => {
-                            const res = await updateDisplay({ id: board.id!, model: 'NONE', pins: [], flip: false });
+                            const res = await updateDisplay({
+                              id: board.id!,
+                              displayRequest: { model: 'NONE', pins: [], flip: false },
+                            });
                             if ('error' in res) {
                               notification.error({
                                 message: t.removeFailed,

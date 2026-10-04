@@ -1,8 +1,11 @@
 package org.proteus1121.model.dto.controller;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.proteus1121.model.enums.DisplayModel;
 
 import java.util.List;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 /**
  * Display of a controller.
@@ -10,7 +13,9 @@ import java.util.List;
  * @param pins GPIO numbers in the order of {@link DisplayModel#getPins()}
  * @param flip rotate the picture by 180 degrees
  */
-public record DisplaySettings(DisplayModel model, List<Integer> pins, boolean flip) {
+public record DisplaySettings(@Schema(requiredMode = REQUIRED) DisplayModel model,
+                              @Schema(requiredMode = REQUIRED) List<Integer> pins,
+                              @Schema(requiredMode = REQUIRED) boolean flip) {
 
     /**
      * What the firmware uses before the site configured anything: the displays the boards shipped with.

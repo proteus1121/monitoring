@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { BoardModelValue } from '@src/redux/controllersApi';
+import type { BoardModel } from '@src/redux/generatedApi';
 
 /**
  * Drawings of the supported boards in the style of ModuleArt: the PCB, the Wi-Fi module with its shield and
@@ -68,7 +68,7 @@ function Meander({ x, y, width, height, vertical }: { x: number; y: number; widt
   return <polyline points={points.join(' ')} fill="none" stroke={GOLD} strokeWidth={1} />;
 }
 
-function Body({ board }: { board: BoardModelValue }): ReactNode {
+function Body({ board }: { board: BoardModel }): ReactNode {
   switch (board) {
     case 'NODEMCU':
       return (
@@ -125,7 +125,7 @@ function Body({ board }: { board: BoardModelValue }): ReactNode {
   }
 }
 
-export function BoardArt(props: { board: BoardModelValue; className?: string }) {
+export function BoardArt(props: { board: BoardModel; className?: string }) {
   return (
     <svg viewBox="0 0 100 66" className={props.className} role="img" aria-label={props.board}>
       <Body board={props.board} />

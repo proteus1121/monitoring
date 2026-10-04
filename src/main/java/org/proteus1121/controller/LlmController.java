@@ -30,7 +30,7 @@ public class LlmController {
 
     @GetMapping("/status")
     @Operation(summary = "Whether text generation is configured")
-    public Map<String, Object> status() {
+    public Map<String, Object> getLlmStatus() {
         Map<String, Object> status = new java.util.HashMap<>();
         status.put("enabled", textGeneration.isEnabled());
         status.put("model", textGeneration.model());

@@ -13,14 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/components/Select';
-import { useGetControllersQuery } from '@src/redux/generatedApi';
 import {
-  ControllerWithRole,
-  DeviceRoleValue,
+  useGetControllersQuery,
+  DeviceRole,
   useGetControllerSharesQuery,
   useShareControllerMutation,
   useUnshareControllerMutation,
-} from '@src/redux/controllersApi';
+} from '@src/redux/generatedApi';
 import { errorMessage } from '@src/redux/helpers';
 import { Lang, pick, useTexts } from '@src/lib/lang';
 
@@ -75,17 +74,20 @@ export function BoardSharingCard() {
   const [unshare] = useUnshareControllerMutation();
   const t = useTexts(TEXTS);
 
-  const boards = (controllers ?? []) as ControllerWithRole[];
+  const boards = (controllers ?? []);
   const own = boards.filter(c => !c.role || c.role === 'OWNER');
   const sharedWithMe = boards.filter(c => c.role && c.role !== 'OWNER');
 
   const [boardId, setBoardId] = useState('');
   const [username, setUsername] = useState('');
-  const [role, setRole] = useState<DeviceRoleValue>('VIEWER');
+  const [role, setRole] = useState<DeviceRole>('VIEWER');
   const selectedBoard = boardId || (own[0]?.id ? String(own[0].id) : '');
 
   const submit = async () => {
-    const res = await share({ id: Number(selectedBoard), username: username.trim(), role });
+    const res = await share({
+      id: Number(selectedBoard),
+      shareControllerRequest: { username: username.trim(), role },
+    });
     if ('error' in res) {
       notification.error({ message: t.shareFailed, description: errorMessage(res.error) });
       return;
@@ -141,7 +143,7 @@ export function BoardSharingCard() {
             autoComplete="off"
             className="w-[200px]"
           />
-          <Select value={role} onValueChange={v => setRole(v as DeviceRoleValue)}>
+          <Select value={role} onValueChange={v => setRole(v as DeviceRole)}>
             <SelectTrigger className="w-[130px]">
               <SelectValue />
             </SelectTrigger>

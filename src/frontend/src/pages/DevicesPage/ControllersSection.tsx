@@ -7,12 +7,6 @@ import { Card } from '@src/components/Card';
 import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
 import { errorMessage } from '@src/redux/helpers';
-import {
-  BoardModelValue,
-  ControllerWithRole,
-  useScanControllerMutation,
-  useUpdateBoardModelMutation,
-} from '@src/redux/controllersApi';
 import { BOARD_MODELS } from '@src/lib/hardware';
 import { useTexts } from '@src/lib/lang';
 import { useModal } from '@src/redux/modals/modals.hook';
@@ -25,6 +19,9 @@ import {
   useDeleteControllerMutation,
   useSyncControllerMutation,
   useUpdateControllerMutation,
+  BoardModel,
+  useScanControllerMutation,
+  useUpdateBoardModelMutation,
 } from '@src/redux/generatedApi';
 import { BoardDiagram } from './BoardDiagram';
 import { DisplayModalId } from '@src/redux/modals/DisplayModal';
@@ -189,7 +186,7 @@ export function ControllerPanel(props: {
   const [scanController, { isLoading: isScanStarting }] = useScanControllerMutation();
   const [showScan, setShowScan] = useState(false);
   const [updateBoardModel, { isLoading: isBoardModelSaving }] = useUpdateBoardModelMutation();
-  const isOwner = !(controller as ControllerWithRole).role || (controller as ControllerWithRole).role === 'OWNER';
+  const isOwner = !controller.role || controller.role === 'OWNER';
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: editDevice } = useModal(DeviceUpdatingModalId);
   const { setState: openDisplay } = useModal(DisplayModalId);
@@ -214,10 +211,10 @@ export function ControllerPanel(props: {
     setShowScan(true);
   };
 
-  const boardModel = (controller as ControllerWithRole).boardModel;
+  const boardModel = controller.boardModel;
   const boardModels = BOARD_MODELS.filter(model => model.platform === (controller.platform ?? 'esp32'));
-  const changeBoardModel = async (value: BoardModelValue) => {
-    const res = await updateBoardModel({ id, boardModel: value });
+  const changeBoardModel = async (value: BoardModel) => {
+    const res = await updateBoardModel({ id, boardModelRequest: { boardModel: value } });
     if ('error' in res) {
       notification.error({ message: t.boardFailed, description: errorMessage(res.error) });
     }
@@ -268,7 +265,7 @@ export function ControllerPanel(props: {
             <select
               value={boardModel ?? boardModels[0].value}
               disabled={isBoardModelSaving}
-              onChange={e => changeBoardModel(e.target.value as BoardModelValue)}
+              onChange={e => changeBoardModel(e.target.value as BoardModel)}
               title={t.boardType}
               className="rounded-md border border-black/15 bg-white px-2 py-0.5 text-xs text-slate-700"
             >
@@ -294,7 +291,7 @@ export function ControllerPanel(props: {
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-1">
-          <BoardFirmware controller={controller as ControllerWithRole} />
+          <BoardFirmware controller={controller} />
           {isOwner && (
             <Button
               size="sm"
@@ -344,11 +341,11 @@ export function ControllerPanel(props: {
         </div>
       </div>
 
-      {showScan && <ScanPanel controller={controller as ControllerWithRole} onClose={() => setShowScan(false)} />}
+      {showScan && <ScanPanel controller={controller} onClose={() => setShowScan(false)} />}
 
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         <div className="min-w-0 overflow-x-auto">
-          {props.devices.length > 0 || hasDisplay((controller as ControllerWithRole).display?.model) ? (
+          {props.devices.length > 0 || hasDisplay(controller.display?.model) ? (
             <BoardDiagram
               controller={controller}
               devices={props.devices}

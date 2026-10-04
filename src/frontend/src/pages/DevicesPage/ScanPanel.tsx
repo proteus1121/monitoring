@@ -14,16 +14,17 @@ import {
 import { getPinLabel } from '@src/lib/hardware';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
-import { Device, useCreateDeviceMutation } from '@src/redux/generatedApi';
 import {
-  ControllerWithRole,
-  DisplayModelValue,
+  Device,
+  useCreateDeviceMutation,
+  Controller,
+  DisplayModel,
   ScanFinding,
   SuggestedDevice,
   useGetBoardScanQuery,
   useScanControllerMutation,
   useUpdateDisplayMutation,
-} from '@src/redux/controllersApi';
+} from '@src/redux/generatedApi';
 import { errorMessage } from '@src/redux/helpers';
 import { getLang, useTexts } from '@src/lib/lang';
 
@@ -113,7 +114,7 @@ function toDevice(suggested: SuggestedDevice, controllerId: number): Device {
 /**
  * "Scan board": the board looks for modules on its free pins, found ones are offered as devices.
  */
-export function ScanPanel(props: { controller: ControllerWithRole; onClose: () => void }) {
+export function ScanPanel(props: { controller: Controller; onClose: () => void }) {
   const { controller } = props;
   const t = useTexts(TEXTS);
   const id = controller.id!;
@@ -190,7 +191,7 @@ export function ScanPanel(props: { controller: ControllerWithRole; onClose: () =
 
 function FindingRow(props: {
   finding: ScanFinding;
-  controller: ControllerWithRole;
+  controller: Controller;
   pinText: string;
   added: boolean;
   onAdded: () => void;
@@ -198,7 +199,7 @@ function FindingRow(props: {
   const { finding, controller } = props;
   const t = useTexts(TEXTS);
   const [choice, setChoice] = useState(0);
-  const [displayModel, setDisplayModel] = useState<DisplayModelValue>(finding.display?.model ?? 'SSD1306');
+  const [displayModel, setDisplayModel] = useState<DisplayModel>(finding.display?.model ?? 'SSD1306');
   const [busy, setBusy] = useState(false);
   const [createDevice] = useCreateDeviceMutation();
   const [updateDisplay] = useUpdateDisplayMutation();
@@ -228,7 +229,10 @@ function FindingRow(props: {
   const useAsDisplay = async () => {
     if (!finding.display) return;
     setBusy(true);
-    const res = await updateDisplay({ id: controller.id!, model: displayModel, pins: finding.display.pins, flip: false });
+    const res = await updateDisplay({
+      id: controller.id!,
+      displayRequest: { model: displayModel, pins: finding.display.pins, flip: false },
+    });
     setBusy(false);
     if ('error' in res) {
       notification.error({ message: t.displayFailed, description: errorMessage(res.error) });
@@ -294,7 +298,7 @@ function FindingRow(props: {
           )}
           {finding.kind === 'DISPLAY' && (
             <>
-              <Select value={displayModel} onValueChange={v => setDisplayModel(v as DisplayModelValue)}>
+              <Select value={displayModel} onValueChange={v => setDisplayModel(v as DisplayModel)}>
                 <SelectTrigger className="w-[130px]">
                   <SelectValue />
                 </SelectTrigger>

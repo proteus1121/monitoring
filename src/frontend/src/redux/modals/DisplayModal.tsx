@@ -65,22 +65,23 @@ const TEXTS = {
     save: 'Save',
   },
 };
-import { useGetAllDevicesQuery, useGetControllersQuery, useGetSensorModelsQuery } from '../generatedApi';
 import {
-  ControllerWithRole,
-  DisplayLanguageValue,
-  DisplayModelValue,
+  useGetAllDevicesQuery,
+  useGetControllersQuery,
+  useGetSensorModelsQuery,
+  DisplayLanguage,
+  DisplayModel,
   useGetDisplayModelsQuery,
   useUpdateDisplayLanguageMutation,
   useUpdateDisplayMutation,
-} from '../controllersApi';
+} from '../generatedApi';
 import { errorMessage } from '../helpers';
 import { useModal } from './modals.hook';
 import { ModalState } from './modals.types';
 
 export const DisplayModalId = 'display-modal-id';
 // `model` pre-selects a display, e.g. one chosen in "Add device"
-export type DisplayModal = ModalState<typeof DisplayModalId, { controllerId: number; model?: DisplayModelValue }>;
+export type DisplayModal = ModalState<typeof DisplayModalId, { controllerId: number; model?: DisplayModel }>;
 
 /**
  * Display of a board: model, wiring and rotation. Saving sends it to the board, which restarts to drive it.
@@ -94,8 +95,8 @@ export function DisplayModal() {
   const [update, { isLoading }] = useUpdateDisplayMutation();
   const [updateLanguage, { isLoading: isLanguageSaving }] = useUpdateDisplayLanguageMutation();
 
-  const controller = (controllers as ControllerWithRole[] | undefined)?.find(c => c.id === state?.controllerId);
-  const [model, setModel] = useState<DisplayModelValue>('NONE');
+  const controller = controllers?.find(c => c.id === state?.controllerId);
+  const [model, setModel] = useState<DisplayModel>('NONE');
   const [pins, setPins] = useState<Record<string, string>>({});
   const [flip, setFlip] = useState(false);
 
@@ -134,9 +135,9 @@ export function DisplayModal() {
 
   const complete = names.every(name => pins[name]);
 
-  const changeLanguage = async (language: DisplayLanguageValue) => {
+  const changeLanguage = async (language: DisplayLanguage) => {
     if (!controller || language === controller.displayLanguage) return;
-    const res = await updateLanguage({ id: controller.id!, language });
+    const res = await updateLanguage({ id: controller.id!, displayLanguageRequest: { language } });
     if ('error' in res) {
       notification.error({ message: pick(TEXTS).languageFailed, description: errorMessage(res.error) });
     } else {
@@ -144,13 +145,15 @@ export function DisplayModal() {
     }
   };
 
-  const save = async (nextModel: DisplayModelValue) => {
+  const save = async (nextModel: DisplayModel) => {
     if (!controller) return;
     const res = await update({
       id: controller.id!,
-      model: nextModel,
-      pins: nextModel === 'NONE' ? [] : DISPLAY_PIN_NAMES[nextModel].map(name => Number(pins[name])),
-      flip,
+      displayRequest: {
+        model: nextModel,
+        pins: nextModel === 'NONE' ? [] : DISPLAY_PIN_NAMES[nextModel].map(name => Number(pins[name])),
+        flip,
+      },
     });
     if ('error' in res) {
       notification.error({ message: pick(TEXTS).saveFailed, description: errorMessage(res.error) });
@@ -181,9 +184,9 @@ export function DisplayModal() {
             <Select
               value={model}
               onValueChange={value => {
-                setModel(value as DisplayModelValue);
+                setModel(value as DisplayModel);
                 // the two I2C displays share pin names, keep their wiring
-                if (DISPLAY_PIN_NAMES[value as DisplayModelValue].join() !== names.join()) setPins({});
+                if (DISPLAY_PIN_NAMES[value as DisplayModel].join() !== names.join()) setPins({});
               }}
             >
               <SelectTrigger className="w-[240px]">
@@ -219,7 +222,7 @@ export function DisplayModal() {
             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
               {pick(TEXTS).language}
               <div className="flex rounded-md border border-black/10 text-xs">
-                {(['UK', 'EN'] as DisplayLanguageValue[]).map(language => (
+                {(['UK', 'EN'] as DisplayLanguage[]).map(language => (
                   <button
                     key={language}
                     type="button"

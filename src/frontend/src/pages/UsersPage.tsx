@@ -306,7 +306,7 @@ const UserItem = ({
         <div className="flex flex-wrap gap-2">
           {user.devices.map(i => (
             <span
-              key={i.id}
+              key={i.deviceId}
               data-slot="badge"
               className="[&amp;&gt;svg]:size-3 [&amp;&gt;svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive text-foreground [a&amp;]:hover:bg-accent [a&amp;]:hover:text-accent-foreground inline-flex w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-md border bg-gray-50 px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px]"
             >

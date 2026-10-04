@@ -1,9 +1,11 @@
 import type {
   Controller,
-  DeviceTypeValue,
+  DeviceType,
   SensorModelInfo,
+  BoardModel,
+  DisplayModel,
+  DisplaySettings,
 } from '@src/redux/generatedApi';
-import type { BoardModelValue, DisplayModelValue, DisplaySettings } from '@src/redux/controllersApi';
 import { Lang, pick } from './lang';
 
 export type PinOption = {
@@ -70,7 +72,7 @@ function pinSpecs(platform?: string) {
 }
 
 // pin names of each display, in the order of DisplaySettings.pins (same as DisplayModel on the server)
-export const DISPLAY_PIN_NAMES: Record<DisplayModelValue, string[]> = {
+export const DISPLAY_PIN_NAMES: Record<DisplayModel, string[]> = {
   NONE: [],
   ST7565: ['CLK', 'DIN', 'CS', 'DC', 'RST'],
   SSD1306: ['SDA', 'SCL'],
@@ -142,7 +144,7 @@ export function getPinLabel(platform: string | undefined, pin?: number) {
   );
 }
 
-const DEVICE_TYPE_TEXTS: Record<Lang, Record<DeviceTypeValue, string>> = {
+const DEVICE_TYPE_TEXTS: Record<Lang, Record<DeviceType, string>> = {
   uk: {
     TEMPERATURE: 'Температура',
     HUMIDITY: 'Вологість',
@@ -189,7 +191,7 @@ export function deviceStatusLabel(status?: string) {
 
 // names of the measured quantities in the current language, read when rendered
 export const DEVICE_TYPE_LABELS = new Proxy({ ...DEVICE_TYPE_TEXTS.en }, {
-  get: (_, type) => pick(DEVICE_TYPE_TEXTS)[type as DeviceTypeValue],
+  get: (_, type) => pick(DEVICE_TYPE_TEXTS)[type as DeviceType],
 });
 
 export function controllerPlatform(
@@ -312,14 +314,14 @@ const ESP32_DEVKIT_LAYOUT: BoardLayout = {
   ],
 };
 
-export const BOARD_MODELS: { value: BoardModelValue; label: string; platform: string }[] = [
+export const BOARD_MODELS: { value: BoardModel; label: string; platform: string }[] = [
   { value: 'NODEMCU', label: 'NodeMCU v2', platform: 'esp8266' },
   { value: 'D1_MINI', label: 'Wemos D1 mini', platform: 'esp8266' },
   { value: 'ESP32_DEVKIT', label: 'ESP32 DevKit', platform: 'esp32' },
 ];
 
 // the board the user picked; the firmware only knows the chip
-export function boardLayout(platform?: string, boardModel?: BoardModelValue): BoardLayout {
+export function boardLayout(platform?: string, boardModel?: BoardModel): BoardLayout {
   if (platform === 'esp8266') {
     return boardModel === 'D1_MINI' ? D1_MINI_LAYOUT : NODEMCU_LAYOUT;
   }

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import type { ControllerWithRole } from '@src/redux/controllersApi';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { pick } from '@src/lib/lang';
 
@@ -28,11 +27,7 @@ import {
   boardLayout,
   reservedPinNote,
 } from '@src/lib/hardware';
-import type {
-  Controller,
-  Device,
-  SensorModelInfo,
-} from '@src/redux/generatedApi';
+import type { Controller, Device, SensorModelInfo } from '@src/redux/generatedApi';
 
 const PIN_STEP = 24;
 const BOARD_W = 170;
@@ -102,8 +97,8 @@ export function BoardDiagram(props: {
   onDisplayClick?: () => void;
 }) {
   const { controller, devices, models, onDeviceClick, onDisplayClick } = props;
-  const display = (controller as ControllerWithRole).display;
-  const layout = boardLayout(controller.platform, (controller as ControllerWithRole).boardModel);
+  const display = controller.display;
+  const layout = boardLayout(controller.platform, controller.boardModel);
 
   const findPin = (gpio?: number): PinRef | undefined => {
     if (gpio === undefined || gpio === null) return undefined;
@@ -192,7 +187,7 @@ export function BoardDiagram(props: {
       const x = side === 'left' ? boardX : boardX + BOARD_W;
       const y = pinY(row);
       const used = pin.gpio !== undefined && usedGpios.has(pin.gpio);
-      const note = reservedPinNote(controller.platform, pin.gpio, (controller as ControllerWithRole).display);
+      const note = reservedPinNote(controller.platform, pin.gpio, controller.display);
       const power = pin.gpio === undefined;
       return (
         <g key={`${side}-${row}`}>

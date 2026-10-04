@@ -86,7 +86,7 @@ export function DeviceSharingUpdatingModal() {
       .map(i => {
         return {
           label: i.deviceName,
-          value: i.id,
+          value: i.deviceId,
         } as any as Option;
       })
       .filter(i => !deviceIds.some(selected => selected.value == i.value));
@@ -99,7 +99,7 @@ export function DeviceSharingUpdatingModal() {
     if (!state.devices) return [];
 
     const currentUpdatableUserDevices = state.devices.filter(i =>
-      Boolean(options.find(option => Number(option.value) === i.id))
+      Boolean(options.find(option => Number(option.value) === i.deviceId))
     );
     return currentUpdatableUserDevices;
   }, [owner, state]);
@@ -110,7 +110,7 @@ export function DeviceSharingUpdatingModal() {
         i =>
           ({
             label: i.deviceName,
-            value: i.id,
+            value: i.deviceId,
           }) as any as Option
       )
     );
@@ -132,7 +132,7 @@ export function DeviceSharingUpdatingModal() {
       }
 
       const removed = currentUpdatableUserDevices
-        .map(i => i.id)
+        .map(i => i.deviceId)
         .filter(id => !deviceIds.some(device => Number(device.value) === id))
         .filter(i => i !== undefined);
 
@@ -250,7 +250,7 @@ export function DeviceSharingUpdatingModal() {
                         currentOwnedDevices.map(
                           i =>
                             ({
-                              value: i.id,
+                              value: i.deviceId,
                               label: i.deviceName,
                             }) as any as Option
                         )

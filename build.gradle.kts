@@ -92,8 +92,15 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    // in-memory database of OpenApiSpecTest
+    testRuntimeOnly("com.h2database:h2")
 }
 
 tasks.test {
     useJUnitPlatform()
+    // OpenApiSpecTest runs only with this property
+    System.getProperty("openapi.out")?.let {
+        systemProperty("openapi.out", it)
+        outputs.file(it)
+    }
 }

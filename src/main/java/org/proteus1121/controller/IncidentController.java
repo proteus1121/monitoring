@@ -42,7 +42,7 @@ public class IncidentController {
 
     @GetMapping("/open-count")
     @Operation(summary = "Count unresolved incidents")
-    public long countOpenIncidents() {
+    public long getOpenIncidentCount() {
         return incidentService.countOpenIncidents(getCurrentUser().getId());
     }
 

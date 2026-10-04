@@ -5,12 +5,13 @@ import { BoardArt } from '@src/components/BoardArt';
 import { UsbInstaller } from '@src/components/UsbInstaller';
 import { fromNow } from '@src/lib/readings';
 import { useTexts } from '@src/lib/lang';
-import { BoardModelValue, FirmwareBuild, FirmwareManifest } from '@src/redux/controllersApi';
+import { FirmwareBuild, FirmwareManifest } from '@src/redux/controllersApi';
+import { BoardModel } from '@src/redux/generatedApi';
 
 const formatSize = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
 
 type Board = {
-  model: BoardModelValue;
+  model: BoardModel;
   label: string;
   chip: string;
   // the firmware build (platformio env) the board runs
@@ -42,7 +43,7 @@ const TEXTS = {
         'Аналогові входи: GPIO32–39 (ADC2 не працює разом із Wi-Fi).',
         'Кнопка BOOT (GPIO0): коротке натискання гортає сторінки дисплея, утримання 3 с відкриває сторінку налаштування.',
       ],
-    } as Record<BoardModelValue, string[]>,
+    } as Record<BoardModel, string[]>,
     download: 'Завантажити для USB',
     flashAt: 'прошивати з адреси 0x0',
     coming: 'Незабаром',
@@ -71,7 +72,7 @@ const TEXTS = {
         'Analog inputs: GPIO32–39 (ADC2 does not work together with Wi-Fi).',
         'BOOT button (GPIO0): a short press flips the display pages, holding it 3 s opens the setup page.',
       ],
-    } as Record<BoardModelValue, string[]>,
+    } as Record<BoardModel, string[]>,
     download: 'Download for USB install',
     flashAt: 'flash at 0x0',
     coming: 'Coming',
@@ -98,9 +99,9 @@ export function FirmwareDownloads({
 }: {
   manifest?: FirmwareManifest;
   // the boards to show (all by default), the rest is hidden by a search
-  shown?: BoardModelValue[];
+  shown?: BoardModel[];
   // description and tags under the board name
-  about?: (model: BoardModelValue) => ReactNode;
+  about?: (model: BoardModel) => ReactNode;
 }) {
   const t = useTexts(TEXTS);
   const filtered = !!shown;

@@ -3,6 +3,8 @@ import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { modalsSlice } from './modals/modals.slice';
 import { uiSlice } from './ui/ui.slice';
 import { api } from './api';
+// tag fixes and the scan cache of the generated endpoints, before any of them is used
+import './controllersApi';
 
 export const store = configureStore({
   reducer: {

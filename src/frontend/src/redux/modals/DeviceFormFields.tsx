@@ -17,7 +17,7 @@ import { pick, useTexts } from '@src/lib/lang';
 import {
   Device,
   DeviceRequest,
-  DeviceTypeValue,
+  DeviceType as DeviceTypeValue,
   ForecastModel,
   SensorModel,
   useGetControllersQuery,
@@ -25,8 +25,8 @@ import {
   usePredictMetricsMutation,
   useGetLlmStatusQuery,
   useDescribeDeviceMutation,
+  useGetRawReadingQuery,
 } from '../generatedApi';
-import { useGetRawReadingQuery, type ControllerWithRole } from '../controllersApi';
 
 // value of the controller select when the device is not wired to a board
 export const NO_CONTROLLER = 'none';
@@ -426,7 +426,7 @@ function GeneralFields({ form }: { form: any }) {
           const bound = controllerId && controllerId !== NO_CONTROLLER;
           const model = models?.find(m => m.model === sensorModel);
           const platform = controllerPlatform(controllers, Number(controllerId));
-          const board = controllers?.find(c => c.id === Number(controllerId)) as ControllerWithRole | undefined;
+          const board = controllers?.find(c => c.id === Number(controllerId));
           const pinOptions = getPinOptions(platform, model, board?.display);
           const types = bound && model?.supportedTypes ? model.supportedTypes : ALL_TYPES;
 

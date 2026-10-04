@@ -97,32 +97,32 @@ public class ControllersController {
 
     @PostMapping("/{id}/scan")
     @Operation(summary = "Scan the board", description = "The board looks for modules on its free pins; poll GET for the result")
-    public ResponseEntity<BoardScan> scan(@PathVariable Long id) {
+    public ResponseEntity<BoardScan> scanController(@PathVariable Long id) {
         return ResponseEntity.accepted().body(boardScanService.request(id, getCurrentUser().getId()));
     }
 
     @GetMapping("/{id}/scan")
     @Operation(summary = "Last scan of the board", description = "204 when the board was not scanned yet")
-    public ResponseEntity<BoardScan> getScan(@PathVariable Long id) {
+    public ResponseEntity<BoardScan> getBoardScan(@PathVariable Long id) {
         BoardScan scan = boardScanService.get(id, getCurrentUser().getId());
         return scan == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(scan);
     }
 
     @PostMapping("/connect")
     @Operation(summary = "Link a board", description = "From the Sign in link on the board's page: binds the board to the current user and gives it its own MQTT login, which the site passes back to the board")
-    public ResponseEntity<BoardConnection> connect(@Valid @RequestBody ConnectControllerRequest request) {
+    public ResponseEntity<BoardConnection> connectController(@Valid @RequestBody ConnectControllerRequest request) {
         return ResponseEntity.ok(boardConnectService.connect(getCurrentUser().getId(), request));
     }
 
     @GetMapping("/shares")
     @Operation(summary = "Shares of own boards", description = "Users each board of the current user is shared with")
-    public ResponseEntity<List<ControllerShare>> getShares() {
+    public ResponseEntity<List<ControllerShare>> getControllerShares() {
         return ResponseEntity.ok(controllerService.getShares(getCurrentUser().getId()));
     }
 
     @PutMapping("/{id}/share")
     @Operation(summary = "Share a whole board", description = "Shares every device of the board, including ones added later")
-    public ResponseEntity<Void> share(@PathVariable Long id, @Valid @RequestBody ShareControllerRequest request) {
+    public ResponseEntity<Void> shareController(@PathVariable Long id, @Valid @RequestBody ShareControllerRequest request) {
         Long userId = userService.loadUserByUsername(request.getUsername()).getId();
         controllerService.share(id, getCurrentUser().getId(), userId, request.getRole());
         return ResponseEntity.noContent().build();
@@ -130,7 +130,7 @@ public class ControllersController {
 
     @DeleteMapping("/{id}/share/{userId}")
     @Operation(summary = "Stop sharing a board")
-    public ResponseEntity<Void> unshare(@PathVariable Long id, @PathVariable Long userId) {
+    public ResponseEntity<Void> unshareController(@PathVariable Long id, @PathVariable Long userId) {
         controllerService.unshare(id, getCurrentUser().getId(), userId);
         return ResponseEntity.noContent().build();
     }

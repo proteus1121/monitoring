@@ -2,7 +2,7 @@ import { notification } from 'antd';
 import { Icon } from '@iconify/react';
 import { Button } from '@src/components/Button';
 import { Spinner } from '@src/components/Spinner';
-import { ControllerWithRole, useUpdateFirmwareMutation } from '@src/redux/controllersApi';
+import { Controller, useUpdateFirmwareMutation } from '@src/redux/generatedApi';
 import { errorMessage } from '@src/redux/helpers';
 import { useTexts } from '@src/lib/lang';
 
@@ -33,13 +33,13 @@ const TEXTS = {
 
 const RUNNING = ['REQUESTED', 'DOWNLOADING', 'DONE'];
 
-export const isUpdating = (controller: ControllerWithRole) =>
+export const isUpdating = (controller: Controller) =>
   RUNNING.includes(controller.firmwareUpdate?.state ?? '');
 
 /**
  * Firmware of a board: the update it can get from the site and the progress of a running one.
  */
-export function BoardFirmware({ controller }: { controller: ControllerWithRole }) {
+export function BoardFirmware({ controller }: { controller: Controller }) {
   const [update, { isLoading }] = useUpdateFirmwareMutation();
   const status = controller.firmwareUpdate;
   const canUpdate = !controller.role || controller.role === 'OWNER';

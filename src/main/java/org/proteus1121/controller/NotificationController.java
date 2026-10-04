@@ -60,7 +60,7 @@ public class NotificationController {
 
     @GetMapping("/channels")
     @Operation(summary = "Channel availability", description = "Whether Telegram and e-mail are configured on the server")
-    public Map<String, Boolean> getChannels() {
+    public Map<String, Boolean> getNotificationChannels() {
         return telegramService.channelStatus();
     }
 

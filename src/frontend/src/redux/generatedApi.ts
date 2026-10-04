@@ -2,10 +2,12 @@ import { api } from "./api";
 export const addTagTypes = [
   "Notifications",
   "Device Management",
+  "Controller Management",
+  "Telegram Webhook",
   "Users",
   "Metrics",
+  "Text generation",
   "Incident Management",
-  "Controller Management",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -13,31 +15,6 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      getLlmStatus: build.query<GetLlmStatusApiResponse, GetLlmStatusApiArg>({
-        query: () => ({ url: `/llm/status` }),
-      }),
-      describeDevice: build.mutation<DescribeDeviceApiResponse, DescribeDeviceApiArg>({
-        query: (queryArg) => ({
-          url: `/llm/device-description`,
-          method: "POST",
-          body: queryArg.deviceRequest,
-        }),
-      }),
-      testNotification: build.mutation<
-        TestNotificationApiResponse,
-        TestNotificationApiArg
-      >({
-        query: (queryArg) => ({
-          url: `/notifications/${queryArg.id}/test`,
-          method: "POST",
-        }),
-      }),
-      getNotificationChannels: build.query<
-        GetNotificationChannelsApiResponse,
-        GetNotificationChannelsApiArg
-      >({
-        query: () => ({ url: `/notifications/channels` }),
-      }),
       getNotificationById: build.query<
         GetNotificationByIdApiResponse,
         GetNotificationByIdApiArg
@@ -79,7 +56,7 @@ const injectedRtkApi = api
             method: "PUT",
             body: queryArg.deviceRequest,
           }),
-          invalidatesTags: ["Device Management", "Controller Management"],
+          invalidatesTags: ["Device Management"],
         },
       ),
       deleteDevice: build.mutation<DeleteDeviceApiResponse, DeleteDeviceApiArg>(
@@ -88,7 +65,7 @@ const injectedRtkApi = api
             url: `/devices/${queryArg.id}`,
             method: "DELETE",
           }),
-          invalidatesTags: ["Device Management", "Controller Management"],
+          invalidatesTags: ["Device Management"],
         },
       ),
       unshareDevice: build.mutation<
@@ -109,6 +86,82 @@ const injectedRtkApi = api
           body: queryArg.shareDeviceRequest,
         }),
         invalidatesTags: ["Device Management"],
+      }),
+      updateController: build.mutation<
+        UpdateControllerApiResponse,
+        UpdateControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}`,
+          method: "PUT",
+          body: queryArg.controllerRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      deleteController: build.mutation<
+        DeleteControllerApiResponse,
+        DeleteControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      shareController: build.mutation<
+        ShareControllerApiResponse,
+        ShareControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/share`,
+          method: "PUT",
+          body: queryArg.shareControllerRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      updateDisplay: build.mutation<
+        UpdateDisplayApiResponse,
+        UpdateDisplayApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/display`,
+          method: "PUT",
+          body: queryArg.displayRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      updateDisplayLanguage: build.mutation<
+        UpdateDisplayLanguageApiResponse,
+        UpdateDisplayLanguageApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/display-language`,
+          method: "PUT",
+          body: queryArg.displayLanguageRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      updateBoardModel: build.mutation<
+        UpdateBoardModelApiResponse,
+        UpdateBoardModelApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/board-model`,
+          method: "PUT",
+          body: queryArg.boardModelRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      handleWebhook: build.mutation<
+        HandleWebhookApiResponse,
+        HandleWebhookApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/webhook/telegram`,
+          method: "POST",
+          body: queryArg.telegramWebhookRequest,
+        }),
+        invalidatesTags: ["Telegram Webhook"],
       }),
       createUser: build.mutation<CreateUserApiResponse, CreateUserApiArg>({
         query: (queryArg) => ({
@@ -144,6 +197,16 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Notifications"],
       }),
+      testNotification: build.mutation<
+        TestNotificationApiResponse,
+        TestNotificationApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/notifications/${queryArg.id}/test`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Notifications"],
+      }),
       predictMetrics: build.mutation<
         PredictMetricsApiResponse,
         PredictMetricsApiArg
@@ -155,7 +218,18 @@ const injectedRtkApi = api
             deviceId: queryArg.deviceId,
           },
         }),
-        invalidatesTags: ["Metrics", "Device Management"],
+        invalidatesTags: ["Metrics"],
+      }),
+      describeDevice: build.mutation<
+        DescribeDeviceApiResponse,
+        DescribeDeviceApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/llm/device-description`,
+          method: "POST",
+          body: queryArg.deviceRequest,
+        }),
+        invalidatesTags: ["Text generation"],
       }),
       resolveIncident: build.mutation<
         ResolveIncidentApiResponse,
@@ -167,57 +241,12 @@ const injectedRtkApi = api
         }),
         invalidatesTags: ["Incident Management"],
       }),
-      sendCommand: build.mutation<SendCommandApiResponse, SendCommandApiArg>({
-        query: (queryArg) => ({
-          url: `/devices/${queryArg.id}/command`,
-          method: "POST",
-          body: queryArg.deviceCommandRequest,
-        }),
-      }),
-      getControllers: build.query<
-        GetControllersApiResponse,
-        GetControllersApiArg
+      resolveAllIncidents: build.mutation<
+        ResolveAllIncidentsApiResponse,
+        ResolveAllIncidentsApiArg
       >({
-        query: () => ({ url: `/controllers` }),
-        providesTags: ["Controller Management"],
-      }),
-      getSensorModels: build.query<
-        GetSensorModelsApiResponse,
-        GetSensorModelsApiArg
-      >({
-        query: () => ({ url: `/controllers/sensor-models` }),
-        providesTags: ["Controller Management"],
-      }),
-      updateController: build.mutation<
-        UpdateControllerApiResponse,
-        UpdateControllerApiArg
-      >({
-        query: (queryArg) => ({
-          url: `/controllers/${queryArg.id}`,
-          method: "PUT",
-          body: queryArg.controllerRequest,
-        }),
-        invalidatesTags: ["Controller Management"],
-      }),
-      deleteController: build.mutation<
-        DeleteControllerApiResponse,
-        DeleteControllerApiArg
-      >({
-        query: (queryArg) => ({
-          url: `/controllers/${queryArg.id}`,
-          method: "DELETE",
-        }),
-        invalidatesTags: ["Controller Management", "Device Management"],
-      }),
-      syncController: build.mutation<
-        SyncControllerApiResponse,
-        SyncControllerApiArg
-      >({
-        query: (queryArg) => ({
-          url: `/controllers/${queryArg.id}/sync`,
-          method: "POST",
-        }),
-        invalidatesTags: ["Controller Management"],
+        query: () => ({ url: `/incidents/resolve-all`, method: "POST" }),
+        invalidatesTags: ["Incident Management"],
       }),
       getAllDevices: build.query<GetAllDevicesApiResponse, GetAllDevicesApiArg>(
         {
@@ -232,9 +261,68 @@ const injectedRtkApi = api
             method: "POST",
             body: queryArg.deviceRequest,
           }),
-          invalidatesTags: ["Device Management", "Controller Management"],
+          invalidatesTags: ["Device Management"],
         },
       ),
+      sendCommand: build.mutation<SendCommandApiResponse, SendCommandApiArg>({
+        query: (queryArg) => ({
+          url: `/devices/${queryArg.id}/command`,
+          method: "POST",
+          body: queryArg.deviceCommandRequest,
+        }),
+        invalidatesTags: ["Device Management"],
+      }),
+      syncController: build.mutation<
+        SyncControllerApiResponse,
+        SyncControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/sync`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      getBoardScan: build.query<GetBoardScanApiResponse, GetBoardScanApiArg>({
+        query: (queryArg) => ({ url: `/controllers/${queryArg.id}/scan` }),
+        providesTags: ["Controller Management"],
+      }),
+      scanController: build.mutation<
+        ScanControllerApiResponse,
+        ScanControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/scan`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      updateFirmware: build.mutation<
+        UpdateFirmwareApiResponse,
+        UpdateFirmwareApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/firmware-update`,
+          method: "POST",
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      connectController: build.mutation<
+        ConnectControllerApiResponse,
+        ConnectControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/connect`,
+          method: "POST",
+          body: queryArg.connectControllerRequest,
+        }),
+        invalidatesTags: ["Controller Management"],
+      }),
+      getReport: build.query<GetReportApiResponse, GetReportApiArg>({
+        query: (queryArg) => ({
+          url: `/webhook/telegram/report/${queryArg.chatId}`,
+        }),
+        providesTags: ["Telegram Webhook"],
+      }),
       getUsers: build.query<GetUsersApiResponse, GetUsersApiArg>({
         query: () => ({ url: `/users` }),
         providesTags: ["Users"],
@@ -244,10 +332,18 @@ const injectedRtkApi = api
         GetSsoProvidersApiArg
       >({
         query: () => ({ url: `/users/sso-providers` }),
+        providesTags: ["Users"],
       }),
       getUser: build.query<GetUserApiResponse, GetUserApiArg>({
         query: () => ({ url: `/users/me` }),
         providesTags: ["Users"],
+      }),
+      getNotificationChannels: build.query<
+        GetNotificationChannelsApiResponse,
+        GetNotificationChannelsApiArg
+      >({
+        query: () => ({ url: `/notifications/channels` }),
+        providesTags: ["Notifications"],
       }),
       getMetrics: build.query<GetMetricsApiResponse, GetMetricsApiArg>({
         query: (queryArg) => ({
@@ -276,36 +372,16 @@ const injectedRtkApi = api
         }),
         providesTags: ["Metrics"],
       }),
-      getRecentIncidents: build.query<
-        GetRecentIncidentsApiResponse,
-        GetRecentIncidentsApiArg
-      >({
-        query: (queryArg) => ({
-          url: `/incidents/recent`,
-          params: { openOnly: queryArg.openOnly, limit: queryArg.limit },
-        }),
-        providesTags: ["Incident Management"],
-      }),
-      getOpenIncidentCount: build.query<
-        GetOpenIncidentCountApiResponse,
-        GetOpenIncidentCountApiArg
-      >({
-        query: () => ({ url: `/incidents/open-count` }),
-        providesTags: ["Incident Management"],
-      }),
-      resolveAllIncidents: build.mutation<
-        ResolveAllIncidentsApiResponse,
-        ResolveAllIncidentsApiArg
-      >({
-        query: () => ({ url: `/incidents/resolve-all`, method: "POST" }),
-        invalidatesTags: ["Incident Management"],
-      }),
       getLatestReadings: build.query<
         GetLatestReadingsApiResponse,
         GetLatestReadingsApiArg
       >({
         query: () => ({ url: `/metrics/latest` }),
         providesTags: ["Metrics"],
+      }),
+      getLlmStatus: build.query<GetLlmStatusApiResponse, GetLlmStatusApiArg>({
+        query: () => ({ url: `/llm/status` }),
+        providesTags: ["Text generation"],
       }),
       getAllIncidents: build.query<
         GetAllIncidentsApiResponse,
@@ -317,6 +393,70 @@ const injectedRtkApi = api
       getIncident: build.query<GetIncidentApiResponse, GetIncidentApiArg>({
         query: (queryArg) => ({ url: `/incidents/${queryArg.id}` }),
         providesTags: ["Incident Management"],
+      }),
+      getRecentIncidents: build.query<
+        GetRecentIncidentsApiResponse,
+        GetRecentIncidentsApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/incidents/recent`,
+          params: {
+            openOnly: queryArg.openOnly,
+            limit: queryArg.limit,
+          },
+        }),
+        providesTags: ["Incident Management"],
+      }),
+      getOpenIncidentCount: build.query<
+        GetOpenIncidentCountApiResponse,
+        GetOpenIncidentCountApiArg
+      >({
+        query: () => ({ url: `/incidents/open-count` }),
+        providesTags: ["Incident Management"],
+      }),
+      getRawReading: build.query<GetRawReadingApiResponse, GetRawReadingApiArg>(
+        {
+          query: (queryArg) => ({ url: `/devices/${queryArg.id}/raw` }),
+          providesTags: ["Device Management"],
+        },
+      ),
+      getControllers: build.query<
+        GetControllersApiResponse,
+        GetControllersApiArg
+      >({
+        query: () => ({ url: `/controllers` }),
+        providesTags: ["Controller Management"],
+      }),
+      getControllerShares: build.query<
+        GetControllerSharesApiResponse,
+        GetControllerSharesApiArg
+      >({
+        query: () => ({ url: `/controllers/shares` }),
+        providesTags: ["Controller Management"],
+      }),
+      getSensorModels: build.query<
+        GetSensorModelsApiResponse,
+        GetSensorModelsApiArg
+      >({
+        query: () => ({ url: `/controllers/sensor-models` }),
+        providesTags: ["Controller Management"],
+      }),
+      getDisplayModels: build.query<
+        GetDisplayModelsApiResponse,
+        GetDisplayModelsApiArg
+      >({
+        query: () => ({ url: `/controllers/display-models` }),
+        providesTags: ["Controller Management"],
+      }),
+      unshareController: build.mutation<
+        UnshareControllerApiResponse,
+        UnshareControllerApiArg
+      >({
+        query: (queryArg) => ({
+          url: `/controllers/${queryArg.id}/share/${queryArg.userId}`,
+          method: "DELETE",
+        }),
+        invalidatesTags: ["Controller Management"],
       }),
     }),
     overrideExisting: false,
@@ -358,6 +498,39 @@ export type ShareDeviceApiResponse = /** status 200 OK */ Device;
 export type ShareDeviceApiArg = {
   shareDeviceRequest: ShareDeviceRequest;
 };
+export type UpdateControllerApiResponse = /** status 200 OK */ Controller;
+export type UpdateControllerApiArg = {
+  id: number;
+  controllerRequest: ControllerRequest;
+};
+export type DeleteControllerApiResponse = unknown;
+export type DeleteControllerApiArg = {
+  id: number;
+};
+export type ShareControllerApiResponse = unknown;
+export type ShareControllerApiArg = {
+  id: number;
+  shareControllerRequest: ShareControllerRequest;
+};
+export type UpdateDisplayApiResponse = /** status 200 OK */ Controller;
+export type UpdateDisplayApiArg = {
+  id: number;
+  displayRequest: DisplayRequest;
+};
+export type UpdateDisplayLanguageApiResponse = /** status 200 OK */ Controller;
+export type UpdateDisplayLanguageApiArg = {
+  id: number;
+  displayLanguageRequest: DisplayLanguageRequest;
+};
+export type UpdateBoardModelApiResponse = /** status 200 OK */ Controller;
+export type UpdateBoardModelApiArg = {
+  id: number;
+  boardModelRequest: BoardModelRequest;
+};
+export type HandleWebhookApiResponse = /** status 200 OK */ string;
+export type HandleWebhookApiArg = {
+  telegramWebhookRequest: TelegramWebhookRequest;
+};
 export type CreateUserApiResponse = unknown;
 export type CreateUserApiArg = {
   userRequest: UserRequest;
@@ -374,78 +547,61 @@ export type CreateNotificationApiResponse =
 export type CreateNotificationApiArg = {
   telegramNotificationRequest: TelegramNotificationRequest;
 };
+export type TestNotificationApiResponse = unknown;
+export type TestNotificationApiArg = {
+  id: number;
+};
 export type PredictMetricsApiResponse = /** status 200 OK */ ForecastResult;
 export type PredictMetricsApiArg = {
   deviceId: number;
 };
-export type ForecastModel = "NONE" | "XGBOOST" | "ARIMA" | "KALMAN";
-export type ForecastResult = {
-  model?: ForecastModel;
-  done?: boolean;
-  message?: string;
-  trainingHours?: number;
-  forecastHours?: number;
-  mae?: number;
-  rmse?: number;
+export type DescribeDeviceApiResponse = /** status 200 OK */ {
+  [key: string]: string;
 };
-export type ForecastSettingsFields = {
-  forecastModel?: ForecastModel;
-  forecastHorizonHours?: number;
-  forecastHistoryDays?: number;
-  arimaP?: number;
-  arimaD?: number;
-  arimaQ?: number;
-  kalmanProcessNoise?: number;
-  kalmanMeasurementNoise?: number;
-  xgbRounds?: number;
-  xgbMaxDepth?: number;
+export type DescribeDeviceApiArg = {
+  deviceRequest: DeviceRequest;
 };
-export type GetLlmStatusApiResponse = /** status 200 OK */ {
-  enabled: boolean;
-  model?: string;
-};
-export type GetLlmStatusApiArg = void;
-export type DescribeDeviceApiResponse = /** status 200 OK */ { text: string };
-export type DescribeDeviceApiArg = { deviceRequest: DeviceRequest };
-export type NotificationChannel = "TELEGRAM" | "EMAIL";
-export type TestNotificationApiResponse = unknown;
-export type TestNotificationApiArg = { id: number };
-export type GetNotificationChannelsApiResponse = /** status 200 OK */ {
-  [channel: string]: boolean;
-};
-export type GetNotificationChannelsApiArg = void;
 export type ResolveIncidentApiResponse = unknown;
 export type ResolveIncidentApiArg = {
   id: number;
+};
+export type ResolveAllIncidentsApiResponse = /** status 200 OK */ number;
+export type ResolveAllIncidentsApiArg = void;
+export type GetAllDevicesApiResponse = /** status 200 OK */ Device[];
+export type GetAllDevicesApiArg = void;
+export type CreateDeviceApiResponse = /** status 200 OK */ Device;
+export type CreateDeviceApiArg = {
+  deviceRequest: DeviceRequest;
 };
 export type SendCommandApiResponse = unknown;
 export type SendCommandApiArg = {
   id: number;
   deviceCommandRequest: DeviceCommandRequest;
 };
-export type GetControllersApiResponse = /** status 200 OK */ Controller[];
-export type GetControllersApiArg = void;
-export type GetSensorModelsApiResponse =
-  /** status 200 OK */ SensorModelInfo[];
-export type GetSensorModelsApiArg = void;
-export type UpdateControllerApiResponse = /** status 200 OK */ Controller;
-export type UpdateControllerApiArg = {
-  id: number;
-  controllerRequest: ControllerRequest;
-};
-export type DeleteControllerApiResponse = unknown;
-export type DeleteControllerApiArg = {
-  id: number;
-};
 export type SyncControllerApiResponse = unknown;
 export type SyncControllerApiArg = {
   id: number;
 };
-export type GetAllDevicesApiResponse = /** status 200 OK */ Device[];
-export type GetAllDevicesApiArg = void;
-export type CreateDeviceApiResponse = /** status 200 OK */ Device;
-export type CreateDeviceApiArg = {
-  deviceRequest: DeviceRequest;
+export type GetBoardScanApiResponse = /** status 200 OK */ BoardScan;
+export type GetBoardScanApiArg = {
+  id: number;
+};
+export type ScanControllerApiResponse = /** status 200 OK */ BoardScan;
+export type ScanControllerApiArg = {
+  id: number;
+};
+export type UpdateFirmwareApiResponse =
+  /** status 200 OK */ FirmwareUpdateStatus;
+export type UpdateFirmwareApiArg = {
+  id: number;
+};
+export type ConnectControllerApiResponse = /** status 200 OK */ BoardConnection;
+export type ConnectControllerApiArg = {
+  connectControllerRequest: ConnectControllerRequest;
+};
+export type GetReportApiResponse = /** status 200 OK */ DeviceSensorValues[];
+export type GetReportApiArg = {
+  chatId: string;
 };
 export type GetUsersApiResponse = /** status 200 OK */ {
   [key: string]: DeviceUser[];
@@ -455,37 +611,35 @@ export type GetSsoProvidersApiResponse = /** status 200 OK */ string[];
 export type GetSsoProvidersApiArg = void;
 export type GetUserApiResponse = /** status 200 OK */ LoginResponse;
 export type GetUserApiArg = void;
+export type GetNotificationChannelsApiResponse = /** status 200 OK */ {
+  [key: string]: boolean;
+};
+export type GetNotificationChannelsApiArg = void;
 export type GetMetricsApiResponse = /** status 200 OK */ SensorData[];
 export type GetMetricsApiArg = {
   deviceId: number;
   start: string;
   end: string;
-  period?:
-    | "LIVE"
-    | "ONE_MINUTE"
-    | "FIVE_MINUTES"
-    | "FIFTEEN_MINUTES"
-    | "THIRTY_MINUTES"
-    | "ONE_HOUR"
-    | "SIX_HOURS"
-    | "TWELVE_HOURS"
-    | "ONE_DAY";
+  period?: Period;
 };
 export type GetMetricsPredictedApiResponse = /** status 200 OK */ SensorData[];
 export type GetMetricsPredictedApiArg = {
   deviceId: number;
   start: string;
   end: string;
-  period?:
-    | "LIVE"
-    | "ONE_MINUTE"
-    | "FIVE_MINUTES"
-    | "FIFTEEN_MINUTES"
-    | "THIRTY_MINUTES"
-    | "ONE_HOUR"
-    | "SIX_HOURS"
-    | "TWELVE_HOURS"
-    | "ONE_DAY";
+  period?: Period;
+};
+export type GetLatestReadingsApiResponse = /** status 200 OK */ LatestReading[];
+export type GetLatestReadingsApiArg = void;
+export type GetLlmStatusApiResponse = /** status 200 OK */ {
+  [key: string]: object;
+};
+export type GetLlmStatusApiArg = void;
+export type GetAllIncidentsApiResponse = /** status 200 OK */ Incident[];
+export type GetAllIncidentsApiArg = void;
+export type GetIncidentApiResponse = /** status 200 OK */ Incident;
+export type GetIncidentApiArg = {
+  id: number;
 };
 export type GetRecentIncidentsApiResponse = /** status 200 OK */ Incident[];
 export type GetRecentIncidentsApiArg = {
@@ -494,21 +648,24 @@ export type GetRecentIncidentsApiArg = {
 };
 export type GetOpenIncidentCountApiResponse = /** status 200 OK */ number;
 export type GetOpenIncidentCountApiArg = void;
-export type ResolveAllIncidentsApiResponse = /** status 200 OK */ number;
-export type ResolveAllIncidentsApiArg = void;
-export type GetLatestReadingsApiResponse =
-  /** status 200 OK */ LatestReading[];
-export type GetLatestReadingsApiArg = void;
-export type LatestReading = {
-  deviceId: number;
-  timestamp: string;
-  value: number;
-};
-export type GetAllIncidentsApiResponse = /** status 200 OK */ Incident[];
-export type GetAllIncidentsApiArg = void;
-export type GetIncidentApiResponse = /** status 200 OK */ Incident;
-export type GetIncidentApiArg = {
+export type GetRawReadingApiResponse = /** status 200 OK */ RawReading;
+export type GetRawReadingApiArg = {
   id: number;
+};
+export type GetControllersApiResponse = /** status 200 OK */ Controller[];
+export type GetControllersApiArg = void;
+export type GetControllerSharesApiResponse =
+  /** status 200 OK */ ControllerShare[];
+export type GetControllerSharesApiArg = void;
+export type GetSensorModelsApiResponse = /** status 200 OK */ SensorModelInfo[];
+export type GetSensorModelsApiArg = void;
+export type GetDisplayModelsApiResponse =
+  /** status 200 OK */ DisplayModelInfo[];
+export type GetDisplayModelsApiArg = void;
+export type UnshareControllerApiResponse = unknown;
+export type UnshareControllerApiArg = {
+  id: number;
+  userId: number;
 };
 export type GrantedAuthority = {
   authority?: string;
@@ -522,66 +679,26 @@ export type User = {
   enabled?: boolean;
   id?: number;
 };
+export type NotificationChannel = "TELEGRAM" | "EMAIL";
+export type NotificationType = "INFO" | "WARNING" | "CRITICAL";
 export type TelegramNotification = {
   id?: number;
   user?: User;
   channel?: NotificationChannel;
-  email?: string;
   telegramChatId?: string;
-  type?: "INFO" | "WARNING" | "CRITICAL";
+  email?: string;
+  type?: NotificationType;
   template?: string;
 };
 export type TelegramNotificationRequest = {
   channel?: NotificationChannel;
-  email?: string;
   telegramChatId?: string;
-  type?: "INFO" | "WARNING" | "CRITICAL";
+  email?: string;
+  type?: NotificationType;
   template?: string;
 };
-export type UserDevices = {
-  deviceId?: number;
-  userId?: number;
-  username?: string;
-  deviceName?: string;
-  role?: "OWNER" | "EDITOR" | "VIEWER";
-};
-export type Device = ForecastSettingsFields & {
-  forecastMae?: number;
-  forecastRmse?: number;
-  forecastUpdatedAt?: string;
-  id?: number;
-  name?: string;
-  description?: string;
-  criticalValue?: number;
-  lowerValue?: number;
-  delay?: number;
-  status?: "OK" | "WARNING" | "CRITICAL" | "OFFLINE";
-  lastChecked?: string;
-  type?: DeviceTypeValue;
-  controllerId?: number;
-  sensorModel?: SensorModel;
-  pin?: number;
-  secondaryPin?: number;
-  calibrationDry?: number;
-  calibrationWet?: number;
-  userDevices?: UserDevices[];
-};
-export type DeviceRequest = ForecastSettingsFields & {
-  name: string;
-  description?: string;
-  criticalValue?: number;
-  lowerValue?: number;
-  delay: number;
-  type?: DeviceTypeValue;
-  controllerId?: number;
-  sensorModel?: SensorModel;
-  pin?: number;
-  secondaryPin?: number;
-  calibrationDry?: number;
-  calibrationWet?: number;
-  userIds?: number[];
-};
-export type DeviceTypeValue =
+export type DeviceStatus = "OK" | "WARNING" | "CRITICAL" | "OFFLINE";
+export type DeviceType =
   | "TEMPERATURE"
   | "HUMIDITY"
   | "LPG"
@@ -608,33 +725,70 @@ export type SensorModel =
   | "SOIL_MOISTURE"
   | "ANALOG_INPUT"
   | "RELAY";
-export type DeviceCommandRequest = {
-  value: number;
-};
-export type Controller = {
-  id?: number;
+export type ForecastModel = "NONE" | "XGBOOST" | "ARIMA" | "KALMAN";
+export type DeviceRole = "OWNER" | "EDITOR" | "VIEWER";
+export type DeviceUser = {
+  deviceId?: number;
   userId?: number;
-  hardwareId?: string;
+  username?: string;
+  deviceName?: string;
+  role?: DeviceRole;
+};
+export type Device = {
+  id?: number;
   name?: string;
-  platform?: string;
-  firmwareVersion?: string;
-  ipAddress?: string;
-  lastSeen?: string;
-  online?: boolean;
-  synced?: boolean;
-  deviceCount?: number;
-};
-export type ControllerRequest = {
-  name: string;
-};
-export type SensorModelInfo = {
-  model?: SensorModel;
-  label?: string;
   description?: string;
-  supportedTypes?: DeviceTypeValue[];
-  pins?: string[];
-  analog?: boolean;
-  output?: boolean;
+  criticalValue?: number;
+  lowerValue?: number;
+  delay?: number;
+  status?: DeviceStatus;
+  lastChecked?: string;
+  type?: DeviceType;
+  controllerId?: number;
+  sensorModel?: SensorModel;
+  pin?: number;
+  secondaryPin?: number;
+  calibrationDry?: number;
+  calibrationWet?: number;
+  forecastModel?: ForecastModel;
+  forecastHorizonHours?: number;
+  forecastHistoryDays?: number;
+  arimaP?: number;
+  arimaD?: number;
+  arimaQ?: number;
+  kalmanProcessNoise?: number;
+  kalmanMeasurementNoise?: number;
+  xgbRounds?: number;
+  xgbMaxDepth?: number;
+  forecastMae?: number;
+  forecastRmse?: number;
+  forecastUpdatedAt?: string;
+  userDevices?: DeviceUser[];
+};
+export type DeviceRequest = {
+  name: string;
+  description?: string;
+  criticalValue?: number;
+  lowerValue?: number;
+  delay: number;
+  type?: DeviceType;
+  controllerId?: number;
+  sensorModel?: SensorModel;
+  pin?: number;
+  secondaryPin?: number;
+  calibrationDry?: number;
+  calibrationWet?: number;
+  forecastModel?: ForecastModel;
+  forecastHorizonHours?: number;
+  forecastHistoryDays?: number;
+  arimaP?: number;
+  arimaD?: number;
+  arimaQ?: number;
+  kalmanProcessNoise?: number;
+  kalmanMeasurementNoise?: number;
+  xgbRounds?: number;
+  xgbMaxDepth?: number;
+  userIds?: number[];
 };
 export type UnshareDeviceRequest = {
   deviceIds?: number[];
@@ -643,7 +797,75 @@ export type UnshareDeviceRequest = {
 export type ShareDeviceRequest = {
   deviceIds?: number[];
   username: string;
-  role: "OWNER" | "EDITOR" | "VIEWER";
+  role: DeviceRole;
+};
+export type BoardModel = "NODEMCU" | "D1_MINI" | "ESP32_DEVKIT";
+export type DisplayModel = "NONE" | "ST7565" | "SSD1306" | "SH1106";
+export type DisplaySettings = {
+  model: DisplayModel;
+  pins: number[];
+  flip: boolean;
+};
+export type DisplayLanguage = "UK" | "EN";
+export type FirmwareUpdateStatus = {
+  state: string;
+  progress: number;
+  version?: string;
+  error?: string;
+  updatedAt: string;
+};
+export type Controller = {
+  id?: number;
+  userId?: number;
+  role?: DeviceRole;
+  hardwareId?: string;
+  name?: string;
+  platform?: string;
+  board?: string;
+  boardModel?: BoardModel;
+  firmwareVersion?: string;
+  ipAddress?: string;
+  lastSeen?: string;
+  online?: boolean;
+  synced?: boolean;
+  deviceCount?: number;
+  display?: DisplaySettings;
+  displayLanguage?: DisplayLanguage;
+  displayFound?: boolean;
+  availableFirmware?: string;
+  firmwareUpdate?: FirmwareUpdateStatus;
+};
+export type ControllerRequest = {
+  name: string;
+};
+export type ShareControllerRequest = {
+  username: string;
+  role: DeviceRole;
+};
+export type DisplayRequest = {
+  model: DisplayModel;
+  pins?: number[];
+  flip?: boolean;
+};
+export type DisplayLanguageRequest = {
+  language: DisplayLanguage;
+};
+export type BoardModelRequest = {
+  boardModel: BoardModel;
+};
+export type Chat = {
+  id?: number;
+  type?: string;
+};
+export type Message = {
+  message_id?: number;
+  from?: User;
+  chat?: Chat;
+  text?: string;
+};
+export type TelegramWebhookRequest = {
+  update_id?: number;
+  message?: Message;
 };
 export type UserRequest = {
   username: string;
@@ -658,29 +880,139 @@ export type LoginRequest = {
   username: string;
   password: string;
 };
-export type DeviceUser = {
-  id?: number;
+export type ForecastResult = {
+  model?: ForecastModel;
+  done?: boolean;
+  message?: string;
+  trainingHours?: number;
+  forecastHours?: number;
+  mae?: number;
+  rmse?: number;
+};
+export type DeviceCommandRequest = {
+  value: number;
+};
+export type ScanStatus = "PENDING" | "DONE" | "TIMEOUT";
+export type FindingKind = "SENSOR" | "DISPLAY" | "CHOOSE" | "UNSUPPORTED";
+export type SuggestedDevice = {
+  name: string;
+  type: DeviceType;
+  sensorModel: SensorModel;
+  pin: number;
+  secondaryPin?: number;
+};
+export type ScanOption = {
+  model: SensorModel;
+  label: string;
+  devices: SuggestedDevice[];
+};
+export type ScanFinding = {
+  kind: FindingKind;
+  title: string;
+  pins: number[];
+  readings: {
+    [key: string]: number;
+  };
+  note?: string;
+  options: ScanOption[];
+  display?: DisplaySettings;
+};
+export type BoardScan = {
+  status: ScanStatus;
+  requestedAt: string;
+  finishedAt?: string;
+  scannedPins: number[];
+  findings: ScanFinding[];
+};
+export type BoardConnection = {
+  controller: Controller;
+  userId: number;
+  mqttUsername: string;
+  mqttPassword: string;
+  mqttHost: string;
+  mqttPort: number;
+};
+export type ConnectControllerRequest = {
+  hardwareId: string;
+  platform?: string;
+  firmwareVersion?: string;
+  back: string;
+};
+export type SensorValue = {
+  value?: number;
+  timestamp?: string;
+};
+export type DeviceSensorValues = {
+  deviceId?: number;
   deviceName?: string;
-  role?: "OWNER" | "EDITOR" | "VIEWER";
+  deviceDescription?: string;
+  values?: {
+    [key: string]: SensorValue;
+  };
+  lastUpdated?: string;
 };
 export type SensorData = {
   timestamp?: string;
   value?: number;
 };
+export type Period =
+  | "LIVE"
+  | "ONE_MINUTE"
+  | "FIVE_MINUTES"
+  | "FIFTEEN_MINUTES"
+  | "THIRTY_MINUTES"
+  | "ONE_HOUR"
+  | "SIX_HOURS"
+  | "TWELVE_HOURS"
+  | "ONE_DAY";
+export type LatestReading = {
+  deviceId: number;
+  timestamp: string;
+  value?: number;
+};
+export type Resolution =
+  | "UNRESOLVED"
+  | "ACKNOWLEDGED"
+  | "RESOLVED"
+  | "RESOLVED_MANUALLY";
+export type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type Incident = {
   id?: number;
   message?: string;
   description?: string;
   devices?: Device[];
-  status?: "UNRESOLVED" | "ACKNOWLEDGED" | "RESOLVED" | "RESOLVED_MANUALLY";
-  severity?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  status?: Resolution;
+  severity?: Severity;
   created?: string;
 };
+export type RawReading = {
+  value: number;
+  timestamp: string;
+};
+export type ControllerShare = {
+  controllerId: number;
+  controllerName?: string;
+  userId: number;
+  username: string;
+  role: DeviceRole;
+};
+export type SensorModelInfo = {
+  model?: SensorModel;
+  label?: string;
+  description?: string;
+  supportedTypes?: DeviceType[];
+  pins?: string[];
+  analog?: boolean;
+  output?: boolean;
+};
+export type DisplayModelInfo = {
+  model: DisplayModel;
+  label: string;
+  description: string;
+  pins: string[];
+  bus?: string;
+};
 export const {
-  useGetLlmStatusQuery,
-  useDescribeDeviceMutation,
-  useTestNotificationMutation,
-  useGetNotificationChannelsQuery,
   useGetNotificationByIdQuery,
   useLazyGetNotificationByIdQuery,
   useUpdateNotificationMutation,
@@ -691,38 +1023,68 @@ export const {
   useDeleteDeviceMutation,
   useUnshareDeviceMutation,
   useShareDeviceMutation,
+  useUpdateControllerMutation,
+  useDeleteControllerMutation,
+  useShareControllerMutation,
+  useUpdateDisplayMutation,
+  useUpdateDisplayLanguageMutation,
+  useUpdateBoardModelMutation,
+  useHandleWebhookMutation,
   useCreateUserMutation,
   useLoginMutation,
   useGetNotificationsQuery,
   useLazyGetNotificationsQuery,
   useCreateNotificationMutation,
+  useTestNotificationMutation,
   usePredictMetricsMutation,
+  useDescribeDeviceMutation,
   useResolveIncidentMutation,
-  useSendCommandMutation,
-  useGetControllersQuery,
-  useLazyGetControllersQuery,
-  useGetSensorModelsQuery,
-  useUpdateControllerMutation,
-  useDeleteControllerMutation,
-  useSyncControllerMutation,
+  useResolveAllIncidentsMutation,
   useGetAllDevicesQuery,
   useLazyGetAllDevicesQuery,
   useCreateDeviceMutation,
+  useSendCommandMutation,
+  useSyncControllerMutation,
+  useGetBoardScanQuery,
+  useLazyGetBoardScanQuery,
+  useScanControllerMutation,
+  useUpdateFirmwareMutation,
+  useConnectControllerMutation,
+  useGetReportQuery,
+  useLazyGetReportQuery,
   useGetUsersQuery,
   useLazyGetUsersQuery,
   useGetSsoProvidersQuery,
+  useLazyGetSsoProvidersQuery,
   useGetUserQuery,
   useLazyGetUserQuery,
+  useGetNotificationChannelsQuery,
+  useLazyGetNotificationChannelsQuery,
   useGetMetricsQuery,
   useLazyGetMetricsQuery,
   useGetMetricsPredictedQuery,
   useLazyGetMetricsPredictedQuery,
-  useGetRecentIncidentsQuery,
-  useGetOpenIncidentCountQuery,
-  useResolveAllIncidentsMutation,
   useGetLatestReadingsQuery,
+  useLazyGetLatestReadingsQuery,
+  useGetLlmStatusQuery,
+  useLazyGetLlmStatusQuery,
   useGetAllIncidentsQuery,
   useLazyGetAllIncidentsQuery,
   useGetIncidentQuery,
   useLazyGetIncidentQuery,
+  useGetRecentIncidentsQuery,
+  useLazyGetRecentIncidentsQuery,
+  useGetOpenIncidentCountQuery,
+  useLazyGetOpenIncidentCountQuery,
+  useGetRawReadingQuery,
+  useLazyGetRawReadingQuery,
+  useGetControllersQuery,
+  useLazyGetControllersQuery,
+  useGetControllerSharesQuery,
+  useLazyGetControllerSharesQuery,
+  useGetSensorModelsQuery,
+  useLazyGetSensorModelsQuery,
+  useGetDisplayModelsQuery,
+  useLazyGetDisplayModelsQuery,
+  useUnshareControllerMutation,
 } = injectedRtkApi;
