@@ -1,38 +1,10 @@
-import { useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Card } from '@src/components/Card';
 import { BoardArt } from '@src/components/BoardArt';
+import { UsbInstaller } from '@src/components/UsbInstaller';
 import { fromNow } from '@src/lib/readings';
 import { useTexts } from '@src/lib/lang';
 import { BoardModelValue, FirmwareBuild, FirmwareManifest } from '@src/redux/controllersApi';
-
-// ESP Web Tools: flashing from the browser over Web Serial (Chrome / Edge on a computer)
-const WEB_TOOLS =
-  'https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module';
-
-declare module 'react' {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    interface IntrinsicElements {
-      'esp-web-install-button': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement>,
-        HTMLElement
-      > & {
-        manifest: string;
-      };
-    }
-  }
-}
-
-function useWebTools() {
-  useEffect(() => {
-    if (document.querySelector(`script[src="${WEB_TOOLS}"]`)) return;
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = WEB_TOOLS;
-    document.head.appendChild(script);
-  }, []);
-}
 
 const formatSize = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
 
@@ -71,9 +43,6 @@ const TEXTS = {
       ],
     } as Record<BoardModelValue, string[]>,
     download: 'Завантажити для USB',
-    install: 'Встановити з браузера',
-    unsupported: 'Встановлення з браузера працює в Chrome або Edge на комп’ютері. Завантажте файл і прошийте його через esptool.',
-    notAllowed: 'Встановлення з браузера потребує захищеної (https) сторінки.',
     flashAt: 'прошивати з адреси 0x0',
     coming: 'Незабаром',
     howTitle: 'Як прошити завантажений файл',
@@ -103,9 +72,6 @@ const TEXTS = {
       ],
     } as Record<BoardModelValue, string[]>,
     download: 'Download for USB install',
-    install: 'Install from the browser',
-    unsupported: 'Installing from the browser needs Chrome or Edge on a computer. Download the file and flash it with esptool instead.',
-    notAllowed: 'Installing from the browser needs a secure (https) page.',
     flashAt: 'flash at 0x0',
     coming: 'Coming',
     howTitle: 'Flashing the downloaded file',
@@ -125,7 +91,6 @@ type Texts = (typeof TEXTS)['uk'];
  * flash at 0x0, or installing it straight from the browser.
  */
 export function FirmwareDownloads({ manifest }: { manifest?: FirmwareManifest }) {
-  useWebTools();
   const t = useTexts(TEXTS);
   return (
     <div className="space-y-3">
@@ -207,21 +172,7 @@ function BoardCard({ board, build, t }: { board: Board; build?: FirmwareBuild; t
             {t.download}
           </a>
 
-          <esp-web-install-button manifest={base + build.install}>
-            <button
-              slot="activate"
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-black/15 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-gray-50"
-            >
-              <Icon icon="lucide:usb" className="size-4" />
-              {t.install}
-            </button>
-            <span slot="unsupported" className="text-xs text-slate-500">
-              {t.unsupported}
-            </span>
-            <span slot="not-allowed" className="text-xs text-slate-500">
-              {t.notAllowed}
-            </span>
-          </esp-web-install-button>
+          <UsbInstaller url={base + build.fullFile} chip={board.chip} />
 
           <div className="flex flex-col gap-1 text-xs text-slate-500">
             <span>
