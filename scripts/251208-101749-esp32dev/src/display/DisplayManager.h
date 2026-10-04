@@ -62,7 +62,8 @@ public:
     void triangle(int x0, int y0, int x1, int y1, int x2, int y2, bool on = true);
 
 private:
-    void setFont(Font font);
+    // the Cyrillic variant for text with Cyrillic letters: those fonts have no "°", the others no Cyrillic
+    void setFont(Font font, const String &text);
     void color(bool on);
 
     bool _initialized = false;

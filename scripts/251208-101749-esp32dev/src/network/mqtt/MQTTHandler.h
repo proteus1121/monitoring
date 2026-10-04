@@ -5,7 +5,7 @@
 
 // may be set by the build, e.g. PLATFORMIO_BUILD_FLAGS=-DFIRMWARE_VERSION=\"2.3.9\" for a test build
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "2.6.0"
+#define FIRMWARE_VERSION "2.7.0"
 #endif
 
 // env name of platformio.ini, the site picks update files by it

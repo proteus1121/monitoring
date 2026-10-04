@@ -7,6 +7,7 @@
 #include "system/Scanner.h"
 #include "system/FirmwareUpdate.h"
 #include "display/Screens.h"
+#include "display/Texts.h"
 #include <Arduino.h>
 
 // include the appropriate WiFi header for each platform
@@ -111,6 +112,7 @@ void setup() {
     pinMode(PIN_BOOT, INPUT_PULLUP);
 
     Storage::begin();
+    Texts::begin();
     DisplayConfig display = DisplayConfig::defaultFor();
     if (!Storage::loadDisplay(display)) {
         Serial.println("[SETUP] No display saved, using the default one");

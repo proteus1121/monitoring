@@ -1,5 +1,6 @@
 #include "FirmwareUpdate.h"
 #include "../display/Screens.h"
+#include "../display/Texts.h"
 #include "../network/mqtt/MQTTHandler.h"
 #include "../network/setup-server/ServerManager.h"
 #include "TrustedRoots.h"
@@ -105,7 +106,7 @@ String run() {
     if (!syncClock())
         return "could not get the time to check the certificate";
 
-    Screens::ota(0, "connecting");
+    Screens::ota(0, tr(Texts::OTA_CONNECTING));
     String pem = FPSTR(TRUSTED_ROOTS_PEM);
 #if defined(ESP8266)
     BearSSL::X509List roots(pem.c_str());
@@ -181,7 +182,7 @@ String run() {
         int percent = (int)((int64_t)written * 100 / size);
         if (percent / 5 != lastPercent / 5) {
             lastPercent = percent;
-            Screens::ota(percent, "downloading");
+            Screens::ota(percent, tr(Texts::OTA_DOWNLOADING));
             // keep the connection alive and tell the site, every 20 %
             if (percent % 20 == 0 && !atBoot) {
                 mqttLoop();
@@ -253,11 +254,11 @@ void runAtBoot() {
     saveRecord(STATE_FAILED, "restarted during the download");
     Serial.println("[UPDATE] Updating to " + pendingVersion + " at boot, free heap " + String(ESP.getFreeHeap()));
 
-    Screens::ota(0, "connecting to Wi-Fi");
+    Screens::ota(0, tr(Texts::OTA_CONNECTING_WIFI));
     String error = ServerManager::tryConnectWiFi() ? run() : "no Wi-Fi to download the update";
     if (error.length()) {
         Serial.println("[UPDATE] Failed: " + error);
-        Screens::ota(0, "failed, old firmware kept");
+        Screens::ota(0, tr(Texts::OTA_FAILED));
         system_update_cpu_freq(SYS_CPU_80MHZ);
         clearRecord();
         failure = error;
@@ -268,7 +269,7 @@ void runAtBoot() {
     }
     clearRecord();
     Serial.println("[UPDATE] Done, restarting into " + pendingVersion);
-    Screens::ota(100, "done, restarting");
+    Screens::ota(100, tr(Texts::OTA_DONE));
     restart();
 #endif
 }
@@ -293,19 +294,19 @@ void loop() {
         return;
     }
     saveRecord(STATE_PENDING);
-    Screens::ota(0, "restarting to download");
+    Screens::ota(0, tr(Texts::OTA_RESTART_TO_DOWNLOAD));
     restart();
 #else
     String error = run();
     if (error.length()) {
         Serial.println("[UPDATE] Failed: " + error);
-        Screens::ota(0, "failed, old firmware kept");
+        Screens::ota(0, tr(Texts::OTA_FAILED));
         report("failed", 0, error);
         running = false;
         return;
     }
     report("done", 100);
-    Screens::ota(100, "done, restarting");
+    Screens::ota(100, tr(Texts::OTA_DONE));
     restart();
 #endif
 }

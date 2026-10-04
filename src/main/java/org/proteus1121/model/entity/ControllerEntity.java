@@ -1,6 +1,7 @@
 package org.proteus1121.model.entity;
 
 import org.proteus1121.model.enums.BoardModel;
+import org.proteus1121.model.enums.DisplayLanguage;
 import org.proteus1121.model.enums.DisplayModel;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
@@ -83,6 +84,13 @@ public class ControllerEntity {
 
     @Column(name = "display_flip")
     private Boolean displayFlip;
+
+    /**
+     * Language of the display screens, null until chosen on the site (Ukrainian then).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "display_language", columnDefinition = "VARCHAR(4)")
+    private DisplayLanguage displayLanguage;
 
     /**
      * Whether the board found the display at its last hello, null when the firmware does not report it.

@@ -30,6 +30,10 @@ public:
     static void saveDisplay(const DisplayConfig &config);
     static bool loadDisplay(DisplayConfig &config);
 
+    // language of the screens (Texts::Lang), 0xFF when none was saved; saved at once, without sync()
+    static void saveDisplayLanguage(uint8_t language);
+    static uint8_t loadDisplayLanguage();
+
     // Ensure preferences are flushed/closed before reboot
     static void sync();
 };

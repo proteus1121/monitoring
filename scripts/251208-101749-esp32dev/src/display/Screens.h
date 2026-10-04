@@ -36,6 +36,6 @@ void devices(const std::vector<Tile> &tiles);
 // next page of readings, called on a short press of the FLASH / BOOT button
 void nextPage();
 
-void ota(int percent, const char *state);
+void ota(int percent, const String &state);
 
 } // namespace Screens

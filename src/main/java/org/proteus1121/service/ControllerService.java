@@ -3,6 +3,7 @@ package org.proteus1121.service;
 import java.util.stream.Collectors;
 import java.util.Arrays;
 import org.proteus1121.model.enums.BoardModel;
+import org.proteus1121.model.enums.DisplayLanguage;
 import org.proteus1121.model.enums.SensorModel;
 import org.proteus1121.model.enums.DisplayModel;
 import org.proteus1121.model.dto.controller.DisplaySettings;
@@ -296,6 +297,15 @@ public class ControllerService {
     }
 
     @Transactional
+    public Controller setDisplayLanguage(Long controllerId, Long userId, DisplayLanguage language) {
+        ControllerEntity controller = checkController(controllerId, userId);
+        controller.setDisplayLanguage(language);
+        controller = controllerRepository.save(controller);
+        publishConfiguration(controllerId);
+        return toController(controller);
+    }
+
+    @Transactional
     public void delete(Long controllerId, Long userId) {
         ControllerEntity controller = checkController(controllerId, userId);
         unbindDevices(controllerId);
@@ -341,16 +351,18 @@ public class ControllerService {
     }
 
     ControllerConfiguration buildConfiguration(Long controllerId) {
-        return buildConfiguration(controllerId, controllerRepository.findById(controllerId)
-                .map(this::displayOf)
-                .orElse(DisplaySettings.defaultFor(null)));
+        return controllerRepository.findById(controllerId)
+                .map(this::buildConfiguration)
+                .orElseGet(() -> buildConfiguration(controllerId, DisplaySettings.defaultFor(null), DisplayLanguage.UK));
     }
 
     ControllerConfiguration buildConfiguration(ControllerEntity controller) {
-        return buildConfiguration(controller.getId(), displayOf(controller));
+        return buildConfiguration(controller.getId(), displayOf(controller),
+                DisplayLanguage.orDefault(controller.getDisplayLanguage()));
     }
 
-    private ControllerConfiguration buildConfiguration(Long controllerId, DisplaySettings display) {
+    private ControllerConfiguration buildConfiguration(Long controllerId, DisplaySettings display,
+                                                       DisplayLanguage language) {
         List<ControllerConfiguration.Channel> channels = deviceRepository.findByControllerId(controllerId).stream()
                 .filter(device -> device.getSensorModel() != null && device.getPin() != null && device.getType() != null)
                 .sorted(Comparator.comparing(DeviceEntity::getId))
@@ -365,7 +377,7 @@ public class ControllerService {
                         device.getSensorModel() == SensorModel.SOIL_MOISTURE ? device.getCalibrationWet() : null))
                 .toList();
         ControllerConfiguration.Display payload =
-                new ControllerConfiguration.Display(display.model(), display.pins(), display.flip());
+                new ControllerConfiguration.Display(display.model(), display.pins(), display.flip(), language);
         return new ControllerConfiguration(version(channels, payload), channels, payload);
     }
 
@@ -408,6 +420,7 @@ public class ControllerService {
                 && entity.getLastSeen().isAfter(LocalDateTime.now().minus(ONLINE_TIMEOUT)));
         ControllerConfiguration configuration = buildConfiguration(entity);
         controller.setDisplay(displayOf(entity));
+        controller.setDisplayLanguage(DisplayLanguage.orDefault(entity.getDisplayLanguage()));
         controller.setDisplayFound(entity.getDisplayFound());
         controller.setSynced(Objects.equals(configuration.v(), entity.getAppliedConfigVersion()));
         controller.setDeviceCount(configuration.devices().size());

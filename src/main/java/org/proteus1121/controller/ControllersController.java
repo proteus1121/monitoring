@@ -13,6 +13,7 @@ import org.proteus1121.model.dto.controller.BoardConnection;
 import org.proteus1121.model.request.ShareControllerRequest;
 import org.proteus1121.model.request.ConnectControllerRequest;
 import org.proteus1121.model.request.BoardModelRequest;
+import org.proteus1121.model.request.DisplayLanguageRequest;
 import org.proteus1121.model.dto.controller.ControllerShare;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -73,6 +74,13 @@ public class ControllersController {
     public ResponseEntity<Controller> updateDisplay(@PathVariable Long id, @Valid @RequestBody DisplayRequest request) {
         return ResponseEntity.ok(controllerService.updateDisplay(id, getCurrentUser().getId(), request.getModel(),
                 request.getPins(), request.isFlip()));
+    }
+
+    @PutMapping("/{id}/display-language")
+    @Operation(summary = "Set the display language", description = "Language of the screens on the board's display, applied without a restart")
+    public ResponseEntity<Controller> updateDisplayLanguage(@PathVariable Long id,
+                                                            @Valid @RequestBody DisplayLanguageRequest request) {
+        return ResponseEntity.ok(controllerService.setDisplayLanguage(id, getCurrentUser().getId(), request.getLanguage()));
     }
 
     @PutMapping("/{id}/board-model")

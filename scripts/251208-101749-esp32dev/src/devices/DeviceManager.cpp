@@ -1,6 +1,7 @@
 #include "DeviceManager.h"
 #include "../display/DisplayManager.h"
 #include "../display/Screens.h"
+#include "../display/Texts.h"
 #include "../storage/Storage.h"
 #include "../network/mqtt/MQTTHandler.h"
 #include "../network/setup-server/ServerManager.h"
@@ -184,30 +185,32 @@ void clearDevices() {
 // names and units as on the site (src/frontend/src/lib/readings.ts)
 String tileLabel(const String &type) {
     if (type == "TEMPERATURE")
-        return "Temperature";
+        return tr(Texts::TEMPERATURE);
     if (type == "HUMIDITY")
-        return "Humidity";
+        return tr(Texts::HUMIDITY);
     if (type == "PRESSURE")
-        return "Pressure";
+        return tr(Texts::PRESSURE);
     if (type == "SMOKE")
-        return "Smoke";
+        return tr(Texts::SMOKE);
     if (type == "FLAME")
-        return "Flame";
+        return tr(Texts::FLAME);
     if (type == "LIGHT")
-        return "Light";
+        return tr(Texts::LIGHT);
     if (type == "MOTION")
-        return "Motion";
+        return tr(Texts::MOTION);
     if (type == "DIGITAL")
-        return "Input";
+        return tr(Texts::INPUT_);
     if (type == "ANALOG")
-        return "Analog";
+        return tr(Texts::ANALOG_IN);
     if (type == "SOIL_MOISTURE")
-        return "Soil";
+        return tr(Texts::SOIL);
     if (type == "RELAY")
-        return "Relay";
+        return tr(Texts::RELAY);
     if (type == "CH4")
-        return "Methane";
-    return type; // LPG
+        return tr(Texts::METHANE);
+    if (type == "LPG")
+        return tr(Texts::LPG);
+    return type;
 }
 
 Screens::Tile toTile(const Channel &c) {
@@ -219,15 +222,15 @@ Screens::Tile toTile(const Channel &c) {
             return t;
         bool high = c.lastValue > 0.5f;
         if (c.type == "FLAME")
-            t.value = high ? "FLAME!" : "none";
+            t.value = tr(high ? Texts::FLAME_ON : Texts::FLAME_OFF);
         else if (c.type == "MOTION")
-            t.value = high ? "motion" : "still";
+            t.value = tr(high ? Texts::MOTION_ON : Texts::MOTION_OFF);
         else if (c.type == "LIGHT")
-            t.value = high ? "light" : "dark";
+            t.value = tr(high ? Texts::LIGHT_ON : Texts::LIGHT_OFF);
         else if (c.type == "RELAY")
-            t.value = high ? "ON" : "OFF";
+            t.value = tr(high ? Texts::RELAY_ON : Texts::RELAY_OFF);
         else
-            t.value = high ? "high" : "low";
+            t.value = tr(high ? Texts::HIGH_ : Texts::LOW_);
         // things worth noticing from across the room
         t.alert = high && (c.type == "FLAME" || c.type == "MOTION");
         return t;
@@ -237,7 +240,7 @@ Screens::Tile toTile(const Channel &c) {
     else if (c.type == "HUMIDITY" || c.type == "SOIL_MOISTURE")
         t.unit = "%";
     else if (c.type == "PRESSURE")
-        t.unit = "hPa";
+        t.unit = tr(Texts::HPA);
     else if (c.type == "LPG" || c.type == "CH4" || c.type == "SMOKE")
         t.unit = "ppm";
     if (c.hasValue)
@@ -270,6 +273,9 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
         Serial.println("[CONFIG] Configuration " + version + " already applied");
         return true;
     }
+
+    // the language goes first: kept when the display change below restarts the board
+    Texts::setLanguage(doc["display"]["lang"] | "");
 
     // devices may need the pins of the old display: they are applied after the restart
     if (applyDisplay(doc["display"].as<JsonObject>())) {

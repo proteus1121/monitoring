@@ -2,6 +2,7 @@ package org.proteus1121.model.dto.controller;
 
 import org.proteus1121.model.enums.BoardModel;
 import org.proteus1121.model.enums.DeviceRole;
+import org.proteus1121.model.enums.DisplayLanguage;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
@@ -35,6 +36,10 @@ public class Controller {
     private boolean synced;
     private int deviceCount;
     private DisplaySettings display;
+    /**
+     * Language of the screens on the display.
+     */
+    private DisplayLanguage displayLanguage;
     /**
      * false when the board did not find the configured display (wiring or model), null when unknown.
      */

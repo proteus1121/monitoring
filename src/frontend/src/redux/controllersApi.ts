@@ -15,6 +15,9 @@ export type ControllerShare = {
 
 export type DisplayModelValue = 'NONE' | 'ST7565' | 'SSD1306' | 'SH1106';
 
+// language of the screens on the board's display
+export type DisplayLanguageValue = 'UK' | 'EN';
+
 // development board the chip sits on (BoardModel on the server), picked by the user for the diagram
 export type BoardModelValue = 'NODEMCU' | 'D1_MINI' | 'ESP32_DEVKIT';
 
@@ -44,6 +47,7 @@ export type ControllerWithRole = Controller & {
   role?: DeviceRoleValue;
   boardModel?: BoardModelValue;
   display?: DisplaySettings;
+  displayLanguage?: DisplayLanguageValue;
   displayFound?: boolean | null;
   // firmware build (platformio env): esp8266, esp32dev, ...
   board?: string | null;
@@ -132,6 +136,10 @@ export const controllersApi = generatedApi.injectEndpoints({
       query: ({ id, ...body }) => ({ url: `/controllers/${id}/board-model`, method: 'PUT', body }),
       invalidatesTags: ['Controller Management'],
     }),
+    updateDisplayLanguage: build.mutation<ControllerWithRole, { id: number; language: DisplayLanguageValue }>({
+      query: ({ id, ...body }) => ({ url: `/controllers/${id}/display-language`, method: 'PUT', body }),
+      invalidatesTags: ['Controller Management'],
+    }),
     updateDisplay: build.mutation<ControllerWithRole, { id: number } & DisplaySettings>({
       query: ({ id, ...body }) => ({ url: `/controllers/${id}/display`, method: 'PUT', body }),
       invalidatesTags: ['Controller Management'],
@@ -185,6 +193,7 @@ export const {
   useGetBoardScanQuery,
   useGetDisplayModelsQuery,
   useUpdateDisplayMutation,
+  useUpdateDisplayLanguageMutation,
   useUpdateBoardModelMutation,
   useGetRawReadingQuery,
   useConnectControllerMutation,

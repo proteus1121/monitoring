@@ -170,19 +170,32 @@ void DisplayManager::show() {
         _u8g2->sendBuffer();
 }
 
-void DisplayManager::setFont(Font font) {
+// UTF-8 lead bytes of U+0400..U+04FF: Ukrainian letters, including Ґ (D2 90)
+static bool hasCyrillic(const String &text) {
+    for (size_t i = 0; i < text.length(); i++) {
+        uint8_t c = (uint8_t)text[i];
+        if (c >= 0xD0 && c <= 0xD3)
+            return true;
+    }
+    return false;
+}
+
+void DisplayManager::setFont(Font font, const String &text) {
+    bool cyrillic = hasCyrillic(text);
     switch (font) {
     case SMALL:
-        _u8g2->setFont(u8g2_font_5x7_tf);
+        _u8g2->setFont(cyrillic ? u8g2_font_5x7_t_cyrillic : u8g2_font_5x7_tf);
         break;
     case NORMAL:
-        _u8g2->setFont(u8g2_font_6x10_tf);
+        _u8g2->setFont(cyrillic ? u8g2_font_6x12_t_cyrillic : u8g2_font_6x10_tf);
         break;
     case LARGE:
-        _u8g2->setFont(u8g2_font_helvB12_tf);
-        break;
     case HUGE:
-        _u8g2->setFont(u8g2_font_logisoso16_tr);
+        // one large Cyrillic font is enough: HUGE only shows "SSN"
+        if (cyrillic)
+            _u8g2->setFont(u8g2_font_9x15_t_cyrillic);
+        else
+            _u8g2->setFont(font == LARGE ? u8g2_font_helvB12_tf : u8g2_font_logisoso16_tr);
         break;
     }
 }
@@ -194,7 +207,7 @@ void DisplayManager::color(bool on) {
 void DisplayManager::text(int x, int y, const String &text, Font font, bool on) {
     if (!_initialized)
         return;
-    setFont(font);
+    setFont(font, text);
     color(on);
     _u8g2->drawUTF8(x, y, text.c_str());
     color(true);
@@ -207,7 +220,7 @@ void DisplayManager::textCentered(int y, const String &value, Font font, bool on
 int DisplayManager::textWidth(const String &text, Font font) {
     if (!_initialized)
         return 0;
-    setFont(font);
+    setFont(font, text);
     return _u8g2->getUTF8Width(text.c_str());
 }
 

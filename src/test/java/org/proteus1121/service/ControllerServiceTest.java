@@ -2,6 +2,7 @@ package org.proteus1121.service;
 
 import org.springframework.web.server.ResponseStatusException;
 import org.proteus1121.model.enums.BoardModel;
+import org.proteus1121.model.enums.DisplayLanguage;
 import org.proteus1121.model.enums.DisplayModel;
 import org.proteus1121.model.dto.controller.DisplaySettings;
 import org.proteus1121.model.dto.controller.Controller;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -205,6 +207,30 @@ class ControllerServiceTest {
 
         assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 1L, BoardModel.ESP32_DEVKIT));
         assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 2L, BoardModel.D1_MINI));
+    }
+
+    @Test
+    void displayLanguageIsUkrainianUntilChosenAndGoesToTheBoard() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setHardwareId("esp8266-abc");
+        controller.setPlatform("esp8266");
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of());
+
+        ControllerConfiguration before = controllerService.buildConfiguration(5L);
+        assertEquals(DisplayLanguage.UK, before.display().lang());
+
+        Controller result = controllerService.setDisplayLanguage(5L, 1L, DisplayLanguage.EN);
+
+        assertEquals(DisplayLanguage.EN, result.getDisplayLanguage());
+        ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
+        verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
+        assertEquals(DisplayLanguage.EN, captor.getValue().display().lang());
+        // a new version, so the board applies it
+        assertNotEquals(before.v(), captor.getValue().v());
+        assertThrows(ResponseStatusException.class, () -> controllerService.setDisplayLanguage(5L, 2L, DisplayLanguage.UK));
     }
 
     @Test

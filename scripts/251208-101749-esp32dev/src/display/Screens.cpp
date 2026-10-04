@@ -1,6 +1,7 @@
 #include "Screens.h"
 #include "../network/mqtt/MQTTHandler.h"
 #include "DisplayManager.h"
+#include "Texts.h"
 #include <math.h>
 
 #if defined(ESP8266)
@@ -156,7 +157,7 @@ void splash(const char *version) {
         oled.text(58, 38, "Network", DisplayManager::SMALL);
         // grows with the animation
         oled.line(58, 49, 58 + frame * 3, 49);
-        oled.text(58, 54, String("firmware ") + version, DisplayManager::SMALL);
+        oled.text(58, 54, tr(Texts::FIRMWARE) + version, DisplayManager::SMALL);
         oled.show();
         delay(45);
     }
@@ -169,13 +170,13 @@ void connecting(const String &ssid) {
     oled.clear();
     statusBar("SSN");
     if (ssid.length() == 0) {
-        oled.textCentered(20, "No Wi-Fi saved");
-        oled.textCentered(36, "Opening setup", DisplayManager::SMALL);
+        oled.textCentered(20, tr(Texts::NO_WIFI_SAVED));
+        oled.textCentered(36, tr(Texts::OPENING_SETUP), DisplayManager::SMALL);
     } else {
-        oled.textCentered(17, "Connecting to", DisplayManager::SMALL);
+        oled.textCentered(17, tr(Texts::CONNECTING_TO), DisplayManager::SMALL);
         String name = fitted(ssid, DisplayManager::LARGE, SCREEN_WIDTH - 4);
         oled.textCentered(28, name, DisplayManager::LARGE);
-        oled.textCentered(52, "please wait", DisplayManager::SMALL);
+        oled.textCentered(52, tr(Texts::PLEASE_WAIT), DisplayManager::SMALL);
     }
     oled.show();
 }
@@ -184,11 +185,11 @@ void setupMode(const String &ssid, const String &pass, const String &ip) {
     if (!oled.isInitialized())
         return;
     oled.clear();
-    statusBar("Setup", true);
-    oled.text(2, 14, "1. Join Wi-Fi", DisplayManager::SMALL);
+    statusBar(tr(Texts::SETUP), true);
+    oled.text(2, 14, tr(Texts::JOIN_WIFI), DisplayManager::SMALL);
     oled.text(8, 22, fitted(ssid, DisplayManager::NORMAL, 118), DisplayManager::NORMAL);
-    oled.text(8, 33, "pass " + pass, DisplayManager::SMALL);
-    oled.text(2, 44, "2. Open in a browser", DisplayManager::SMALL);
+    oled.text(8, 33, tr(Texts::PASS) + pass, DisplayManager::SMALL);
+    oled.text(2, 44, tr(Texts::OPEN_IN_BROWSER), DisplayManager::SMALL);
     oled.text(8, 53, "http://" + ip, DisplayManager::NORMAL);
     oled.show();
 }
@@ -197,11 +198,11 @@ void link(const String &address) {
     if (!oled.isInitialized())
         return;
     oled.clear();
-    statusBar("Link to account");
-    oled.textCentered(14, "On your Wi-Fi open", DisplayManager::SMALL);
+    statusBar(tr(Texts::LINK_TO_ACCOUNT));
+    oled.textCentered(14, tr(Texts::ON_YOUR_WIFI_OPEN), DisplayManager::SMALL);
     oled.roundFrame(4, 24, 120, 20, 4);
     oled.textCentered(29, address, DisplayManager::NORMAL);
-    oled.textCentered(52, "and press Sign in", DisplayManager::SMALL);
+    oled.textCentered(52, tr(Texts::AND_PRESS_SIGN_IN), DisplayManager::SMALL);
     oled.show();
 }
 
@@ -209,11 +210,11 @@ void linkFromAccessPoint(const String &ssid, const String &pass, const String &i
     if (!oled.isInitialized())
         return;
     oled.clear();
-    statusBar("Link to account");
-    oled.text(2, 14, "1. Join Wi-Fi", DisplayManager::SMALL);
+    statusBar(tr(Texts::LINK_TO_ACCOUNT));
+    oled.text(2, 14, tr(Texts::JOIN_WIFI), DisplayManager::SMALL);
     oled.text(8, 22, fitted(ssid, DisplayManager::NORMAL, 118), DisplayManager::NORMAL);
-    oled.text(8, 33, "pass " + pass, DisplayManager::SMALL);
-    oled.text(2, 44, "2. Open, press Sign in", DisplayManager::SMALL);
+    oled.text(8, 33, tr(Texts::PASS) + pass, DisplayManager::SMALL);
+    oled.text(2, 44, tr(Texts::OPEN_PRESS_SIGN_IN), DisplayManager::SMALL);
     oled.text(8, 53, "http://" + ip, DisplayManager::NORMAL);
     oled.show();
 }
@@ -223,8 +224,8 @@ void waitingForDevices(const char *site, const String &hardwareId) {
         return;
     oled.clear();
     statusBar("SSN");
-    oled.textCentered(17, "No devices yet", DisplayManager::NORMAL);
-    oled.textCentered(31, "Add them on", DisplayManager::SMALL);
+    oled.textCentered(17, tr(Texts::NO_DEVICES_YET), DisplayManager::NORMAL);
+    oled.textCentered(31, tr(Texts::ADD_THEM_ON), DisplayManager::SMALL);
     oled.textCentered(40, site, DisplayManager::NORMAL);
     oled.textCentered(55, hardwareId, DisplayManager::SMALL);
     oled.show();
@@ -275,17 +276,17 @@ void nextPage() {
     pageCounter++;
 }
 
-void ota(int percent, const char *state) {
+void ota(int percent, const String &state) {
     if (!oled.isInitialized())
         return;
     percent = constrain(percent, 0, 100);
     oled.clear();
-    statusBar("Update");
-    oled.textCentered(16, "Updating firmware", DisplayManager::NORMAL);
+    statusBar(tr(Texts::UPDATE));
+    oled.textCentered(16, tr(Texts::UPDATING_FIRMWARE), DisplayManager::NORMAL);
     oled.roundFrame(10, 30, 108, 11, 3);
     oled.box(12, 32, 104 * percent / 100, 7);
     oled.textCentered(44, state, DisplayManager::SMALL);
-    oled.textCentered(55, "Do not power off", DisplayManager::SMALL);
+    oled.textCentered(55, tr(Texts::DO_NOT_POWER_OFF), DisplayManager::SMALL);
     oled.show();
 }
 

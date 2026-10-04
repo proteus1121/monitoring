@@ -1,5 +1,6 @@
 #include "Ota.h"
 #include "../display/Screens.h"
+#include "../display/Texts.h"
 #include "../network/mqtt/MQTTHandler.h"
 #include <Arduino.h>
 #include <ArduinoOTA.h>
@@ -22,7 +23,7 @@ bool updating = false;
 int lastPercent = -1;
 int percentShown = 0;
 
-void showProgress(const char *state) {
+void showProgress(const String &state) {
     Screens::ota(percentShown, state);
 }
 
@@ -35,7 +36,7 @@ void begin() {
         lastPercent = -1;
         Serial.println("[OTA] Update started");
         percentShown = 0;
-        showProgress("receiving");
+        showProgress(tr(Texts::OTA_RECEIVING));
     });
     ArduinoOTA.onProgress([](unsigned int done, unsigned int total) {
         int percent = total ? (int)(done * 100UL / total) : 0;
@@ -43,18 +44,18 @@ void begin() {
             lastPercent = percent;
             Serial.printf("[OTA] %d%%\n", percent);
             percentShown = percent;
-            showProgress((String(percent) + "%").c_str());
+            showProgress(String(percent) + "%");
         }
     });
     ArduinoOTA.onEnd([]() {
         Serial.println("[OTA] Update finished, restarting");
         percentShown = 100;
-        showProgress("done, restarting");
+        showProgress(tr(Texts::OTA_DONE));
     });
     ArduinoOTA.onError([](ota_error_t error) {
         updating = false;
         Serial.printf("[OTA] Update failed, error %u\n", (unsigned)error);
-        showProgress("failed, old firmware kept");
+        showProgress(tr(Texts::OTA_FAILED));
     });
 
     ArduinoOTA.begin();

@@ -23,6 +23,7 @@ import {
 } from '@src/components/Select';
 import { DISPLAY_PIN_NAMES, getDisplayPinOptions } from '@src/lib/hardware';
 import { pick } from '@src/lib/lang';
+import clsx from 'clsx';
 
 const TEXTS = {
   uk: {
@@ -35,6 +36,10 @@ const TEXTS = {
     theBoard: '',
     noScreen: 'Плата працює без екрана.',
     rotate: 'Повернути на 180°',
+    language: 'Мова екрана',
+    languageSet: 'Мову екрана змінено',
+    languageFailed: 'Не вдалося змінити мову екрана',
+    languageNote: 'Застосовується без перезапуску плати, з прошивкою 2.7.0 і новішою.',
     notFound: 'Плата не знайшла поточний дисплей: перевірте під’єднання й модель.',
     remove: 'Прибрати дисплей',
     cancel: 'Скасувати',
@@ -50,6 +55,10 @@ const TEXTS = {
     theBoard: 'the board',
     noScreen: 'The board runs without a screen.',
     rotate: 'Rotate 180°',
+    language: 'Screen language',
+    languageSet: 'Screen language changed',
+    languageFailed: 'Could not change the screen language',
+    languageNote: 'Applied without a restart, with firmware 2.7.0 or newer.',
     notFound: 'The board did not find the current display: check the wiring and the model.',
     remove: 'Remove display',
     cancel: 'Cancel',
@@ -59,8 +68,10 @@ const TEXTS = {
 import { useGetAllDevicesQuery, useGetControllersQuery, useGetSensorModelsQuery } from '../generatedApi';
 import {
   ControllerWithRole,
+  DisplayLanguageValue,
   DisplayModelValue,
   useGetDisplayModelsQuery,
+  useUpdateDisplayLanguageMutation,
   useUpdateDisplayMutation,
 } from '../controllersApi';
 import { errorMessage } from '../helpers';
@@ -81,6 +92,7 @@ export function DisplayModal() {
   const { data: sensorModels } = useGetSensorModelsQuery();
   const { data: displayModels } = useGetDisplayModelsQuery();
   const [update, { isLoading }] = useUpdateDisplayMutation();
+  const [updateLanguage, { isLoading: isLanguageSaving }] = useUpdateDisplayLanguageMutation();
 
   const controller = (controllers as ControllerWithRole[] | undefined)?.find(c => c.id === state?.controllerId);
   const [model, setModel] = useState<DisplayModelValue>('NONE');
@@ -121,6 +133,16 @@ export function DisplayModal() {
   const options = getDisplayPinOptions(controller?.platform, usedBy, info?.bus === 'I2C');
 
   const complete = names.every(name => pins[name]);
+
+  const changeLanguage = async (language: DisplayLanguageValue) => {
+    if (!controller || language === controller.displayLanguage) return;
+    const res = await updateLanguage({ id: controller.id!, language });
+    if ('error' in res) {
+      notification.error({ message: pick(TEXTS).languageFailed, description: errorMessage(res.error) });
+    } else {
+      notification.success({ message: pick(TEXTS).languageSet });
+    }
+  };
 
   const save = async (nextModel: DisplayModelValue) => {
     if (!controller) return;
@@ -192,6 +214,30 @@ export function DisplayModal() {
               options={options}
               onChange={(signal, gpio) => setPins({ ...pins, [signal]: gpio })}
             />
+          )}
+          {model !== 'NONE' && (
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+              {pick(TEXTS).language}
+              <div className="flex rounded-md border border-black/10 text-xs">
+                {(['UK', 'EN'] as DisplayLanguageValue[]).map(language => (
+                  <button
+                    key={language}
+                    type="button"
+                    disabled={isLanguageSaving}
+                    onClick={() => changeLanguage(language)}
+                    className={clsx(
+                      'px-2.5 py-1 first:rounded-l-md last:rounded-r-md disabled:opacity-60',
+                      (controller?.displayLanguage ?? 'UK') === language
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    )}
+                  >
+                    {language === 'UK' ? 'UA' : 'EN'}
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-slate-400">{pick(TEXTS).languageNote}</span>
+            </div>
           )}
           {controller?.displayFound === false && controller.display?.model !== 'NONE' && (
             <p className="rounded-md bg-orange-50 p-2 text-sm text-orange-800">

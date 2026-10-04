@@ -240,6 +240,26 @@ bool Storage::loadDisplay(DisplayConfig &config) {
     return true;
 }
 
+// after the 8 bytes of the display
+#define EEPROM_DISPLAY_LANGUAGE_ADDR (EEPROM_DISPLAY_ADDR + 8)
+
+void Storage::saveDisplayLanguage(uint8_t language) {
+#if defined(ESP8266)
+    EEPROM.write(EEPROM_DISPLAY_LANGUAGE_ADDR, language);
+    EEPROM.commit();
+#else
+    prefs.putUChar("disp_lang", language);
+#endif
+}
+
+uint8_t Storage::loadDisplayLanguage() {
+#if defined(ESP8266)
+    return EEPROM.read(EEPROM_DISPLAY_LANGUAGE_ADDR);
+#else
+    return prefs.getUChar("disp_lang", 0xFF);
+#endif
+}
+
 void Storage::sync() {
 #if defined(ESP8266)
     EEPROM.commit();

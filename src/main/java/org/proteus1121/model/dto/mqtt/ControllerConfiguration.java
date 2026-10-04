@@ -1,5 +1,6 @@
 package org.proteus1121.model.dto.mqtt;
 
+import org.proteus1121.model.enums.DisplayLanguage;
 import org.proteus1121.model.enums.DisplayModel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.proteus1121.model.enums.DeviceType;
@@ -26,7 +27,9 @@ public record ControllerConfiguration(String v, List<Channel> devices, Display d
 
     /**
      * Display the board drives; it keeps this in flash to show the screen from power-on.
+     *
+     * @param lang language of the screens; a change does not restart the board
      */
-    public record Display(DisplayModel model, List<Integer> pins, boolean flip) {
+    public record Display(DisplayModel model, List<Integer> pins, boolean flip, DisplayLanguage lang) {
     }
 }
