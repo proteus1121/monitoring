@@ -27,10 +27,12 @@ import {
   Device,
   LatestReading,
   SensorModelInfo,
+  useDeleteDeviceMutation,
   useGetAllDevicesQuery,
   useGetControllersQuery,
   useGetLatestReadingsQuery,
   useGetSensorModelsQuery,
+  useGetUserQuery,
   useSendCommandMutation,
 } from '@src/redux/generatedApi';
 import { ControllerPanel, SetupHint } from './ControllersSection';
@@ -55,6 +57,10 @@ const TEXTS = {
     noBoards: 'Плат ще немає. Прошийте плату й увійдіть з її сторінки, як описано вище.',
     unwired: 'Не під’єднані до плати',
     unwiredNote: 'Ці пристрої не отримують налаштувань: відкрийте пристрій і виберіть плату, модуль і пін.',
+    deleteAll: 'Видалити всі',
+    deleteAllConfirm: (n: number) => `Видалити ${n} не під’єднаних пристроїв разом з історією?`,
+    deleteAllFailed: (n: number) => `Не вдалося видалити пристроїв: ${n}`,
+    deletedAll: (n: number) => `Видалено пристроїв: ${n}`,
     noDevices: 'Пристроїв ще немає.',
     device: 'Пристрій',
     modulePin: 'Модуль · пін',
@@ -90,6 +96,10 @@ const TEXTS = {
     noBoards: 'No boards yet. Flash a board and sign in from its page, as described above.',
     unwired: 'Not wired to a board',
     unwiredNote: 'These devices do not receive configuration; edit one and choose a board, module and pin.',
+    deleteAll: 'Delete all',
+    deleteAllConfirm: (n: number) => `Delete ${n} unwired devices with their history?`,
+    deleteAllFailed: (n: number) => `Failed to delete ${n} devices`,
+    deletedAll: (n: number) => `Deleted ${n} devices`,
     noDevices: 'No devices yet.',
     device: 'Device',
     modulePin: 'Module · pin',
@@ -200,19 +210,7 @@ const DevicesPage = () => {
         )}
       </section>
 
-      {unwired.length > 0 && (
-        <section className="space-y-3">
-          <div>
-            <h2 className="font-semibold">{t.unwired}</h2>
-            <p className="text-sm text-slate-500">{t.unwiredNote}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {unwired.map(device => (
-              <UnwiredChip key={device.id} device={device} />
-            ))}
-          </div>
-        </section>
-      )}
+      {unwired.length > 0 && <UnwiredSection devices={unwired} />}
 
     </PageLayout>
   );
@@ -220,13 +218,69 @@ const DevicesPage = () => {
 
 export default DevicesPage;
 
+/** Devices without a board, highlighted as something to fix, with a bulk delete of the ones the user owns. */
+function UnwiredSection({ devices }: { devices: Device[] }) {
+  const t = useTexts(TEXTS);
+  const { data: me } = useGetUserQuery();
+  const [deleteDevice] = useDeleteDeviceMutation();
+  const { setState: confirm } = useModal(AppAlertDialogModalId);
+  // shared devices stay: only their owner may delete them
+  const owned = devices.filter(d =>
+    d.userDevices?.some(u => u.userId === me?.userId && u.role === 'OWNER')
+  );
+
+  const deleteAll = () =>
+    confirm({
+      description: t.deleteAllConfirm(owned.length),
+      callback: async () => {
+        const results = await Promise.all(owned.map(d => deleteDevice({ id: d.id! })));
+        const failed = results.filter(r => 'error' in r);
+        if (failed.length) {
+          notification.error({
+            message: t.deleteAllFailed(failed.length),
+            description: errorMessage((failed[0] as { error: unknown }).error),
+          });
+        }
+        if (failed.length < results.length) {
+          notification.success({ message: t.deletedAll(results.length - failed.length) });
+        }
+      },
+    });
+
+  return (
+    <section className="space-y-3 rounded-xl border border-amber-300 border-l-4 border-l-amber-500 bg-amber-50 p-4">
+      <div className="flex items-start gap-3">
+        <Icon icon="lucide:triangle-alert" className="mt-0.5 size-5 shrink-0 text-amber-600" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-semibold text-amber-900">
+            {t.unwired}
+            <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs text-white">{devices.length}</span>
+          </h2>
+          <p className="text-sm text-amber-800">{t.unwiredNote}</p>
+        </div>
+        {owned.length > 0 && (
+          <Button size="sm" variant="destructive" className="shrink-0" onClick={deleteAll}>
+            <Icon icon="lucide:trash-2" className="size-4" />
+            {t.deleteAll}
+          </Button>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {devices.map(device => (
+          <UnwiredChip key={device.id} device={device} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function UnwiredChip({ device }: { device: Device }) {
   const { setState: edit } = useModal(DeviceUpdatingModalId);
   return (
     <button
       type="button"
       onClick={() => edit(device)}
-      className="flex items-center gap-2 rounded-full border border-dashed border-black/20 bg-white px-3 py-1.5 text-sm hover:border-blue-400"
+      className="flex items-center gap-2 rounded-full border border-dashed border-amber-400 bg-white px-3 py-1.5 text-sm hover:border-amber-600"
     >
       <DeviceIcon type={device.type} className="size-4 text-slate-500" />
       {device.name}

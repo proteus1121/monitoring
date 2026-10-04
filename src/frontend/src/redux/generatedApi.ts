@@ -539,8 +539,10 @@ export type TelegramNotificationRequest = {
   template?: string;
 };
 export type UserDevices = {
-  id?: number;
+  deviceId?: number;
+  userId?: number;
   username?: string;
+  deviceName?: string;
   role?: "OWNER" | "EDITOR" | "VIEWER";
 };
 export type Device = ForecastSettingsFields & {
