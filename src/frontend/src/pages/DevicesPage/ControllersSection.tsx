@@ -6,11 +6,9 @@ import { Button } from '@src/components/Button';
 import { Card } from '@src/components/Card';
 import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
-import { Spinner } from '@src/components/Spinner';
 import { errorMessage } from '@src/redux/helpers';
 import {
   ControllerWithRole,
-  usePairControllerMutation,
   useScanControllerMutation,
 } from '@src/redux/controllersApi';
 import { useModal } from '@src/redux/modals/modals.hook';
@@ -29,52 +27,6 @@ import { DisplayModalId } from '@src/redux/modals/DisplayModal';
 import { ScanPanel } from './ScanPanel';
 import { BoardFirmware } from './BoardFirmware';
 
-/**
- * Code input that links the board showing it to the current user. Used on the Devices page and on /pair,
- * the page the board's display and setup page link to.
- */
-export function PairBoardForm(props: { initialCode?: string; onPaired?: (controller: Controller) => void }) {
-  const [code, setCode] = useState(props.initialCode ?? '');
-  const [pair, { isLoading }] = usePairControllerMutation();
-
-  const submit = async () => {
-    const res = await pair({ code: code.trim() });
-    if ('error' in res) {
-      notification.error({ message: 'Could not link the board', description: errorMessage(res.error) });
-      return;
-    }
-    notification.success({
-      message: `Board ${res.data.name ?? res.data.hardwareId} linked`,
-      description: 'It restarts and comes online in a few seconds.',
-    });
-    setCode('');
-    props.onPaired?.(res.data);
-  };
-
-  return (
-    <form
-      className="flex flex-wrap items-center gap-2"
-      onSubmit={e => {
-        e.preventDefault();
-        submit();
-      }}
-    >
-      <Input
-        value={code}
-        onChange={e => setCode(e.target.value.toUpperCase())}
-        placeholder="Code from the board, e.g. 4F7K2Q"
-        maxLength={12}
-        autoComplete="off"
-        className="w-[240px] font-mono tracking-widest"
-      />
-      <Button type="submit" disabled={isLoading || code.trim().length < 4}>
-        {isLoading ? <Spinner /> : <Icon icon="lucide:link" />}
-        Link board
-      </Button>
-    </form>
-  );
-}
-
 export function SetupHint() {
   const [open, setOpen] = useState(false);
   return (
@@ -84,9 +36,7 @@ export function SetupHint() {
           <Icon icon="lucide:cpu" className="size-4" />
           Connect a new board
         </div>
-        <div className="flex-1">
-          <PairBoardForm />
-        </div>
+        <div className="flex-1 text-slate-600">Flash it, give it your Wi-Fi, then sign in from its page.</div>
         <button
           type="button"
           className="flex items-center gap-1 text-slate-600 hover:text-slate-900"
@@ -107,9 +57,9 @@ export function SetupHint() {
             enter your home Wi-Fi.
           </li>
           <li>
-            The board connects and shows a code on its display and setup page. Open the link next to it (or
-            enter the code here) and sign in: with a password, Google or GitHub. The board appears below
-            right away.
+            Switch back to your Wi-Fi and open the board's address shown on its display and setup page, e.g.{' '}
+            <b>http://192.168.1.150</b>. Press <b>Sign in</b> and sign in here: with a password, Google or
+            GitHub. The board gets its own login to the server, restarts and appears below.
           </li>
           <li>
             Add devices with <b>Add Device</b>: choose the board, the module and the pin (see{' '}
@@ -259,7 +209,7 @@ export function ControllerPanel(props: {
             onClick={() =>
               confirm({
                 description:
-                  'Devices of this board are detached, not deleted. The board is unlinked from your account and shows a new pairing code.',
+                  'Devices of this board are detached, not deleted. The board is unlinked from your account and loses its login to the server; to use it again, sign in from its page.',
                 callback: async () => {
                   const res = await deleteController({ id });
                   if ('error' in res) {

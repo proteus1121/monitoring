@@ -24,7 +24,8 @@ void connecting(const String &ssid);
 void setupMode(const String &ssid, const String &pass, const String &ip);
 
 // code to enter on the site, empty while it is being requested
-void pairing(const String &code, const char *site);
+// no account yet: the address of the board's page, where "Sign in" links it
+void link(const String &address);
 
 void waitingForDevices(const char *site, const String &hardwareId);
 

@@ -193,20 +193,15 @@ void setupMode(const String &ssid, const String &pass, const String &ip) {
     oled.show();
 }
 
-void pairing(const String &code, const char *site) {
+void link(const String &address) {
     if (!oled.isInitialized())
         return;
     oled.clear();
     statusBar("Link to account");
-    oled.textCentered(14, "Enter the code at", DisplayManager::SMALL);
-    oled.textCentered(23, String(site) + "/pair", DisplayManager::NORMAL);
-    oled.roundFrame(14, 36, 100, 26, 4);
-    if (code.length()) {
-        oled.textCentered(41, code, DisplayManager::HUGE);
-    } else {
-        String dots = String("...").substring(0, (millis() / 500) % 4);
-        oled.text(30, 44, "Getting code" + dots, DisplayManager::SMALL);
-    }
+    oled.textCentered(14, "On your Wi-Fi open", DisplayManager::SMALL);
+    oled.roundFrame(4, 24, 120, 20, 4);
+    oled.textCentered(29, address, DisplayManager::NORMAL);
+    oled.textCentered(52, "and press Sign in", DisplayManager::SMALL);
     oled.show();
 }
 

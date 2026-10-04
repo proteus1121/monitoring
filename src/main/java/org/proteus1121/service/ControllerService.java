@@ -61,6 +61,7 @@ public class ControllerService {
     private final ObjectMapper objectMapper;
     private final ControllerShareRepository controllerShareRepository;
     private final UserDeviceService userDeviceService;
+    private final MqttAccountService mqttAccountService;
 
     @Transactional
     public void handleHello(Long userId, String hardwareId, ControllerHello hello) {
@@ -113,7 +114,7 @@ public class ControllerService {
     }
 
     /**
-     * Binds a board that showed a pairing code to the user who entered it.
+     * Binds a board to the user who signed in from its page (BoardConnectService).
      */
     @Transactional
     public Controller claim(Long userId, String hardwareId, String platform, String firmwareVersion) {
@@ -290,6 +291,8 @@ public class ControllerService {
         controllerShareRepository.deleteByControllerId(controllerId);
         // otherwise the board's next hello registers it again right away
         controllerPublisher.publishUnpair(controller.getUserId(), controller.getHardwareId());
+        // the board can no longer connect; signing in from its page again gives it a new login
+        mqttAccountService.revoke(controller.getHardwareId());
         controllerRepository.delete(controller);
     }
 

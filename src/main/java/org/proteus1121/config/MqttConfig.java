@@ -1,5 +1,6 @@
 package org.proteus1121.config;
 
+import org.proteus1121.service.MqttAccountService;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +21,6 @@ public class MqttConfig {
     private static final String[] TOPICS = new String[]{
             "users/+/devices/+/measurements",
             "users/+/controllers/+/hello",
-            "pairing/+/request",
             "users/+/controllers/+/scan-result",
             "users/+/controllers/+/update-status",
     };
@@ -28,7 +28,9 @@ public class MqttConfig {
     @Bean
     public DefaultMqttPahoClientFactory mqttClientFactory(@Value("${mqtt.broker.url}") String mqttBrokerUrl,
                                                           @Value("${mqtt.broker.username:}") String username,
-                                                          @Value("${mqtt.broker.password:}") String password) {
+                                                          @Value("${mqtt.broker.password:}") String password,
+                                                          // stores this login where the broker checks it, before connecting
+                                                          MqttAccountService mqttAccountService) {
         DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
         // Configure your MQTT broker URL and other settings here
         factory.setConnectionOptions(new MqttConnectOptions() {{

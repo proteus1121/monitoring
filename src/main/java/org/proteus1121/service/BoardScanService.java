@@ -43,7 +43,7 @@ public class BoardScanService {
     // digital modules the firmware drives on one pin, offered when "something" is on a pin
     private static final List<SensorModel> DIGITAL_MODELS =
             List.of(SensorModel.FLAME_IR, SensorModel.LIGHT_DIGITAL, SensorModel.PIR, SensorModel.DIGITAL_INPUT);
-    private static final List<SensorModel> ANALOG_MODELS = List.of(SensorModel.MQ2, SensorModel.ANALOG_INPUT);
+    private static final List<SensorModel> ANALOG_MODELS = List.of(SensorModel.MQ2, SensorModel.SOIL_MOISTURE, SensorModel.ANALOG_INPUT);
 
     private final ControllerService controllerService;
     private final ControllerRepository controllerRepository;
@@ -178,6 +178,7 @@ public class BoardScanService {
             case LIGHT_DIGITAL -> "Light sensor";
             case PIR -> "Motion sensor";
             case DIGITAL_INPUT -> "Digital input";
+            case SOIL_MOISTURE -> "Soil moisture";
             case ANALOG_INPUT -> "Analog input";
             case RELAY -> "Relay";
             default -> model.getLabel();

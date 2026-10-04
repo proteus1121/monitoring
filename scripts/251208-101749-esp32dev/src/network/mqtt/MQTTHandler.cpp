@@ -38,15 +38,10 @@ static unsigned long lastHello = 0;
 static bool helloPending = false;
 static int failures = 0;
 
-// pairing: a board without an account asks the server for a code and waits for the user to enter it
-static bool pairing = false;
-static String pairingCodeTopic = "";
-static String pairingResultTopic = "";
-static String currentPairingCode = "";
-static unsigned long pairingCodeExpiresAt = 0;
-static unsigned long lastPairingRequest = 0;
+// a board gets an account and its own MQTT login by "Sign in" on its page (ServerManager); until then it does
+// not connect at all, the broker has no anonymous access
+static bool linked = false;
 static bool restartPending = false;
-static const unsigned long PAIRING_RETRY_MS = 30000;
 
 static bool isPrintableAscii(const String &s) {
     if (s.length() == 0)
@@ -98,62 +93,17 @@ static void publishHello() {
     }
 }
 
-static void requestPairingCode() {
-    JsonDocument doc;
-#if defined(ESP8266)
-    doc["platform"] = "esp8266";
-#else
-    doc["platform"] = "esp32";
-#endif
-    doc["fw"] = FIRMWARE_VERSION;
-    String payload;
-    serializeJson(doc, payload);
-    String topic = "pairing/" + hardwareId() + "/request";
-    if (client.publish(topic.c_str(), payload.c_str())) {
-        Serial.println("[PAIR] Code requested");
-    }
-    lastPairingRequest = millis();
-}
-
-static void handlePairingMessage(const String &topic, byte *payload, unsigned int length) {
-    JsonDocument doc;
-    if (deserializeJson(doc, (const char *)payload, length)) {
-        return;
-    }
-    if (topic == pairingCodeTopic) {
-        currentPairingCode = doc["code"] | "";
-        unsigned long expiresIn = doc["expiresIn"] | 600UL;
-        pairingCodeExpiresAt = millis() + expiresIn * 1000UL;
-        Serial.println("[PAIR] Code: " + currentPairingCode + " - enter it on the site");
-    } else if (topic == pairingResultTopic) {
-        long newUserId = doc["userId"] | 0L;
-        if (newUserId > 0) {
-            Serial.printf("[PAIR] Paired with user %ld, restarting\n", newUserId);
-            Storage::saveUserId(String(newUserId));
-            Storage::sync();
-            // restart from mqttLoop(), not inside the client callback
-            restartPending = true;
-        }
-    }
-}
-
 static void mqttCallback(char *topic, byte *payload, unsigned int length) {
     String topicStr(topic);
     Serial.printf("[MQTT] Message on %s (%u bytes)\n", topic, length);
 
-    if (pairing) {
-        handlePairingMessage(topicStr, payload, length);
-        return;
-    }
-
     if (topicStr == configTopic) {
-        // the board was deleted on the site: forget the account and show a pairing code again
+        // the board was deleted on the site (its login is revoked too): forget the account, link again
         if (length > 0 && length < 64) {
             JsonDocument doc;
             if (!deserializeJson(doc, (const char *)payload, length) && (doc["unpair"] | false)) {
-                Serial.println("[PAIR] Board removed from the account, restarting to pair again");
-                Storage::saveUserId("");
-                Storage::sync();
+                Serial.println("[LINK] Board removed from the account, restarting to link it again");
+                forgetAccount();
                 restartPending = true;
                 return;
             }
@@ -229,11 +179,9 @@ void initMQTT() {
     if (!isPrintableAscii(userId)) {
         userId = "";
     }
-    pairing = userId.length() == 0;
-    pairingCodeTopic = "pairing/" + hardwareId() + "/code";
-    pairingResultTopic = "pairing/" + hardwareId() + "/result";
-    if (pairing) {
-        Serial.println("[PAIR] The board has no account yet, it will show a pairing code");
+    linked = userId.length() > 0 && Storage::loadMqttUser().length() > 0;
+    if (!linked) {
+        Serial.println("[LINK] The board has no account yet: open its page and press Sign in");
     }
     configTopic = "users/" + userId + "/controllers/" + hardwareId() + "/configuration";
     commandTopicPrefix = "users/" + userId + "/devices/";
@@ -265,21 +213,12 @@ static bool connectMQTT() {
     String pass = Storage::loadMqttPass();
     String clientId = hardwareId();
 
-    bool connected = user.length() > 0
-                         ? client.connect(clientId.c_str(), user.c_str(), pass.c_str())
-                         : client.connect(clientId.c_str());
-    if (!connected) {
+    if (!client.connect(clientId.c_str(), user.c_str(), pass.c_str())) {
         Serial.printf("[MQTT] Connect to %s:%u failed, rc=%d\n", currentServer.c_str(), currentPort, client.state());
         return false;
     }
 
     Serial.println("[MQTT] Connected as " + clientId);
-    if (pairing) {
-        client.subscribe(pairingCodeTopic.c_str(), 1);
-        client.subscribe(pairingResultTopic.c_str(), 1);
-        requestPairingCode();
-        return true;
-    }
 
     // retained configuration and commands are delivered right after subscribing
     bool ok = client.subscribe(configTopic.c_str(), 1);
@@ -294,6 +233,8 @@ static bool connectMQTT() {
 }
 
 void mqttLoop() {
+    if (!linked)
+        return;
     if (!client.connected()) {
         unsigned long now = millis();
         if (lastReconnectAttempt != 0 && now - lastReconnectAttempt < RECONNECT_INTERVAL_MS)
@@ -324,17 +265,6 @@ void mqttLoop() {
         ESP.restart();
     }
 
-    if (pairing) {
-        // ask again when there is no code yet or it is about to expire
-        bool needCode = currentPairingCode.length() == 0
-                            ? millis() - lastPairingRequest >= PAIRING_RETRY_MS
-                            : (long)(pairingCodeExpiresAt - millis()) < 30000L;
-        if (needCode && millis() - lastPairingRequest >= 5000) {
-            requestPairingCode();
-        }
-        return;
-    }
-
     if (helloPending || millis() - lastHello >= HELLO_INTERVAL_MS) {
         publishHello();
     }
@@ -344,12 +274,15 @@ bool mqttConnected() {
     return client.connected();
 }
 
-bool isPairing() {
-    return pairing;
+bool isLinked() {
+    return linked;
 }
 
-const String &pairingCode() {
-    return currentPairingCode;
+void forgetAccount() {
+    Storage::saveUserId("");
+    Storage::saveMqttUser("");
+    Storage::saveMqttPass("");
+    Storage::sync();
 }
 
 bool publishUpdateStatus(const String &payload) {

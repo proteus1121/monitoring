@@ -130,9 +130,9 @@ void setup() {
 
     if (ServerManager::isConfigured()) {
         initMQTT();
-        if (isPairing()) {
-            // keep the access point so the setup page can show the pairing code
-            ServerManager::startPairingPortal();
+        if (!isLinked()) {
+            // keep the access point next to the Wi-Fi: the page tells where to sign in
+            ServerManager::startLinkPortal();
         }
     } else {
         Serial.println("Device not configured - skipping MQTT initialization");

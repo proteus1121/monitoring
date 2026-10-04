@@ -22,7 +22,7 @@ import { ModalsProvider } from './redux/modals/ModalsProvider';
 import AlertsPage from './pages/AlertsPage';
 import { DashboardPage } from './pages/DashboardPage/DashboardPage';
 import { UsersPage } from './pages/UsersPage';
-import { PairPage } from './pages/PairPage';
+import { ConnectPage } from './pages/ConnectPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { FirmwarePage } from './pages/FirmwarePage';
 
@@ -61,8 +61,10 @@ export const router = createBrowserRouter(
           {/* Map and Configurations were merged into Devices */}
           <Route path="dashboard/map" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/devices" element={<DevicesPage />} />
-          {/* the board links here with its pairing code */}
-          <Route path="pair" element={<PairPage />} />
+          {/* "Sign in" on the board's page links here */}
+          <Route path="connect" element={<ConnectPage />} />
+          {/* boards used to show a code for this page */}
+          <Route path="pair" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/configurations" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/library" element={<LibraryPage />} />
           {/* Modules became the Library: firmware for the first install, then the modules */}

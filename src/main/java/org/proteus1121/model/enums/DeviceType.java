@@ -19,6 +19,8 @@ public enum DeviceType {
     DIGITAL,
     ANALOG,
     RELAY,
+    // % of water in the soil, 0 dry .. 100 in water
+    SOIL_MOISTURE,
     UNKNOWN;
 
 }

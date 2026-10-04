@@ -19,6 +19,8 @@ static WebServer server(80);
 static String savedSSID = "";
 static String savedPASS = "";
 static bool wifiConfigured = false;
+// one sign-in from this page at a time, see linkPage()
+static String linkState = "";
 static bool serverStarted = false;
 static unsigned long apStartedAt = 0;
 // in setup mode with saved WiFi, reboot after this time so a temporary outage does not need a manual reset
@@ -109,27 +111,61 @@ String ServerManager::getSavedSsid() {
 // =========================
 //  Pages
 // =========================
-static String pairingPage() {
+// address of this board for the page being served: the access point or the home network
+static String servedAddress() {
+    return server.client().localIP().toString();
+}
+
+static bool servedOnAccessPoint() {
+    return server.client().localIP() == WiFi.softAPIP();
+}
+
+static String urlEncode(const String &value) {
+    static const char HEX_DIGITS[] = "0123456789ABCDEF";
+    String out;
+    out.reserve(value.length() * 3);
+    for (size_t i = 0; i < value.length(); i++) {
+        char c = value[i];
+        if (isAlphaNumeric(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            out += c;
+        } else {
+            out += '%';
+            out += HEX_DIGITS[(uint8_t)c >> 4];
+            out += HEX_DIGITS[(uint8_t)c & 15];
+        }
+    }
+    return out;
+}
+
+// "Sign in": the site links the board and sends the browser back to /connect with its MQTT login. The state
+// is made at boot and only lives in RAM, so only a sign-in started from this page is accepted.
+static String linkPage() {
     String html;
-    html.reserve(3000);
-    html += "<meta http-equiv=\"refresh\" content=\"5\">";
+    html.reserve(2500);
     html += "<div class=\"k\">Step 2 of 2</div><h1>Link this board to your account</h1>";
     html += "<p class=\"m\">Wi-Fi <b>" + escape(savedSSID) + "</b> is connected.</p>";
 
-    const String &code = pairingCode();
-    if (code.length() == 0) {
-        html += "<div class=\"c\"><p>";
-        html += mqttConnected() ? "Getting a code from the server…" : "Connecting to the server…";
-        html += "</p><p class=\"m\">This page refreshes by itself.</p></div>";
+    String lan = WiFi.localIP().toString();
+    if (servedOnAccessPoint()) {
+        // the phone has no internet on the board's network, so signing in starts from the home network
+        html += "<div class=\"c\"><ol><li>Switch your phone back to <b>" + escape(savedSSID) + "</b>.</li>";
+        html += "<li>Open <a href=\"http://" + lan + "/\">http://" + lan + "</a> (it is also on the board display).</li>";
+        html += "<li>Press <b>Sign in</b> there.</li></ol></div>";
         return html;
     }
 
-    String link = String("https://" SITE_HOST "/pair?code=") + code;
-    html += "<div class=\"c\"><div class=\"m\">Your code</div><div class=\"code\">" + code + "</div><ol>";
-    html += "<li>Switch your phone back to the internet.</li>";
-    html += "<li>Open <a href=\"" + link + "\">" SITE_HOST "/pair</a> and sign in: with a password, Google or GitHub.</li>";
-    html += "<li>Enter the code. The board connects by itself in a few seconds.</li></ol>";
-    html += "<p class=\"m\">The code is also on the board display and is valid for 15 minutes.</p></div>";
+    String back = "http://" + servedAddress() + "/connect";
+    String link = String("https://" SITE_HOST "/connect?hw=") + urlEncode(hardwareId());
+#if defined(ESP8266)
+    link += "&platform=esp8266";
+#else
+    link += "&platform=esp32";
+#endif
+    link += "&fw=" FIRMWARE_VERSION "&state=" + linkState + "&back=" + urlEncode(back);
+    html += "<div class=\"c\"><p>Sign in on " SITE_HOST ": with a password, Google or GitHub. The site gives the "
+            "board its own login and brings you back here.</p>";
+    html += "<a href=\"" + link + "\"><button type=\"button\">Sign in</button></a>";
+    html += "<p class=\"m\">Keep this phone or computer on " + escape(savedSSID) + " until you are back on this page.</p></div>";
     return html;
 }
 
@@ -163,26 +199,24 @@ static String setupPage() {
     html += "<label for=\"mqtt_server\">MQTT server</label><input id=\"mqtt_server\" name=\"mqtt_server\" placeholder=\"default\" value=\"" + escape(server) + "\">";
     html += "<label for=\"mqtt_port\">Port</label><input id=\"mqtt_port\" name=\"mqtt_port\" type=\"number\" placeholder=\"1883\" value=\"";
     if (port > 0) html += String(port);
-    html += "\"><label for=\"mqtt_user\">User</label><input id=\"mqtt_user\" name=\"mqtt_user\" placeholder=\"default\">";
-    html += "<label for=\"mqtt_pass\">Password</label><input id=\"mqtt_pass\" name=\"mqtt_pass\" type=\"password\" placeholder=\"default\">";
-    html += "<p class=\"m\">Leave empty to keep the current values.</p></details>";
+    html += "\"><p class=\"m\">Leave empty to keep the current values. The login to the server comes from linking the board.</p></details>";
     html += "<button type=\"submit\">Save and connect</button></form>";
 
     if (linked) {
         html += "<form class=\"c\" method=\"post\" action=\"/unpair\"><p class=\"m\">The board is linked to an account. "
-                "Unlink it to give it to someone else: after restart it shows a new code.</p>"
+                "Unlink it to give it to someone else, or when the server no longer accepts it: after restart you sign in again.</p>"
                 "<button class=\"s\" type=\"submit\">Unlink from account</button></form>";
     } else {
-        html += "<p class=\"m\">Next, the board shows a code to link it to your account on " SITE_HOST ". "
-                "No user id or password is entered here.</p>";
+        html += "<p class=\"m\">Next, you sign in on " SITE_HOST " from the board's page to link it to your account. "
+                "No account password is entered here.</p>";
     }
     return html;
 }
 
 void ServerManager::handleRootPage() {
     String html = FPSTR(PAGE_HEAD);
-    bool waitingForPairing = wifiConfigured && isPairing();
-    html += waitingForPairing ? pairingPage() : setupPage();
+    bool waitingForLink = wifiConfigured && !isLinked();
+    html += waitingForLink ? linkPage() : setupPage();
     html += footer();
     server.send(200, "text/html; charset=utf-8", html);
 }
@@ -201,14 +235,12 @@ void ServerManager::handleSavePage() {
     if (server.arg("mqtt_server").length() > 0) Storage::saveMqttServer(server.arg("mqtt_server"));
     uint16_t port = (uint16_t)server.arg("mqtt_port").toInt();
     if (port > 0) Storage::saveMqttPort(port);
-    if (server.arg("mqtt_user").length() > 0) Storage::saveMqttUser(server.arg("mqtt_user"));
-    if (server.arg("mqtt_pass").length() > 0) Storage::saveMqttPass(server.arg("mqtt_pass"));
     Storage::sync();
 
     String html = FPSTR(PAGE_HEAD);
     html += "<div class=\"k\">Saved</div><h1>Connecting…</h1><div class=\"c\"><p>The board restarts and connects to <b>" + escape(ssid) +
             "</b>.</p><p class=\"m\">If it is not linked yet, reconnect to the <b>" + apSsid +
-            "</b> network in half a minute and open this page again to see the code.</p></div>";
+            "</b> network in half a minute and open this page again to sign in.</p></div>";
     html += footer();
     server.send(200, "text/html; charset=utf-8", html);
     delay(1500);
@@ -216,14 +248,62 @@ void ServerManager::handleSavePage() {
 }
 
 void ServerManager::handleUnpair() {
-    Storage::saveUserId("");
-    Storage::sync();
+    forgetAccount();
     String html = FPSTR(PAGE_HEAD);
-    html += "<div class=\"k\">Unlinked</div><h1>The board was unlinked</h1><div class=\"c\"><p>It restarts and shows a new code to link it to an account.</p></div>";
+    html += "<div class=\"k\">Unlinked</div><h1>The board was unlinked</h1><div class=\"c\"><p>It restarts; open its page and sign in to link it to an account.</p></div>";
     html += footer();
     server.send(200, "text/html; charset=utf-8", html);
     delay(1500);
     ESP.restart();
+}
+
+static bool printable(const String &value, size_t maxLength) {
+    if (value.length() == 0 || value.length() > maxLength)
+        return false;
+    for (size_t i = 0; i < value.length(); i++) {
+        if (value[i] < 0x21 || value[i] > 0x7E)
+            return false;
+    }
+    return true;
+}
+
+// the browser comes back from the site: /connect?state=…&uid=…&user=…&pass=…&host=…&port=…
+void ServerManager::handleConnect() {
+    String uid = server.arg("uid");
+    String user = server.arg("user");
+    String pass = server.arg("pass");
+    String host = server.arg("host");
+    long port = server.arg("port").toInt();
+    bool digits = uid.length() > 0 && uid.length() <= 20;
+    for (size_t i = 0; i < uid.length(); i++)
+        digits = digits && isDigit(uid[i]);
+
+    String html = FPSTR(PAGE_HEAD);
+    if (linkState.length() == 0 || server.arg("state") != linkState) {
+        html += "<div class=\"k\">Not linked</div><h1>This link is not for this board</h1><div class=\"c\"><p>"
+                "Open the board's page again and press Sign in there.</p></div>";
+    } else if (!digits || !printable(user, 32) || !printable(pass, 32) || !printable(host, 32) || port <= 0 ||
+               port > 65535) {
+        html += "<div class=\"k\">Not linked</div><h1>The answer from the site is incomplete</h1><div class=\"c\"><p>"
+                "Open the board's page again and sign in once more.</p></div>";
+    } else {
+        Storage::saveUserId(uid);
+        Storage::saveMqttUser(user);
+        Storage::saveMqttPass(pass);
+        Storage::saveMqttServer(host);
+        Storage::saveMqttPort((uint16_t)port);
+        Storage::sync();
+        Serial.println("[LINK] Linked to user " + uid + ", restarting");
+        html += "<div class=\"k\">Linked</div><h1>The board is linked</h1><div class=\"c\"><p>It restarts and appears on "
+                "<a href=\"https://" SITE_HOST "/settings/devices\">My devices</a> in a few seconds.</p></div>";
+        html += footer();
+        server.send(200, "text/html; charset=utf-8", html);
+        delay(1500);
+        ESP.restart();
+        return;
+    }
+    html += footer();
+    server.send(400, "text/html; charset=utf-8", html);
 }
 
 // =========================
@@ -257,9 +337,10 @@ void ServerManager::startServer() {
         server.on("/", ServerManager::handleRootPage);
         server.on("/save", HTTP_POST, ServerManager::handleSavePage);
         server.on("/unpair", HTTP_POST, ServerManager::handleUnpair);
+        server.on("/connect", HTTP_GET, ServerManager::handleConnect);
         // phones probe these to detect a captive portal; send them to the page
         server.onNotFound([]() {
-            server.sendHeader("Location", "http://" + WiFi.softAPIP().toString() + "/", true);
+            server.sendHeader("Location", "http://" + servedAddress() + "/", true);
             server.send(302, "text/plain", "");
         });
         server.begin();
@@ -291,11 +372,12 @@ void ServerManager::startAPMode() {
     startServer();
 }
 
-void ServerManager::startPairingPortal() {
+void ServerManager::startLinkPortal() {
     // the access point follows the channel of the Wi-Fi connection
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(apSsid.c_str(), apPass.c_str());
-    Serial.println("[PAIR] Setup page with the code: join " + apSsid + " and open http://" + WiFi.softAPIP().toString());
+    Serial.println("[LINK] Sign in from the board's page: http://" + WiFi.localIP().toString() + " (or join " + apSsid +
+                   " and open http://" + WiFi.softAPIP().toString() + ")");
     startServer();
 }
 
@@ -303,6 +385,13 @@ void ServerManager::startPairingPortal() {
 //  Public functions
 // =========================
 void ServerManager::begin() {
+    char state[17];
+#if defined(ESP8266)
+    snprintf(state, sizeof(state), "%08x%08x", ESP.random(), ESP.random());
+#else
+    snprintf(state, sizeof(state), "%08x%08x", esp_random(), esp_random());
+#endif
+    linkState = state;
     savedSSID = Storage::loadSSID();
     savedPASS = Storage::loadPASS();
     Serial.println("Saved SSID: " + savedSSID);

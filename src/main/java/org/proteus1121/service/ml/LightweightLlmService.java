@@ -151,6 +151,7 @@ public class LightweightLlmService implements LocalLlmService {
             case LIGHT -> "Light";
             case PRESSURE -> "Pressure";
             case MOTION -> "Motion";
+            case SOIL_MOISTURE -> "Soil moisture";
             default -> type.name();
         };
     }

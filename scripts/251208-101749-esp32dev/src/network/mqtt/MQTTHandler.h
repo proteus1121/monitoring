@@ -5,7 +5,7 @@
 
 // may be set by the build, e.g. PLATFORMIO_BUILD_FLAGS=-DFIRMWARE_VERSION=\"2.3.9\" for a test build
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "2.4.1"
+#define FIRMWARE_VERSION "2.5.0"
 #endif
 
 // env name of platformio.ini, the site picks update files by it
@@ -13,11 +13,12 @@
 #define BOARD_ID "unknown"
 #endif
 
-// site where the user signs in and enters the pairing code
+// site where the user signs in to link the board
 #define SITE_HOST "ssn.pp.ua"
 
 /*
- * Topics (userId is entered in the setup portal, hardwareId is derived from the chip):
+ * Topics (userId and the MQTT login come from linking the board on the site, hardwareId is derived from the
+ * chip; the broker lets a board use its owner's users/<userId>/# only):
  *   publish   users/<userId>/controllers/<hardwareId>/hello          {"platform","board","fw","ip","v","disp"}
  *   subscribe users/<userId>/controllers/<hardwareId>/configuration  devices to run (retained)
  *             {"unpair":true} instead when the board was deleted on the site
@@ -38,15 +39,11 @@ bool publishScanResult(const String &payload);
 // progress of a firmware update (system/FirmwareUpdate.h)
 bool publishUpdateStatus(const String &payload);
 
-/*
- * Pairing, while the board has no account:
- *   publish   pairing/<hardwareId>/request   {"platform","fw"}
- *   subscribe pairing/<hardwareId>/code      {"code":"4F7K2Q","expiresIn":900}
- *   subscribe pairing/<hardwareId>/result    {"userId":1} -> stored, the board restarts
- */
-bool isPairing();
-// empty until the server answered
-const String &pairingCode();
+// the board has an account and its own MQTT login (from "Sign in" on its page); without them it does not
+// connect to MQTT at all
+bool isLinked();
+// account and MQTT login gone (unlinked here or removed on the site): link again after a restart
+void forgetAccount();
 
 // Unique id of this board, e.g. esp8266-1a2b3c
 const String &hardwareId();

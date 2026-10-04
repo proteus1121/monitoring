@@ -18,6 +18,7 @@ export function fromNow(timestamp?: string) {
 const UNITS: Partial<Record<NonNullable<Device['type']>, string>> = {
   TEMPERATURE: '°C',
   HUMIDITY: '%',
+  SOIL_MOISTURE: '%',
   PRESSURE: 'hPa',
   LPG: 'ppm',
   CH4: 'ppm',

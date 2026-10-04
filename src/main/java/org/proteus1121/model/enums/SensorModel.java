@@ -21,6 +21,7 @@ public enum SensorModel {
     LIGHT_DIGITAL("Light sensor (DO)", "Photoresistor module digital output, active LOW", List.of(DeviceType.LIGHT), List.of("DO"), false, false),
     PIR("PIR motion sensor", "Motion detector, active HIGH", List.of(DeviceType.MOTION), List.of("OUT"), false, false),
     DIGITAL_INPUT("Digital input", "Any digital input, HIGH = 1", List.of(DeviceType.DIGITAL), List.of("IN"), false, false),
+    SOIL_MOISTURE("Soil moisture sensor", "Capacitive or resistive probe, % of water in the soil", List.of(DeviceType.SOIL_MOISTURE), List.of("AO"), true, false),
     ANALOG_INPUT("Analog input", "Raw ADC value", List.of(DeviceType.ANALOG, DeviceType.LIGHT), List.of("AO"), true, false),
     RELAY("Relay / digital output", "Output controlled from UI, HIGH = on", List.of(DeviceType.RELAY), List.of("IN"), false, true);
 

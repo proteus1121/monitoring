@@ -21,6 +21,23 @@ EEPROMClass &prefs = EEPROM;
 Preferences prefs;
 #endif
 
+#if defined(ESP8266)
+// a 32-byte text field; a board fresh from the factory or flashed over another firmware has 0xFF or other junk
+// there, which must not end up as an SSID or an MQTT login (the broker drops a CONNECT that is not UTF-8)
+static String readText(int addr) {
+    char buf[33];
+    for (int i = 0; i < 32; i++) {
+        buf[i] = EEPROM.read(addr + i);
+        if (buf[i] == 0)
+            break;
+        if ((uint8_t)buf[i] < 0x20 || (uint8_t)buf[i] > 0x7E)
+            return String("");
+    }
+    buf[32] = 0;
+    return String(buf);
+}
+#endif
+
 void Storage::begin() {
 #if defined(ESP8266)
     EEPROM.begin(512);
@@ -48,12 +65,7 @@ void Storage::saveCredentials(const String &ssid, const String &pass) {
 
 String Storage::loadSSID() {
 #if defined(ESP8266)
-    char buf[33];
-    for (int i = 0; i < 32; i++) {
-        buf[i] = EEPROM.read(EEPROM_SSID_ADDR + i);
-    }
-    buf[32] = 0;
-    return String(buf);
+    return readText(EEPROM_SSID_ADDR);
 #else
     if (!prefs.isKey("ssid"))
         return String("");
@@ -63,12 +75,7 @@ String Storage::loadSSID() {
 
 String Storage::loadPASS() {
 #if defined(ESP8266)
-    char buf[33];
-    for (int i = 0; i < 32; i++) {
-        buf[i] = EEPROM.read(EEPROM_PASS_ADDR + i);
-    }
-    buf[32] = 0;
-    return String(buf);
+    return readText(EEPROM_PASS_ADDR);
 #else
     if (!prefs.isKey("pass"))
         return String("");
@@ -91,12 +98,7 @@ void Storage::saveUserId(const String &userId) {
 
 String Storage::loadUserId() {
 #if defined(ESP8266)
-    char buf[33];
-    for (int i = 0; i < 32; i++) {
-        buf[i] = EEPROM.read(EEPROM_USERID_ADDR + i);
-    }
-    buf[32] = 0;
-    return String(buf);
+    return readText(EEPROM_USERID_ADDR);
 #else
     if (!prefs.isKey("userid"))
         return String("");
@@ -119,12 +121,7 @@ void Storage::saveMqttUser(const String &user) {
 
 String Storage::loadMqttUser() {
 #if defined(ESP8266)
-    char buf[33];
-    for (int i = 0; i < 32; i++) {
-        buf[i] = EEPROM.read(EEPROM_MQTT_USER_ADDR + i);
-    }
-    buf[32] = 0;
-    return String(buf);
+    return readText(EEPROM_MQTT_USER_ADDR);
 #else
     if (!prefs.isKey("mqtt_user"))
         return String("");
@@ -147,12 +144,7 @@ void Storage::saveMqttPass(const String &pass) {
 
 String Storage::loadMqttPass() {
 #if defined(ESP8266)
-    char buf[33];
-    for (int i = 0; i < 32; i++) {
-        buf[i] = EEPROM.read(EEPROM_MQTT_PASS_ADDR + i);
-    }
-    buf[32] = 0;
-    return String(buf);
+    return readText(EEPROM_MQTT_PASS_ADDR);
 #else
     if (!prefs.isKey("mqtt_pass"))
         return String("");
@@ -175,12 +167,7 @@ void Storage::saveMqttServer(const String &server) {
 
 String Storage::loadMqttServer() {
 #if defined(ESP8266)
-    char buf[33];
-    for (int i = 0; i < 32; i++) {
-        buf[i] = EEPROM.read(EEPROM_MQTT_SERVER_ADDR + i);
-    }
-    buf[32] = 0;
-    return String(buf);
+    return readText(EEPROM_MQTT_SERVER_ADDR);
 #else
     if (!prefs.isKey("mqtt_server"))
         return String("");

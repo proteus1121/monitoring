@@ -15,6 +15,7 @@ export type ModuleKey =
   | 'LIGHT_DIGITAL'
   | 'PIR'
   | 'DIGITAL_INPUT'
+  | 'SOIL_MOISTURE'
   | 'ANALOG_INPUT'
   | 'RELAY'
   | 'ST7565'
@@ -42,6 +43,7 @@ export const MODULE_HEADERS: Record<ModuleKey, HeaderPin[]> = {
   LIGHT_DIGITAL: [POWER('VCC'), POWER('GND'), { label: 'DO', signal: 'DO' }],
   PIR: [POWER('VCC'), { label: 'OUT', signal: 'OUT' }, POWER('GND')],
   DIGITAL_INPUT: [{ label: 'IN', signal: 'IN' }, POWER('GND')],
+  SOIL_MOISTURE: [POWER('GND'), POWER('VCC'), { label: 'AOUT', signal: 'AO' }],
   ANALOG_INPUT: [POWER('VCC'), { label: 'AO', signal: 'AO' }, POWER('GND')],
   RELAY: [POWER('VCC'), POWER('GND'), { label: 'IN', signal: 'IN' }],
   // the ST7565 board labels its SPI lines this way
@@ -160,6 +162,16 @@ function Body({ module }: { module: ModuleKey }): ReactNode {
               <circle cx={66 + i * 9} cy={29} r={2.3} fill="#d4d4d8" />
             </g>
           ))}
+        </>
+      );
+    case 'SOIL_MOISTURE':
+      // capacitive probe: a long blade that goes into the soil, the electronics at the top
+      return (
+        <>
+          <path d="M38 12 H62 V44 L50 58 L38 44 Z" fill={PCB_BLACK} />
+          <rect x={41} y={15} width={18} height={8} rx={1} fill="#334155" />
+          <line x1={50} y1={28} x2={50} y2={50} stroke="#94a3b8" strokeWidth={2} />
+          <path d="M44 48 q6 -6 12 0" fill="none" stroke="#38bdf8" strokeWidth={1.5} />
         </>
       );
     case 'ANALOG_INPUT':

@@ -1,4 +1,4 @@
-// Page to open after signing in, e.g. /pair?code=... opened from a board. Kept in sessionStorage so it
+// Page to open after signing in, e.g. /connect?hw=... opened from a board. Kept in sessionStorage so it
 // survives the Google / GitHub redirect, which always lands on the dashboard.
 const KEY = 'returnTo';
 

@@ -16,7 +16,6 @@ public class ControllerPublisher {
 
     private static final String CONFIGURATION_TOPIC = "users/%d/controllers/%s/configuration";
     private static final String COMMAND_TOPIC = "users/%d/devices/%d/command";
-    private static final String PAIRING_TOPIC = "pairing/%s/%s";
     private static final String SCAN_TOPIC = "users/%d/controllers/%s/scan";
     private static final String UPDATE_TOPIC = "users/%d/controllers/%s/update";
 
@@ -75,15 +74,6 @@ public class ControllerPublisher {
         String topic = SCAN_TOPIC.formatted(userId, hardwareId);
         log.info("Publishing scan request to {}", topic);
         publisher.publishMessage(topic, "{\"id\":\"%s\"}".formatted(requestId), false);
-    }
-
-    /**
-     * Not retained: a board only listens while it waits for pairing, an old result must not pair it again.
-     */
-    public void publishPairing(String hardwareId, String subtopic, String payload) {
-        String topic = PAIRING_TOPIC.formatted(hardwareId, subtopic);
-        log.info("Publishing pairing {} to {}", subtopic, topic);
-        publisher.publishMessage(topic, payload, false);
     }
 
     /**

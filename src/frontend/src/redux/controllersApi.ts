@@ -61,6 +61,16 @@ export type FirmwareBuild = {
   install: string;
 };
 
+// the board's own MQTT login, passed back to the board through the browser
+export type BoardConnection = {
+  controller: Controller;
+  userId: number;
+  mqttUsername: string;
+  mqttPassword: string;
+  mqttHost: string;
+  mqttPort: number;
+};
+
 export type FirmwareManifest = {
   version: string;
   date: string;
@@ -127,8 +137,12 @@ export const controllersApi = generatedApi.injectEndpoints({
     getBoardScan: build.query<BoardScan | null, { id: number }>({
       query: ({ id }) => ({ url: `/controllers/${id}/scan` }),
     }),
-    pairController: build.mutation<Controller, { code: string }>({
-      query: body => ({ url: `/controllers/pair`, method: 'POST', body }),
+    // from Sign in on the board's page (pages/ConnectPage.tsx)
+    connectController: build.mutation<
+      BoardConnection,
+      { hardwareId: string; platform?: string; firmwareVersion?: string; back: string }
+    >({
+      query: body => ({ url: `/controllers/connect`, method: 'POST', body }),
       invalidatesTags: ['Controller Management'],
     }),
     getControllerShares: build.query<ControllerShare[], void>({
@@ -153,7 +167,7 @@ export const {
   useGetBoardScanQuery,
   useGetDisplayModelsQuery,
   useUpdateDisplayMutation,
-  usePairControllerMutation,
+  useConnectControllerMutation,
   useGetControllerSharesQuery,
   useShareControllerMutation,
   useUnshareControllerMutation,

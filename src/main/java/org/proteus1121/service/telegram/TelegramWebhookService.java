@@ -239,6 +239,7 @@ public class TelegramWebhookService {
             case LIGHT -> "💡";
             case PRESSURE -> "🎚️";
             case MOTION -> "🏃";
+            case SOIL_MOISTURE -> "🌱";
             default -> "📊";
         };
     }
@@ -255,7 +256,7 @@ public class TelegramWebhookService {
         try {
             return switch (type) {
                 case TEMPERATURE -> String.format("%.1f°C", value);
-                case HUMIDITY -> String.format("%.1f%%", value);
+                case HUMIDITY, SOIL_MOISTURE -> String.format("%.1f%%", value);
                 case LPG, CH4, SMOKE -> String.format("%.2f ppm", value);
                 case FLAME, MOTION -> value > 0 ? "DETECTED" : "None";
                 case LIGHT -> String.format("%.0f lux", value);

@@ -154,6 +154,7 @@ export const DEVICE_TYPE_LABELS: Record<DeviceTypeValue, string> = {
   DIGITAL: 'Digital input',
   ANALOG: 'Analog input',
   RELAY: 'Relay',
+  SOIL_MOISTURE: 'Soil moisture',
   UNKNOWN: 'Unknown',
 };
 

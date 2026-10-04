@@ -78,14 +78,16 @@ services:
         - "traefik.http.services.db.loadbalancer.server.port=80"
 
   mosquitto:
-    image: eclipse-mosquitto:latest
+    # mosquitto with the go-auth plugin: logins checked in the site database (mosquitto/config/mosquitto.conf)
+    image: iegomez/mosquitto-go-auth:3.0.0-mosquitto_2.0.18
+    # owner of the data and log folders on the server (chown in the deploy step)
+    user: "1883:1883"
     ports:
       - target: 1883
         published: 1883
         mode: host
     volumes:
-      - /home/${SSH_USER}/deploy/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - /home/${SSH_USER}/deploy/mosquitto/config/passwords.txt:/mosquitto/config/passwords.txt
+      - /home/${SSH_USER}/deploy/mosquitto/config/mosquitto.conf:/etc/mosquitto/mosquitto.conf:ro
       - /home/${SSH_USER}/deploy/mosquitto/data:/mosquitto/data
       - /home/${SSH_USER}/deploy/mosquitto/log:/mosquitto/log
     networks:

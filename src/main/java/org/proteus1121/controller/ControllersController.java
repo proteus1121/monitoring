@@ -8,9 +8,10 @@ import org.proteus1121.model.request.DisplayRequest;
 import org.proteus1121.model.enums.DisplayModel;
 import org.proteus1121.model.dto.controller.DisplayModelInfo;
 import org.proteus1121.service.UserService;
-import org.proteus1121.service.PairingService;
+import org.proteus1121.service.BoardConnectService;
+import org.proteus1121.model.dto.controller.BoardConnection;
 import org.proteus1121.model.request.ShareControllerRequest;
-import org.proteus1121.model.request.PairControllerRequest;
+import org.proteus1121.model.request.ConnectControllerRequest;
 import org.proteus1121.model.dto.controller.ControllerShare;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,7 +44,7 @@ import static org.proteus1121.util.SessionUtils.getCurrentUser;
 public class ControllersController {
 
     private final ControllerService controllerService;
-    private final PairingService pairingService;
+    private final BoardConnectService boardConnectService;
     private final UserService userService;
     private final BoardScanService boardScanService;
     private final FirmwareService firmwareService;
@@ -92,10 +93,10 @@ public class ControllersController {
         return scan == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(scan);
     }
 
-    @PostMapping("/pair")
-    @Operation(summary = "Pair a board", description = "Binds the board that shows this code on its display to the current user")
-    public ResponseEntity<Controller> pair(@Valid @RequestBody PairControllerRequest request) {
-        return ResponseEntity.ok(pairingService.claim(getCurrentUser().getId(), request.getCode()));
+    @PostMapping("/connect")
+    @Operation(summary = "Link a board", description = "From the Sign in link on the board's page: binds the board to the current user and gives it its own MQTT login, which the site passes back to the board")
+    public ResponseEntity<BoardConnection> connect(@Valid @RequestBody ConnectControllerRequest request) {
+        return ResponseEntity.ok(boardConnectService.connect(getCurrentUser().getId(), request));
     }
 
     @GetMapping("/shares")

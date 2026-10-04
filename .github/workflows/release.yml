@@ -64,6 +64,10 @@ jobs:
           pip install --quiet platformio
           pio run -e esp8266 -e esp32dev
 
+      # --- Broker: logins from the site database (mosquitto-go-auth), checked before anything is deployed ---
+      - name: Check broker logins
+        run: bash mosquitto/check-auth.sh
+
       # --- Frontend: React ---
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -147,10 +151,10 @@ jobs:
           subject-digest: ${{ steps.push-frontend.outputs.digest }}
           push-to-registry: true
 
-      - name: Create Mosquitto password file
+      # the broker reads logins from MySQL; the backend stores its own (MQTT_USER / MQTT_PASS) there at startup
+      - name: Give the broker the database password
         run: |
-          mkdir -p ./mosquitto/config
-          mosquitto_passwd -b -c ./mosquitto/config/passwords.txt "${{ secrets.MQTT_USER }}" "${{ secrets.MQTT_PASS }}"
+          echo "auth_opt_mysql_password ${{ secrets.MYSQL_PASS }}" >> ./mosquitto/config/mosquitto.conf
 
       - name: Create .env file for Docker Compose
         run: |
@@ -179,7 +183,7 @@ jobs:
           host: ${{ secrets.SWARM_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_KEY }}
-          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mosquitto/config/passwords.txt,./mysql/my_custom.cnf,./traefik/traefik.yml"
+          source: "docker-compose.yml,.env,./mosquitto/config/mosquitto.conf,./mysql/my_custom.cnf,./traefik/traefik.yml"
           target: "/home/${{ secrets.SSH_USER }}/deploy"
 
       # --- Deploy to Swarm via SSH ---
@@ -197,7 +201,7 @@ jobs:
             docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
             docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             docker pull ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
-            docker pull eclipse-mosquitto:latest
+            docker pull iegomez/mosquitto-go-auth:3.0.0-mosquitto_2.0.18
             docker pull phpmyadmin:latest
             docker pull bitnamilegacy/mysql:9.4.0-debian-12-r1
             docker pull traefik:v2.10

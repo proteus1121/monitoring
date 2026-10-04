@@ -51,7 +51,7 @@ class ControllerServiceTest {
         controllerPublisher = mock(ControllerPublisher.class);
         controllerService = new ControllerService(controllerRepository, deviceRepository, userRepository,
                 controllerPublisher, new ObjectMapper(), mock(ControllerShareRepository.class),
-                mock(UserDeviceService.class));
+                mock(UserDeviceService.class), mock(MqttAccountService.class));
 
         when(userRepository.existsById(1L)).thenReturn(true);
         when(controllerRepository.save(any())).thenAnswer(invocation -> {

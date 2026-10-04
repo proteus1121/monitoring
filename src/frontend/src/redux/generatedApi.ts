@@ -588,6 +588,7 @@ export type DeviceTypeValue =
   | "DIGITAL"
   | "ANALOG"
   | "RELAY"
+  | "SOIL_MOISTURE"
   | "UNKNOWN";
 export type SensorModel =
   | "DHT11"
@@ -598,6 +599,7 @@ export type SensorModel =
   | "LIGHT_DIGITAL"
   | "PIR"
   | "DIGITAL_INPUT"
+  | "SOIL_MOISTURE"
   | "ANALOG_INPUT"
   | "RELAY";
 export type DeviceCommandRequest = {

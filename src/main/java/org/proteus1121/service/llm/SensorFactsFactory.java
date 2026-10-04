@@ -15,17 +15,18 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SensorFactsFactory {
 
-    private static final Map<DeviceType, String> UNITS = Map.of(
-            DeviceType.TEMPERATURE, "°C",
-            DeviceType.HUMIDITY, "%",
-            DeviceType.PRESSURE, "hPa",
-            DeviceType.LPG, "ppm",
-            DeviceType.CH4, "ppm",
-            DeviceType.SMOKE, "ppm",
-            DeviceType.FLAME, "(1 = flame detected)",
-            DeviceType.MOTION, "(1 = motion)",
-            DeviceType.LIGHT, "(1 = light)",
-            DeviceType.RELAY, "(1 = on)");
+    private static final Map<DeviceType, String> UNITS = Map.ofEntries(
+            Map.entry(DeviceType.TEMPERATURE, "°C"),
+            Map.entry(DeviceType.HUMIDITY, "%"),
+            Map.entry(DeviceType.SOIL_MOISTURE, "% (0 = dry, 100 = in water)"),
+            Map.entry(DeviceType.PRESSURE, "hPa"),
+            Map.entry(DeviceType.LPG, "ppm"),
+            Map.entry(DeviceType.CH4, "ppm"),
+            Map.entry(DeviceType.SMOKE, "ppm"),
+            Map.entry(DeviceType.FLAME, "(1 = flame detected)"),
+            Map.entry(DeviceType.MOTION, "(1 = motion)"),
+            Map.entry(DeviceType.LIGHT, "(1 = light)"),
+            Map.entry(DeviceType.RELAY, "(1 = on)"));
 
     private final ControllerRepository controllerRepository;
 

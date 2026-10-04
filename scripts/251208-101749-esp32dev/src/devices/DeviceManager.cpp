@@ -5,6 +5,7 @@
 #include "../network/mqtt/MQTTHandler.h"
 #include "../sensors/ISensor.h"
 #include "../sensors/analog/AnalogInputSensor.h"
+#include "../sensors/soil/SoilMoistureSensor.h"
 #include "../sensors/bmp180/BMP180Sensor.h"
 #include "../sensors/dht11/DHTSensor.h"
 #include "../sensors/digital/DigitalInputSensor.h"
@@ -57,7 +58,7 @@ std::map<uint32_t, float> pendingCommands;
 String appliedVersion = "";
 
 bool isAnalogModel(const String &model) {
-    return model == "MQ2" || model == "ANALOG_INPUT";
+    return model == "MQ2" || model == "ANALOG_INPUT" || model == "SOIL_MOISTURE";
 }
 
 bool isAnalogPin(uint8_t pin) {
@@ -147,6 +148,8 @@ ISensor *createSensor(const String &model, uint8_t pin, uint8_t pin2) {
         return new DigitalInputSensor(pin, false);
     if (model == "ANALOG_INPUT")
         return new AnalogInputSensor(pin);
+    if (model == "SOIL_MOISTURE")
+        return new SoilMoistureSensor(pin);
     if (model == "RELAY")
         return new RelayOutput(pin);
     return nullptr;
@@ -194,6 +197,8 @@ String tileLabel(const String &type) {
         return "Input";
     if (type == "ANALOG")
         return "Analog";
+    if (type == "SOIL_MOISTURE")
+        return "Soil";
     if (type == "RELAY")
         return "Relay";
     if (type == "CH4")
@@ -225,7 +230,7 @@ Screens::Tile toTile(const Channel &c) {
     }
     if (c.type == "TEMPERATURE")
         t.unit = "\xC2\xB0" "C";
-    else if (c.type == "HUMIDITY")
+    else if (c.type == "HUMIDITY" || c.type == "SOIL_MOISTURE")
         t.unit = "%";
     else if (c.type == "PRESSURE")
         t.unit = "hPa";
@@ -398,8 +403,8 @@ void loop() {
 void render() {
     if (!oled.isInitialized())
         return;
-    if (isPairing()) {
-        Screens::pairing(pairingCode(), SITE_HOST);
+    if (!isLinked()) {
+        Screens::link(WiFi.localIP().toString());
         return;
     }
     if (channels.empty()) {
