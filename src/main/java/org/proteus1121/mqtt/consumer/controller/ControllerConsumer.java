@@ -48,7 +48,7 @@ public class ControllerConsumer implements Consumer {
     @Override
     public void processMessage(Topic topic, String message) throws Exception {
         ControllerHello hello = message == null || message.isBlank()
-                ? new ControllerHello(null, null, null, null, null, null)
+                ? new ControllerHello(null, null, null, null, null, null, null)
                 : objectMapper.readValue(message, ControllerHello.class);
         log.debug("Controller {} of user {} says hello: {}", topic.getHardwareId(), topic.getUserId(), hello);
         controllerService.handleHello(topic.getUserId(), topic.getHardwareId(), hello);

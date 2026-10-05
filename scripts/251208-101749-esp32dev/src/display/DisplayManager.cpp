@@ -10,6 +10,9 @@ DisplayConfig DisplayConfig::defaultFor() {
 #if defined(ESP8266)
     // NodeMCU with the ST7565 module: CLK D5, DIN D6, CS D2, DC D7, RST D4, mounted upside down
     return DisplayConfig{ST7565, {14, 12, 4, 13, 2}, true};
+#elif defined(CAMERA_BOARD)
+    // the camera takes GPIO26 / 27 and most other pins; a display can be configured on the site
+    return DisplayConfig{NONE, {0, 0, 0, 0, 0}, false};
 #else
     // ESP32 DevKit with an SSD1306 on SDA 27 / SCL 14
     return DisplayConfig{SSD1306, {27, 14, 0, 0, 0}, false};

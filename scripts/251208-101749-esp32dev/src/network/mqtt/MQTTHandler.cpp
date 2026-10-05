@@ -3,6 +3,7 @@
 #include "../../display/DisplayManager.h"
 #include "../../system/Scanner.h"
 #include "../../system/FirmwareUpdate.h"
+#include "../../camera/Camera.h"
 #include "../../storage/Storage.h"
 #include "network/setup-server/ServerManager.h" // needed for AP fallback
 #include <ArduinoJson.h>
@@ -33,6 +34,7 @@ static String configTopic = "";
 static String commandTopicPrefix = "";
 static String scanTopic = "";
 static String updateTopic = "";
+static String streamTopic = "";
 static unsigned long lastReconnectAttempt = 0;
 static unsigned long lastHello = 0;
 static bool helloPending = false;
@@ -82,6 +84,10 @@ static void publishHello() {
     doc["v"] = DeviceManager::configVersion();
     // the site warns when the configured display does not answer
     doc["disp"] = oled.config().model == DisplayConfig::NONE || oled.isInitialized();
+#if defined(CAMERA_BOARD)
+    // the site warns when the camera does not answer (ribbon cable, no PSRAM)
+    doc["cam"] = Camera::ready();
+#endif
 
     String payload;
     serializeJson(doc, payload);
@@ -126,6 +132,11 @@ static void mqttCallback(char *topic, byte *payload, unsigned int length) {
             return;
         }
         FirmwareUpdate::request(doc["url"] | "", doc["md5"] | "", doc["version"] | "");
+        return;
+    }
+
+    if (topicStr == streamTopic) {
+        Camera::onStreamRequest(payload, length);
         return;
     }
 
@@ -187,6 +198,7 @@ void initMQTT() {
     commandTopicPrefix = "users/" + userId + "/devices/";
     scanTopic = "users/" + userId + "/controllers/" + hardwareId() + "/scan";
     updateTopic = "users/" + userId + "/controllers/" + hardwareId() + "/update";
+    streamTopic = "users/" + userId + "/controllers/" + hardwareId() + "/stream";
 
     Serial.println("Hardware ID: " + hardwareId());
 
@@ -226,6 +238,9 @@ static bool connectMQTT() {
     ok = client.subscribe(commandTopic.c_str(), 1) && ok;
     ok = client.subscribe(scanTopic.c_str(), 0) && ok;
     ok = client.subscribe(updateTopic.c_str(), 0) && ok;
+#if defined(CAMERA_BOARD)
+    ok = client.subscribe(streamTopic.c_str(), 0) && ok;
+#endif
     Serial.println(String("[MQTT] Subscribed to ") + configTopic + " and " + commandTopic + (ok ? "" : " (FAILED)"));
 
     publishHello();
@@ -289,6 +304,24 @@ bool publishUpdateStatus(const String &payload) {
     if (!client.connected())
         return false;
     String topic = "users/" + userId + "/controllers/" + hardwareId() + "/update-status";
+    return client.publish(topic.c_str(), payload.c_str());
+}
+
+bool publishCameraFrame(const uint8_t *jpeg, size_t length) {
+    if (!client.connected())
+        return false;
+    String topic = "users/" + userId + "/controllers/" + hardwareId() + "/frame";
+    // a frame is larger than the MQTT buffer: written straight to the connection
+    if (!client.beginPublish(topic.c_str(), length, false))
+        return false;
+    size_t written = client.write(jpeg, length);
+    return client.endPublish() && written == length;
+}
+
+bool publishCameraVision(const String &payload) {
+    if (!client.connected())
+        return false;
+    String topic = "users/" + userId + "/controllers/" + hardwareId() + "/vision";
     return client.publish(topic.c_str(), payload.c_str());
 }
 

@@ -25,6 +25,7 @@ import { UsersPage } from './pages/UsersPage';
 import { ConnectPage } from './pages/ConnectPage';
 import { LibraryPage } from './pages/LibraryPage';
 import { FirmwarePage } from './pages/FirmwarePage';
+import { CamerasPage } from './pages/CamerasPage';
 import { ConfigProvider } from 'antd';
 import ukUA from 'antd/locale/uk_UA';
 import enUS from 'antd/locale/en_US';
@@ -72,6 +73,7 @@ export const router = createBrowserRouter(
         <Route element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard/overview" />} />
           <Route path="dashboard/overview" element={<DashboardPage />} />
+          <Route path="dashboard/cameras" element={<CamerasPage />} />
           {/* Map and Configurations were merged into Devices */}
           <Route path="dashboard/map" element={<Navigate to="/settings/devices" replace />} />
           <Route path="settings/devices" element={<DevicesPage />} />

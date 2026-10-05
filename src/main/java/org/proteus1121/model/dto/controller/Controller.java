@@ -45,6 +45,10 @@ public class Controller {
      */
     private Boolean displayFound;
     /**
+     * ESP32-CAM: false when its camera did not start (ribbon cable, PSRAM), null on other boards.
+     */
+    private Boolean cameraFound;
+    /**
      * Newer firmware published for this board, null when it runs the latest.
      */
     private String availableFirmware;

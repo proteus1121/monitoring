@@ -23,7 +23,9 @@ public enum SensorModel {
     DIGITAL_INPUT("Digital input", "Any digital input, HIGH = 1", List.of(DeviceType.DIGITAL), List.of("IN"), false, false),
     SOIL_MOISTURE("Soil moisture sensor", "Capacitive or resistive probe, % of water in the soil", List.of(DeviceType.SOIL_MOISTURE), List.of("AO"), true, false),
     ANALOG_INPUT("Analog input", "Raw ADC value", List.of(DeviceType.ANALOG, DeviceType.LIGHT), List.of("AO"), true, false),
-    RELAY("Relay / digital output", "Output controlled from UI, HIGH = on", List.of(DeviceType.RELAY), List.of("IN"), false, true);
+    RELAY("Relay / digital output", "Output controlled from UI, HIGH = on", List.of(DeviceType.RELAY), List.of("IN"), false, true),
+    // the camera of an ESP32-CAM: the board detects flame in its picture, no pins to wire
+    CAMERA("ESP32-CAM camera", "Flame detected in the camera image on the board, live view on the Cameras page", List.of(DeviceType.FLAME), List.of(), false, false);
 
     private final String label;
     private final String description;
@@ -34,5 +36,12 @@ public enum SensorModel {
 
     public boolean supports(DeviceType type) {
         return supportedTypes.contains(type);
+    }
+
+    /**
+     * A module on the board itself (the camera): configured without pins.
+     */
+    public boolean isPinless() {
+        return pins.isEmpty();
     }
 }

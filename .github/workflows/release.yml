@@ -62,7 +62,7 @@ jobs:
         working-directory: ./scripts/251208-101749-esp32dev
         run: |
           pip install --quiet platformio
-          pio run -e esp8266 -e esp32dev
+          pio run -e esp8266 -e esp32dev -e esp32cam
 
       # --- Broker: logins from the site database (mosquitto-go-auth), checked before anything is deployed ---
       - name: Check broker logins

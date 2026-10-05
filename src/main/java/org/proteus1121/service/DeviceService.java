@@ -136,6 +136,15 @@ public class DeviceService {
         if (device.getCalibrationDry() != null && device.getCalibrationDry().equals(device.getCalibrationWet())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dry and wet calibration values must differ");
         }
+        if (model.isPinless()) {
+            // the camera is on the board itself
+            if (!controllerService.isCameraBoard(device.getControllerId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, model.getLabel() + " needs an ESP32-CAM board");
+            }
+            device.setPin(null);
+            device.setSecondaryPin(null);
+            return;
+        }
         if (device.getPin() == null || device.getPin() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Pin is required for " + model);
         }

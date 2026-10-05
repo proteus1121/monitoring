@@ -7,7 +7,7 @@ import { Card } from '@src/components/Card';
 import { Input } from '@src/components/Input';
 import { fromNow } from '@src/lib/readings';
 import { errorMessage } from '@src/redux/helpers';
-import { BOARD_MODELS } from '@src/lib/hardware';
+import { boardModelsFor } from '@src/lib/hardware';
 import { useTexts } from '@src/lib/lang';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { AppAlertDialogModalId } from '@src/redux/modals/AlertDialog';
@@ -212,7 +212,7 @@ export function ControllerPanel(props: {
   };
 
   const boardModel = controller.boardModel;
-  const boardModels = BOARD_MODELS.filter(model => model.platform === (controller.platform ?? 'esp32'));
+  const boardModels = boardModelsFor(controller);
   const changeBoardModel = async (value: BoardModel) => {
     const res = await updateBoardModel({ id, boardModelRequest: { boardModel: value } });
     if ('error' in res) {

@@ -24,9 +24,10 @@ PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BOARDS = {
     'esp8266': {'label': 'ESP8266 · NodeMCU v2', 'chip': 'ESP8266'},
     'esp32dev': {'label': 'ESP32 DevKit', 'chip': 'ESP32'},
+    'esp32cam': {'label': 'ESP32-CAM · AI-Thinker', 'chip': 'ESP32'},
 }
 # shown on the site as coming
-PLANNED = [{'board': 'esp32cam', 'label': 'ESP32-CAM', 'note': 'camera snapshots, in progress'}]
+PLANNED = []
 
 
 def firmware_version():

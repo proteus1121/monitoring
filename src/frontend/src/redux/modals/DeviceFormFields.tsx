@@ -10,6 +10,7 @@ import { DeviceType } from '@src/lib/api/api.types';
 import {
   DEVICE_TYPE_LABELS,
   controllerPlatform,
+  CAMERA_BUILD,
   getPinOptions,
 } from '@src/lib/hardware';
 import { fromNow } from '@src/lib/readings';
@@ -255,7 +256,8 @@ export const DeviceSchema = z
         message: pick(TEXTS).selectModule,
       });
     }
-    if (!value.pin) {
+    // the camera is on the board itself
+    if (!value.pin && value.sensorModel !== 'CAMERA') {
       ctx.addIssue({ code: 'custom', path: ['pin'], message: pick(TEXTS).selectPin });
     }
   });
@@ -469,10 +471,13 @@ function GeneralFields({ form }: { form: any }) {
                         label={t.sensorModule}
                         className="w-[200px]"
                         placeholder={t.selectModulePlaceholder}
-                        options={(models ?? []).map(m => ({
-                          value: m.model!,
-                          label: m.label ?? m.model!,
-                        }))}
+                        options={(models ?? [])
+                          // the camera module exists only on an ESP32-CAM
+                          .filter(m => m.model !== 'CAMERA' || board?.board === CAMERA_BUILD)
+                          .map(m => ({
+                            value: m.model!,
+                            label: m.label ?? m.model!,
+                          }))}
                       />
                     )}
                   />
@@ -486,6 +491,7 @@ function GeneralFields({ form }: { form: any }) {
               {bound && model && (
                 <>
                   <p className="text-sm text-slate-500">{model.description}</p>
+                  {(model.pins?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-2">
                     <form.AppField
                       name="pin"
@@ -512,6 +518,7 @@ function GeneralFields({ form }: { form: any }) {
                       />
                     )}
                   </div>
+                  )}
                 </>
               )}
 

@@ -9,6 +9,7 @@ import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
+import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
@@ -17,6 +18,7 @@ public class MqttConfig {
 
     private static final String MQTT_CLIENT_ID = "consumerClient";
     private static final String MQTT_PRODUCER_ID = "producerClient";
+    private static final String MQTT_CAMERA_ID = "cameraClient";
 
     private static final String[] TOPICS = new String[]{
             "users/+/devices/+/measurements",
@@ -24,6 +26,7 @@ public class MqttConfig {
             "users/+/controllers/+/hello",
             "users/+/controllers/+/scan-result",
             "users/+/controllers/+/update-status",
+            "users/+/controllers/+/vision",
     };
 
     @Bean
@@ -61,6 +64,27 @@ public class MqttConfig {
     public MqttPahoMessageDrivenChannelAdapter mqttInbound(DefaultMqttPahoClientFactory mqttClientFactory) {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(MQTT_CLIENT_ID, mqttClientFactory, TOPICS);
         adapter.setOutputChannel(mqttInputChannel());
+        return adapter;
+    }
+
+    @Bean
+    public MessageChannel cameraFrameChannel() {
+        return new DirectChannel();
+    }
+
+    /**
+     * JPEG frames of ESP32-CAM boards (CameraFrameConsumer): binary payloads, and a client of their own so a
+     * stream of frames does not hold up the measurements.
+     */
+    @Bean
+    public MqttPahoMessageDrivenChannelAdapter cameraFrameInbound(DefaultMqttPahoClientFactory mqttClientFactory) {
+        MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(MQTT_CAMERA_ID,
+                mqttClientFactory, "users/+/controllers/+/frame");
+        DefaultPahoMessageConverter converter = new DefaultPahoMessageConverter();
+        converter.setPayloadAsBytes(true);
+        adapter.setConverter(converter);
+        adapter.setQos(0);
+        adapter.setOutputChannel(cameraFrameChannel());
         return adapter;
     }
 

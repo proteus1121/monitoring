@@ -160,6 +160,14 @@ const SENSOR_ABOUT: Record<SensorModel, About> = {
       en: 'The raw ADC value of any analog module: a photoresistor, a potentiometer, a voltage divider. On the ESP8266 the A0 input takes up to 1 V (3.3 V on NodeMCU and D1 mini).',
     },
   },
+  CAMERA: {
+    groups: ['safety'],
+    bus: ['esp32'],
+    text: {
+      uk: 'Камера OV2640 на платі ESP32-CAM: плата сама шукає полум’я в кадрі за кольором і мерехтінням (поріг частки «вогняних» пікселів, дисперсія за 8 кадрів, 3 підтвердження) і повідомляє, як датчик полум’я. Живе відео — на сторінці «Камери». Додається сама, коли плата вперше підключається.',
+      en: 'The OV2640 camera of the ESP32-CAM: the board looks for flame in the picture by colour and flicker (share of flame-coloured pixels, variance over 8 frames, 3 confirmations) and reports it like a flame sensor. Live video on the Cameras page. Added by itself when the board first connects.',
+    },
+  },
   RELAY: {
     groups: ['control'],
     bus: ['output'],
@@ -223,6 +231,13 @@ const BOARD_ABOUT: Record<BoardModel, { bus: Bus[]; text: Record<Lang, string> }
     text: {
       uk: 'Потужніша плата з двоядерним ESP32: більше виводів, кілька аналогових входів. Для багатьох датчиків на одній платі.',
       en: 'A stronger board with the dual-core ESP32: more pins and several analog inputs. For many sensors on one board.',
+    },
+  },
+  ESP32_CAM: {
+    bus: ['esp32', 'wifi'],
+    text: {
+      uk: 'ESP32 із камерою OV2640 і 4 МБ PSRAM. Окрема збірка прошивки: розпізнає полум’я в кадрі на самій платі й показує відео на сайті. Кілька вільних виводів для звичайних датчиків.',
+      en: 'An ESP32 with an OV2640 camera and 4 MB of PSRAM. A firmware build of its own: detects flame in the picture on the board and streams video to the site. A few free pins for ordinary sensors.',
     },
   },
 };

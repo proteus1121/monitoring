@@ -26,6 +26,7 @@ import {
   DISPLAY_PIN_NAMES,
   boardLayout,
   reservedPinNote,
+  pinPlatform,
 } from '@src/lib/hardware';
 import type { Controller, Device, SensorModelInfo } from '@src/redux/generatedApi';
 
@@ -98,7 +99,7 @@ export function BoardDiagram(props: {
 }) {
   const { controller, devices, models, onDeviceClick, onDisplayClick } = props;
   const display = controller.display;
-  const layout = boardLayout(controller.platform, controller.boardModel);
+  const layout = boardLayout(pinPlatform(controller), controller.boardModel);
 
   const findPin = (gpio?: number): PinRef | undefined => {
     if (gpio === undefined || gpio === null) return undefined;
@@ -187,7 +188,7 @@ export function BoardDiagram(props: {
       const x = side === 'left' ? boardX : boardX + BOARD_W;
       const y = pinY(row);
       const used = pin.gpio !== undefined && usedGpios.has(pin.gpio);
-      const note = reservedPinNote(controller.platform, pin.gpio, controller.display);
+      const note = reservedPinNote(pinPlatform(controller), pin.gpio, controller.display);
       const power = pin.gpio === undefined;
       return (
         <g key={`${side}-${row}`}>

@@ -13,6 +13,7 @@ import { useGetUserQuery } from '@src/redux/generatedApi';
 const TEXTS = {
   uk: {
     overview: 'Огляд',
+    cameras: 'Камери',
     alerts: 'Сповіщення',
     hardware: 'Обладнання',
     devices: 'Мої пристрої',
@@ -24,6 +25,7 @@ const TEXTS = {
   },
   en: {
     overview: 'Overview',
+    cameras: 'Cameras',
     alerts: 'Alerts',
     hardware: 'Hardware',
     devices: 'My devices',
@@ -42,6 +44,7 @@ const NAV: { title?: TextKey; items: { to: string; icon: string; label: TextKey 
   {
     items: [
       { to: '/dashboard/overview', icon: 'lucide:layout-dashboard', label: 'overview' },
+      { to: '/dashboard/cameras', icon: 'lucide:cctv', label: 'cameras' },
       { to: '/settings/alerts', icon: 'lucide:bell', label: 'alerts' },
     ],
   },

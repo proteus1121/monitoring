@@ -21,6 +21,8 @@ import org.proteus1121.mqtt.publisher.controller.ControllerPublisher;
 import org.proteus1121.repository.ControllerRepository;
 import org.proteus1121.repository.DeviceRepository;
 import org.proteus1121.repository.UserRepository;
+import org.proteus1121.model.dto.controller.CameraBoardRegistered;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Optional;
@@ -44,6 +46,7 @@ class ControllerServiceTest {
     private DeviceRepository deviceRepository;
     private UserRepository userRepository;
     private ControllerPublisher controllerPublisher;
+    private ApplicationEventPublisher eventPublisher;
     private ControllerService controllerService;
 
     @BeforeEach
@@ -52,9 +55,11 @@ class ControllerServiceTest {
         deviceRepository = mock(DeviceRepository.class);
         userRepository = mock(UserRepository.class);
         controllerPublisher = mock(ControllerPublisher.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         controllerService = new ControllerService(controllerRepository, deviceRepository, userRepository,
                 controllerPublisher, new ObjectMapper(), mock(ControllerShareRepository.class),
-                mock(UserDeviceService.class), mock(MqttAccountService.class));
+                mock(UserDeviceService.class), mock(MqttAccountService.class),
+                eventPublisher);
 
         when(userRepository.existsById(1L)).thenReturn(true);
         when(controllerRepository.save(any())).thenAnswer(invocation -> {
@@ -74,7 +79,7 @@ class ControllerServiceTest {
                 device(11L, DeviceType.TEMPERATURE, SensorModel.DHT11, 16),
                 device(13L, DeviceType.LIGHT, null, null)));
 
-        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.0.0", "10.0.0.2", "", true, null));
+        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.0.0", "10.0.0.2", "", true, null, null));
 
         ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
         verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
@@ -98,7 +103,7 @@ class ControllerServiceTest {
                 device(11L, DeviceType.RELAY, SensorModel.RELAY, 4)));
 
         String version = controllerService.buildConfiguration(5L).v();
-        controllerService.handleHello(1L, "esp32-1", new ControllerHello("esp32", "2.0.0", "10.0.0.3", version, true, null));
+        controllerService.handleHello(1L, "esp32-1", new ControllerHello("esp32", "2.0.0", "10.0.0.3", version, true, null, null));
 
         verify(controllerPublisher, never()).publishConfiguration(any(), anyString(), any());
         assertEquals(version, controller.getAppliedConfigVersion());
@@ -109,7 +114,7 @@ class ControllerServiceTest {
         when(controllerRepository.findByHardwareId("esp8266-abc")).thenReturn(Optional.empty());
         when(deviceRepository.findByControllerId(5L)).thenReturn(List.of());
 
-        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.1.0", "10.0.0.2", "", true, null));
+        controllerService.handleHello(1L, "esp8266-abc", new ControllerHello("esp8266", "2.1.0", "10.0.0.2", "", true, null, null));
 
         ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
         verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp8266-abc"), captor.capture());
@@ -163,10 +168,64 @@ class ControllerServiceTest {
 
     @Test
     void helloForUnknownUserIsIgnored() {
-        controllerService.handleHello(99L, "esp32-x", new ControllerHello("esp32", "2.0.0", null, null, true, null));
+        controllerService.handleHello(99L, "esp32-x", new ControllerHello("esp32", "2.0.0", null, null, true, null, null));
 
         verify(controllerRepository, never()).save(any());
         verify(controllerPublisher, never()).publishConfiguration(any(), anyString(), any());
+    }
+
+    @Test
+    void newCameraGetsItsBoardModelNoDisplayAndAFlameDevice() {
+        when(controllerRepository.findByHardwareId("esp32-cam1")).thenReturn(Optional.empty());
+        DeviceEntity camera = device(14L, DeviceType.FLAME, SensorModel.CAMERA, null);
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of(camera));
+        ArgumentCaptor<ControllerEntity> saved = ArgumentCaptor.forClass(ControllerEntity.class);
+
+        controllerService.handleHello(1L, "esp32-cam1",
+                new ControllerHello("esp32", "2.8.0", "10.0.0.4", "", null, "esp32cam", true));
+
+        verify(controllerRepository).save(saved.capture());
+        assertEquals(BoardModel.ESP32_CAM, saved.getValue().getBoardModel());
+        assertEquals(Boolean.TRUE, saved.getValue().getCameraFound());
+        verify(eventPublisher).publishEvent(new CameraBoardRegistered(5L, 1L));
+        ArgumentCaptor<ControllerConfiguration> captor = ArgumentCaptor.forClass(ControllerConfiguration.class);
+        verify(controllerPublisher).publishConfiguration(eq(1L), eq("esp32-cam1"), captor.capture());
+        // the camera takes the pins of the default ESP32 display
+        assertEquals(DisplayModel.NONE, captor.getValue().display().model());
+        // the camera module has no pins and is sent anyway
+        assertEquals(1, captor.getValue().devices().size());
+        assertEquals(SensorModel.CAMERA, captor.getValue().devices().get(0).model());
+    }
+
+    @Test
+    void knownCameraDoesNotGetAnotherFlameDevice() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setHardwareId("esp32-cam1");
+        controller.setBoard("esp32cam");
+        controller.setBoardModel(BoardModel.ESP32_CAM);
+        when(controllerRepository.findByHardwareId("esp32-cam1")).thenReturn(Optional.of(controller));
+        when(deviceRepository.findByControllerId(5L)).thenReturn(List.of());
+
+        controllerService.handleHello(1L, "esp32-cam1",
+                new ControllerHello("esp32", "2.8.0", "10.0.0.4", "", null, "esp32cam", true));
+
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void cameraBoardModelOnlyForTheCameraFirmware() {
+        ControllerEntity controller = new ControllerEntity();
+        controller.setId(5L);
+        controller.setUserId(1L);
+        controller.setPlatform("esp32");
+        controller.setBoard("esp32dev");
+        when(controllerRepository.findById(5L)).thenReturn(Optional.of(controller));
+
+        assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 1L, BoardModel.ESP32_CAM));
+        controller.setBoard("esp32cam");
+        assertThrows(ResponseStatusException.class, () -> controllerService.setBoardModel(5L, 1L, BoardModel.ESP32_DEVKIT));
     }
 
     private DeviceEntity device(Long id, DeviceType type, SensorModel model, Integer pin) {

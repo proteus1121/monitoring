@@ -98,5 +98,11 @@ public class ControllerEntity {
     @Column(name = "display_found")
     private Boolean displayFound;
 
+    /**
+     * Whether the camera of an ESP32-CAM answered at its last hello, null on other boards.
+     */
+    @Column(name = "camera_found")
+    private Boolean cameraFound;
+
     private LocalDateTime created = LocalDateTime.now();
 }

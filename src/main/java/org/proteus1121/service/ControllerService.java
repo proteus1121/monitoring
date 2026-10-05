@@ -28,6 +28,8 @@ import org.proteus1121.mqtt.publisher.controller.ControllerPublisher;
 import org.proteus1121.repository.ControllerRepository;
 import org.proteus1121.repository.DeviceRepository;
 import org.proteus1121.repository.UserRepository;
+import org.proteus1121.model.dto.controller.CameraBoardRegistered;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -64,6 +66,7 @@ public class ControllerService {
     private final ControllerShareRepository controllerShareRepository;
     private final UserDeviceService userDeviceService;
     private final MqttAccountService mqttAccountService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void handleHello(Long userId, String hardwareId, ControllerHello hello) {
@@ -87,12 +90,21 @@ public class ControllerService {
         if (hello.board() != null) {
             controller.setBoard(hello.board());
         }
+        // the camera build tells the board; the first time it is seen, it also gets its flame device
+        boolean newCamera = BoardModel.isCamera(hello.board()) && controller.getBoardModel() == null;
+        if (newCamera) {
+            controller.setBoardModel(BoardModel.ESP32_CAM);
+        }
+        controller.setCameraFound(hello.cam());
         controller.setFirmwareVersion(hello.fw());
         controller.setIpAddress(hello.ip());
         controller.setAppliedConfigVersion(hello.v());
         controller.setDisplayFound(hello.disp());
         controller.setLastSeen(LocalDateTime.now());
         controller = controllerRepository.save(controller);
+        if (newCamera) {
+            eventPublisher.publishEvent(new CameraBoardRegistered(controller.getId(), userId));
+        }
 
         ControllerConfiguration configuration = buildConfiguration(controller);
         if (!Objects.equals(configuration.v(), hello.v())) {
@@ -219,7 +231,7 @@ public class ControllerService {
      */
     public DisplaySettings displayOf(ControllerEntity controller) {
         if (controller.getDisplayModel() == null) {
-            return DisplaySettings.defaultFor(controller.getPlatform());
+            return DisplaySettings.defaultFor(controller.getPlatform(), controller.getBoard());
         }
         List<Integer> pins = controller.getDisplayPins() == null || controller.getDisplayPins().isBlank()
                 ? List.of()
@@ -292,6 +304,12 @@ public class ControllerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     boardModel.getLabel() + " does not fit a " + controller.getPlatform() + " board");
         }
+        // the camera firmware runs only on the ESP32-CAM, and that board only with it
+        if ((boardModel == BoardModel.ESP32_CAM) != BoardModel.isCamera(controller.getBoard())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, boardModel == BoardModel.ESP32_CAM
+                    ? "The board does not run the ESP32-CAM firmware"
+                    : "The board runs the ESP32-CAM firmware");
+        }
         controller.setBoardModel(boardModel);
         return toController(controllerRepository.save(controller));
     }
@@ -344,6 +362,15 @@ public class ControllerService {
                         buildConfiguration(controller)));
     }
 
+    /**
+     * The board runs the ESP32-CAM firmware, false for null or an unknown id.
+     */
+    public boolean isCameraBoard(Long controllerId) {
+        return controllerId != null && controllerRepository.findById(controllerId)
+                .map(controller -> BoardModel.isCamera(controller.getBoard()))
+                .orElse(false);
+    }
+
     public void sendCommand(Long controllerId, Long deviceId, double value) {
         ControllerEntity controller = controllerRepository.findById(controllerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Device is not bound to a controller"));
@@ -364,7 +391,8 @@ public class ControllerService {
     private ControllerConfiguration buildConfiguration(Long controllerId, DisplaySettings display,
                                                        DisplayLanguage language) {
         List<ControllerConfiguration.Channel> channels = deviceRepository.findByControllerId(controllerId).stream()
-                .filter(device -> device.getSensorModel() != null && device.getPin() != null && device.getType() != null)
+                .filter(device -> device.getSensorModel() != null && device.getType() != null
+                        && (device.getPin() != null || device.getSensorModel().isPinless()))
                 .sorted(Comparator.comparing(DeviceEntity::getId))
                 .map(device -> new ControllerConfiguration.Channel(
                         device.getId(),
@@ -412,7 +440,7 @@ public class ControllerService {
         controller.setPlatform(entity.getPlatform());
         controller.setBoard(entity.getBoard());
         controller.setBoardModel(entity.getBoardModel() != null ? entity.getBoardModel()
-                : BoardModel.defaultFor(entity.getPlatform()));
+                : BoardModel.defaultFor(entity.getPlatform(), entity.getBoard()));
         controller.setFirmwareVersion(entity.getFirmwareVersion());
         controller.setIpAddress(entity.getIpAddress());
         controller.setLastSeen(entity.getLastSeen());
@@ -422,6 +450,7 @@ public class ControllerService {
         controller.setDisplay(displayOf(entity));
         controller.setDisplayLanguage(DisplayLanguage.orDefault(entity.getDisplayLanguage()));
         controller.setDisplayFound(entity.getDisplayFound());
+        controller.setCameraFound(entity.getCameraFound());
         controller.setSynced(Objects.equals(configuration.v(), entity.getAppliedConfigVersion()));
         controller.setDeviceCount(configuration.devices().size());
         return controller;

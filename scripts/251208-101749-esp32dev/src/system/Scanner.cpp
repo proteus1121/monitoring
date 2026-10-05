@@ -26,6 +26,13 @@ const PinInfo PINS[] = {
     {2, true, false, false, 1},   {14, true, false, false, 0}, {12, true, false, false, 0},
     {13, true, false, false, 0},  {15, true, false, false, -1}, {A0, false, true, true, 0},
 };
+#elif defined(CAMERA_BOARD)
+// ESP32-CAM: the camera and its PSRAM take everything but the pins of the SD card slot (no card is used);
+// GPIO4 drives the flash LED through a transistor, which pulls it down. Their ADC2 does not work with Wi-Fi.
+const PinInfo PINS[] = {
+    {2, true, false, false, 0},  {4, true, false, false, -1}, {12, true, false, false, 0},
+    {13, true, false, false, 0}, {14, true, false, false, 0}, {15, true, false, false, 0},
+};
 #else
 // ESP32 DevKit: GPIO0 is the BOOT button, 1 / 3 the USB serial port, 6-11 the flash; GPIO2 drives the
 // on-board LED, which pulls it down

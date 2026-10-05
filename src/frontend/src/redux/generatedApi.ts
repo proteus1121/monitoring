@@ -8,6 +8,7 @@ export const addTagTypes = [
   "Metrics",
   "Text generation",
   "Incident Management",
+  "Cameras",
 ] as const;
 const injectedRtkApi = api
   .enhanceEndpoints({
@@ -448,6 +449,22 @@ const injectedRtkApi = api
         query: () => ({ url: `/controllers/display-models` }),
         providesTags: ["Controller Management"],
       }),
+      getCameras: build.query<GetCamerasApiResponse, GetCamerasApiArg>({
+        query: () => ({ url: `/cameras` }),
+        providesTags: ["Cameras"],
+      }),
+      getVision: build.query<GetVisionApiResponse, GetVisionApiArg>({
+        query: (queryArg) => ({ url: `/cameras/${queryArg.id}/vision` }),
+        providesTags: ["Cameras"],
+      }),
+      stream: build.query<StreamApiResponse, StreamApiArg>({
+        query: (queryArg) => ({ url: `/cameras/${queryArg.id}/stream` }),
+        providesTags: ["Cameras"],
+      }),
+      getSnapshot: build.query<GetSnapshotApiResponse, GetSnapshotApiArg>({
+        query: (queryArg) => ({ url: `/cameras/${queryArg.id}/snapshot` }),
+        providesTags: ["Cameras"],
+      }),
       unshareController: build.mutation<
         UnshareControllerApiResponse,
         UnshareControllerApiArg
@@ -662,6 +679,20 @@ export type GetSensorModelsApiArg = void;
 export type GetDisplayModelsApiResponse =
   /** status 200 OK */ DisplayModelInfo[];
 export type GetDisplayModelsApiArg = void;
+export type GetCamerasApiResponse = /** status 200 OK */ Camera[];
+export type GetCamerasApiArg = void;
+export type GetVisionApiResponse = /** status 200 OK */ CameraVision;
+export type GetVisionApiArg = {
+  id: number;
+};
+export type StreamApiResponse = unknown;
+export type StreamApiArg = {
+  id: number;
+};
+export type GetSnapshotApiResponse = unknown;
+export type GetSnapshotApiArg = {
+  id: number;
+};
 export type UnshareControllerApiResponse = unknown;
 export type UnshareControllerApiArg = {
   id: number;
@@ -724,7 +755,8 @@ export type SensorModel =
   | "DIGITAL_INPUT"
   | "SOIL_MOISTURE"
   | "ANALOG_INPUT"
-  | "RELAY";
+  | "RELAY"
+  | "CAMERA";
 export type ForecastModel = "NONE" | "XGBOOST" | "ARIMA" | "KALMAN";
 export type DeviceRole = "OWNER" | "EDITOR" | "VIEWER";
 export type DeviceUser = {
@@ -799,7 +831,7 @@ export type ShareDeviceRequest = {
   username: string;
   role: DeviceRole;
 };
-export type BoardModel = "NODEMCU" | "D1_MINI" | "ESP32_DEVKIT";
+export type BoardModel = "NODEMCU" | "D1_MINI" | "ESP32_DEVKIT" | "ESP32_CAM";
 export type DisplayModel = "NONE" | "ST7565" | "SSD1306" | "SH1106";
 export type DisplaySettings = {
   model: DisplayModel;
@@ -832,6 +864,7 @@ export type Controller = {
   display?: DisplaySettings;
   displayLanguage?: DisplayLanguage;
   displayFound?: boolean;
+  cameraFound?: boolean;
   availableFirmware?: string;
   firmwareUpdate?: FirmwareUpdateStatus;
 };
@@ -1012,6 +1045,31 @@ export type DisplayModelInfo = {
   pins: string[];
   bus?: string;
 };
+export type CameraVision = {
+  alarm: boolean;
+  ratio: number;
+  variance: number;
+  consec: number;
+  confirm: number;
+  box?: number[];
+  width: number;
+  height: number;
+  fps: number;
+  cameraFps: number;
+  mean?: number[];
+  received: string;
+};
+export type Camera = {
+  controllerId: number;
+  name: string;
+  hardwareId: string;
+  role: DeviceRole;
+  online: boolean;
+  cameraFound?: boolean;
+  firmwareVersion?: string;
+  flameDeviceId?: number;
+  vision?: CameraVision;
+};
 export const {
   useGetNotificationByIdQuery,
   useLazyGetNotificationByIdQuery,
@@ -1086,5 +1144,13 @@ export const {
   useLazyGetSensorModelsQuery,
   useGetDisplayModelsQuery,
   useLazyGetDisplayModelsQuery,
+  useGetCamerasQuery,
+  useLazyGetCamerasQuery,
+  useGetVisionQuery,
+  useLazyGetVisionQuery,
+  useStreamQuery,
+  useLazyStreamQuery,
+  useGetSnapshotQuery,
+  useLazyGetSnapshotQuery,
   useUnshareControllerMutation,
 } = injectedRtkApi;

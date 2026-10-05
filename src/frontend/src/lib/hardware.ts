@@ -67,7 +67,32 @@ const ESP32_PINS: PinSpec[] = [
   { gpio: 39, label: 'GPIO39 / VN (ADC, input only)', analog: true, inputOnly: true },
 ];
 
+// AI-Thinker ESP32-CAM: the camera and its PSRAM take the rest; these are the SD card slot's (no card is used)
+const ESP32_CAM_PINS: PinSpec[] = [
+  { gpio: 0, label: 'GPIO0 - camera clock', reserved: true },
+  { gpio: 2, label: 'GPIO2' },
+  { gpio: 4, label: 'GPIO4 - flash LED' },
+  { gpio: 12, label: 'GPIO12 - must be LOW at boot' },
+  { gpio: 13, label: 'GPIO13' },
+  { gpio: 14, label: 'GPIO14' },
+  { gpio: 15, label: 'GPIO15' },
+  { gpio: 16, label: 'GPIO16 - PSRAM', reserved: true },
+  { gpio: 3, label: 'U0R (GPIO3) - serial port', reserved: true },
+  { gpio: 1, label: 'U0T (GPIO1) - serial log', reserved: true },
+];
+
+// firmware build of the ESP32-CAM: its pins differ from any ESP32 board
+export const CAMERA_BUILD = 'esp32cam';
+
+/**
+ * What decides the pins of a board: its platform, or the camera build for an ESP32-CAM.
+ */
+export function pinPlatform(controller?: Pick<Controller, 'platform' | 'board'>) {
+  return controller?.board === CAMERA_BUILD ? CAMERA_BUILD : controller?.platform;
+}
+
 function pinSpecs(platform?: string) {
+  if (platform === CAMERA_BUILD) return ESP32_CAM_PINS;
   return platform === 'esp8266' ? ESP8266_PINS : ESP32_PINS;
 }
 
@@ -198,7 +223,7 @@ export function controllerPlatform(
   controllers: Controller[] | undefined,
   controllerId?: number
 ) {
-  return controllers?.find(c => c.id === controllerId)?.platform;
+  return pinPlatform(controllers?.find(c => c.id === controllerId));
 }
 
 export type BoardPin = {
@@ -314,17 +339,55 @@ const ESP32_DEVKIT_LAYOUT: BoardLayout = {
   ],
 };
 
-export const BOARD_MODELS: { value: BoardModel; label: string; platform: string }[] = [
+// AI-Thinker ESP32-CAM from the back (pins down), the camera connector at the top
+const ESP32_CAM_LAYOUT: BoardLayout = {
+  name: 'AI-Thinker ESP32-CAM',
+  left: [
+    { label: '5V' },
+    { label: 'GND' },
+    { label: 'IO12', gpio: 12 },
+    { label: 'IO13', gpio: 13 },
+    { label: 'IO15', gpio: 15 },
+    { label: 'IO14', gpio: 14 },
+    { label: 'IO2', gpio: 2 },
+    { label: 'IO4', gpio: 4 },
+  ],
+  right: [
+    { label: '3V3' },
+    { label: 'IO16', gpio: 16 },
+    { label: 'IO0', gpio: 0 },
+    { label: 'GND' },
+    { label: 'VCC' },
+    { label: 'U0R', gpio: 3 },
+    { label: 'U0T', gpio: 1 },
+    { label: 'GND' },
+  ],
+};
+
+// `build`: only for boards running this firmware build (the camera has its own), never for others
+export const BOARD_MODELS: { value: BoardModel; label: string; platform: string; build?: string }[] = [
   { value: 'NODEMCU', label: 'NodeMCU v2', platform: 'esp8266' },
   { value: 'D1_MINI', label: 'Wemos D1 mini', platform: 'esp8266' },
   { value: 'ESP32_DEVKIT', label: 'ESP32 DevKit', platform: 'esp32' },
+  { value: 'ESP32_CAM', label: 'AI-Thinker ESP32-CAM', platform: 'esp32', build: CAMERA_BUILD },
 ];
+
+/**
+ * Board models the user can pick for a board: by the chip, and the camera only for the camera build.
+ */
+export function boardModelsFor(controller: Pick<Controller, 'platform' | 'board'>) {
+  const camera = controller.board === CAMERA_BUILD;
+  return BOARD_MODELS.filter(
+    model => model.platform === (controller.platform ?? 'esp32') && (model.build === CAMERA_BUILD) === camera
+  );
+}
 
 // the board the user picked; the firmware only knows the chip
 export function boardLayout(platform?: string, boardModel?: BoardModel): BoardLayout {
   if (platform === 'esp8266') {
     return boardModel === 'D1_MINI' ? D1_MINI_LAYOUT : NODEMCU_LAYOUT;
   }
+  if (platform === CAMERA_BUILD || boardModel === 'ESP32_CAM') return ESP32_CAM_LAYOUT;
   return ESP32_DEVKIT_LAYOUT;
 }
 

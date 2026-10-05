@@ -8,7 +8,11 @@
 #include "system/FirmwareUpdate.h"
 #include "display/Screens.h"
 #include "display/Texts.h"
+#include "camera/Camera.h"
 #include <Arduino.h>
+#if defined(CAMERA_BOARD)
+#include <Preferences.h>
+#endif
 
 // include the appropriate WiFi header for each platform
 #if defined(ESP8266)
@@ -32,6 +36,9 @@
 // (ST7565 SPI, SSD1306 / SH1106 I2C) and saved to flash; until then the board uses the one it shipped with:
 //   ESP32   - SSD1306 on I2C SDA 27 / SCL 14
 //   ESP8266 - ST7565 over SPI on D5, D6, D2, D7, D4
+//
+// ESP32-CAM (env esp32cam): GPIO0 is the camera clock, so there is no BOOT button: press RST twice within
+// 5 s to open the setup page. No display by default, the camera takes most pins.
 //----------------------------------------------------------------------
 
 // BOOT (ESP32) / FLASH (ESP8266 NodeMCU) button, GPIO0 on both. Only read after boot, when the pin is a
@@ -45,6 +52,30 @@ static const unsigned long SETUP_INFO_INTERVAL_MS = 5000;
 // page (a double press would clash with flipping pages quickly).
 const unsigned long BOOT_HOLD_TIME = 3000;
 const unsigned long DEBOUNCE_MS = 30;
+
+#if defined(CAMERA_BOARD)
+// RST twice within this time opens the setup page
+static const unsigned long DOUBLE_RESET_WINDOW_MS = 5000;
+static Preferences bootPrefs;
+static bool doubleResetWindowOpen = false;
+
+// A flag set at every boot and cleared DOUBLE_RESET_WINDOW_MS later: still set means RST was pressed again
+// within the window. Kept in NVS, not in RTC memory: RST of this board power-cycles the RTC domain too.
+bool doubleReset() {
+    bootPrefs.begin("boot", false);
+    bool again = bootPrefs.getBool("armed", false);
+    bootPrefs.putBool("armed", !again);
+    doubleResetWindowOpen = !again;
+    return again;
+}
+
+void closeDoubleResetWindow() {
+    if (doubleResetWindowOpen && millis() > DOUBLE_RESET_WINDOW_MS) {
+        bootPrefs.putBool("armed", false);
+        doubleResetWindowOpen = false;
+    }
+}
+#endif
 
 void checkBootButton() {
     static bool pressed = false;
@@ -109,7 +140,13 @@ void setup() {
     Serial.println();
     Serial.println("Monitoring firmware " FIRMWARE_VERSION);
 
+#if defined(CAMERA_BOARD)
+    bool setupRequested = doubleReset();
+    // before the Wi-Fi: the detection runs whether the board gets online or not
+    Camera::begin();
+#else
     pinMode(PIN_BOOT, INPUT_PULLUP);
+#endif
 
     Storage::begin();
     Texts::begin();
@@ -128,6 +165,12 @@ void setup() {
 
     Screens::connecting(ServerManager::getSavedSsid());
 
+#if defined(CAMERA_BOARD)
+    if (setupRequested) {
+        Serial.println("[BOOT] RST pressed twice - entering setup mode");
+        ServerManager::enterSetupMode();
+    } else
+#endif
     ServerManager::connect();
 
     if (ServerManager::isConfigured()) {
@@ -147,7 +190,11 @@ void loop() {
         // nothing else while the new firmware is written
         return;
     }
+#if defined(CAMERA_BOARD)
+    closeDoubleResetWindow();
+#else
     checkBootButton();
+#endif
     ServerManager::loop();
 
     if (!ServerManager::isConfigured()) {
@@ -164,6 +211,7 @@ void loop() {
     Scanner::loop();
     FirmwareUpdate::loop();
     DeviceManager::loop();
+    Camera::loop();
 
     static unsigned long lastRender = 0;
     if (millis() - lastRender >= DISPLAY_REFRESH_MS) {

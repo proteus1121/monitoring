@@ -17,7 +17,7 @@ import {
 } from '@src/components/PageHeader';
 import { Loader } from '@src/components/Loader';
 import { PageLayout } from '@src/layouts/PageLayout';
-import { DEVICE_TYPE_LABELS, DISPLAY_PIN_NAMES, deviceStatusLabel, getPinLabel } from '@src/lib/hardware';
+import { DEVICE_TYPE_LABELS, DISPLAY_PIN_NAMES, deviceStatusLabel, getPinLabel, pinPlatform } from '@src/lib/hardware';
 import { useTexts } from '@src/lib/lang';
 import { ModuleArt } from '@src/components/ModuleArt';
 import { formatReading, fromNow } from '@src/lib/readings';
@@ -362,9 +362,9 @@ function DevicesTable(props: {
                     <>
                       {!compact && <>{controller?.name ?? `${t.board} #${device.controllerId}`} · </>}
                       {model?.label ?? device.sensorModel ?? t.noModule} ·{' '}
-                      {getPinLabel(controller?.platform, device.pin)}
+                      {getPinLabel(pinPlatform(controller), device.pin)}
                       {device.secondaryPin !== undefined && device.secondaryPin !== null &&
-                        ` / ${getPinLabel(controller?.platform, device.secondaryPin)}`}
+                        ` / ${getPinLabel(pinPlatform(controller), device.secondaryPin)}`}
                     </>
                   ) : (
                     <span className="text-slate-400">{t.notWired}</span>
@@ -421,7 +421,7 @@ function DevicesTable(props: {
           {displays.map(board => {
             const display = board.display!;
             const pins = display.pins
-              .map((gpio, i) => `${DISPLAY_PIN_NAMES[display.model][i]} ${getPinLabel(board.platform, gpio)}`)
+              .map((gpio, i) => `${DISPLAY_PIN_NAMES[display.model][i]} ${getPinLabel(pinPlatform(board), gpio)}`)
               .join(' / ');
             return (
               <tr

@@ -53,6 +53,8 @@ static const IPAddress SETUP_DNS(8, 8, 8, 8);
 
 #if defined(ESP8266)
 String ServerManager::apSsid = "ESP8266-Setup";
+#elif defined(CAMERA_BOARD)
+String ServerManager::apSsid = "ESP32-CAM-Setup";
 #else
 String ServerManager::apSsid = "ESP32-Setup";
 #endif

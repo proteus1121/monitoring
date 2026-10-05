@@ -13,6 +13,9 @@
 #include "../sensors/digital/DigitalInputSensor.h"
 #include "../sensors/mq2/MQ2Sensor.h"
 #include "../sensors/relay/RelayOutput.h"
+#if defined(CAMERA_BOARD)
+#include "../sensors/camera/CameraFlameSensor.h"
+#endif
 #include <ArduinoJson.h>
 #include <map>
 #include <vector>
@@ -62,6 +65,23 @@ std::vector<Channel> channels;
 std::map<uint32_t, float> pendingCommands;
 String appliedVersion = "";
 
+// modules on the board itself, configured without pins
+bool isPinless(const String &model) {
+    return model == "CAMERA";
+}
+
+#if defined(CAMERA_BOARD)
+// AI-Thinker ESP32-CAM: the camera (GPIO0 is its clock) and the PSRAM (GPIO16)
+bool isCameraPin(uint8_t pin) {
+    static const uint8_t PINS[] = {0, 5, 16, 18, 19, 21, 22, 23, 25, 26, 27, 32, 34, 35, 36, 39};
+    for (uint8_t p : PINS) {
+        if (p == pin)
+            return true;
+    }
+    return false;
+}
+#endif
+
 bool isAnalogModel(const String &model) {
     return model == "MQ2" || model == "ANALOG_INPUT" || model == "SOIL_MOISTURE";
 }
@@ -77,6 +97,12 @@ bool isAnalogPin(uint8_t pin) {
 
 // Pins that cannot be used for devices on this board, the reason is written to `reason`.
 bool isReservedPin(uint8_t pin, const String &model, const char *&reason) {
+#if defined(CAMERA_BOARD)
+    if (isCameraPin(pin)) {
+        reason = "used by the camera";
+        return true;
+    }
+#endif
     if (pin == 0) {
         reason = "BOOT / FLASH button";
         return true;
@@ -128,6 +154,12 @@ bool applyDisplay(JsonObject display) {
     }
     for (uint8_t i = 0; i < config.pinCount(); i++) {
         config.pins[i] = pins[i] | 0;
+#if defined(CAMERA_BOARD)
+        if (isCameraPin(config.pins[i])) {
+            Serial.printf("[CONFIG] Display ignored: GPIO%u is used by the camera\n", config.pins[i]);
+            return false;
+        }
+#endif
     }
     if (config == oled.config())
         return false;
@@ -157,6 +189,10 @@ ISensor *createSensor(const String &model, uint8_t pin, uint8_t pin2, int dry, i
         return new SoilMoistureSensor(pin, dry, wet);
     if (model == "RELAY")
         return new RelayOutput(pin);
+#if defined(CAMERA_BOARD)
+    if (model == "CAMERA")
+        return new CameraFlameSensor();
+#endif
     return nullptr;
 }
 
@@ -314,11 +350,16 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
         c.lastValue = 0;
 
         const char *reason = "";
-        if (c.id == 0 || c.model.length() == 0 || c.pin == NONE) {
+        bool pinless = isPinless(c.model);
+        if (pinless) {
+            c.pin = NONE;
+            c.pin2 = NONE;
+        }
+        if (c.id == 0 || c.model.length() == 0 || (c.pin == NONE && !pinless)) {
             Serial.printf("[CONFIG] Skipping incomplete device %lu\n", (unsigned long)c.id);
             continue;
         }
-        if (isReservedPin(c.pin, c.model, reason) || (c.pin2 != NONE && isReservedPin(c.pin2, c.model, reason))) {
+        if (!pinless && isReservedPin(c.pin, c.model, reason) || (c.pin2 != NONE && isReservedPin(c.pin2, c.model, reason))) {
             Serial.printf("[CONFIG] Skipping device %lu: pin %u %s\n", (unsigned long)c.id, c.pin, reason);
             continue;
         }
@@ -341,8 +382,9 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
         if (out != outputs.end())
             c.sensor->write(out->second);
 
-        Serial.printf("[CONFIG] Device %lu: %s via %s pin %u%s, every %lu ms\n", (unsigned long)c.id, c.type.c_str(),
-                      c.model.c_str(), c.pin, c.pin2 != NONE ? (String("/") + c.pin2).c_str() : "", (unsigned long)c.delay);
+        String pins = pinless ? String("") : " pin " + String(c.pin) + (c.pin2 != NONE ? "/" + String(c.pin2) : "");
+        Serial.printf("[CONFIG] Device %lu: %s via %s%s, every %lu ms\n", (unsigned long)c.id, c.type.c_str(),
+                      c.model.c_str(), pins.c_str(), (unsigned long)c.delay);
         channels.push_back(c);
     }
 

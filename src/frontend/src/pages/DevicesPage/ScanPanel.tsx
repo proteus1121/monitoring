@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/components/Select';
-import { getPinLabel } from '@src/lib/hardware';
+import { getPinLabel, pinPlatform } from '@src/lib/hardware';
 import { useModal } from '@src/redux/modals/modals.hook';
 import { DeviceCreationModalId } from '@src/redux/modals/DeviceCreationModal';
 import {
@@ -127,7 +127,7 @@ export function ScanPanel(props: { controller: Controller; onClose: () => void }
     setPending(scan?.status === 'PENDING');
   }, [scan?.status]);
 
-  const pinText = (pins: number[]) => pins.map(pin => getPinLabel(controller.platform, pin)).join(' / ');
+  const pinText = (pins: number[]) => pins.map(pin => getPinLabel(pinPlatform(controller), pin)).join(' / ');
 
   const again = async () => {
     setAdded(new Set());

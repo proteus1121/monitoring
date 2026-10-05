@@ -1,6 +1,7 @@
 package org.proteus1121.model.dto.controller;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.proteus1121.model.enums.BoardModel;
 import org.proteus1121.model.enums.DisplayModel;
 
 import java.util.List;
@@ -21,6 +22,16 @@ public record DisplaySettings(@Schema(requiredMode = REQUIRED) DisplayModel mode
      * What the firmware uses before the site configured anything: the displays the boards shipped with.
      */
     public static DisplaySettings defaultFor(String platform) {
+        return defaultFor(platform, null);
+    }
+
+    /**
+     * @param board firmware build; the ESP32-CAM has no display, the camera takes its pins
+     */
+    public static DisplaySettings defaultFor(String platform, String board) {
+        if (BoardModel.isCamera(board)) {
+            return new DisplaySettings(DisplayModel.NONE, List.of(), false);
+        }
         if ("esp8266".equalsIgnoreCase(platform)) {
             // NodeMCU: CLK D5, DIN D6, CS D2, DC D7, RST D4; the module is mounted upside down
             return new DisplaySettings(DisplayModel.ST7565, List.of(14, 12, 4, 13, 2), true);

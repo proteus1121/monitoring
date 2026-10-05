@@ -18,6 +18,7 @@ public class ControllerPublisher {
     private static final String COMMAND_TOPIC = "users/%d/devices/%d/command";
     private static final String SCAN_TOPIC = "users/%d/controllers/%s/scan";
     private static final String UPDATE_TOPIC = "users/%d/controllers/%s/update";
+    private static final String STREAM_TOPIC = "users/%d/controllers/%s/stream";
 
     private final MessagePublisher publisher;
     private final ObjectMapper objectMapper;
@@ -65,6 +66,14 @@ public class ControllerPublisher {
         String topic = UPDATE_TOPIC.formatted(userId, hardwareId);
         log.info("Publishing firmware update to {}: {}", topic, payload);
         publisher.publishMessage(topic, payload, false);
+    }
+
+    /**
+     * Not retained: "1" asks an ESP32-CAM for frames for the next 30 s and is repeated while somebody watches,
+     * "0" stops them.
+     */
+    public void publishStreamRequest(Long userId, String hardwareId, boolean on) {
+        publisher.publishMessage(STREAM_TOPIC.formatted(userId, hardwareId), on ? "1" : "0", false);
     }
 
     /**

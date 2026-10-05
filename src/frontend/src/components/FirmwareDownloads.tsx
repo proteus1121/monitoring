@@ -23,6 +23,7 @@ export const BOARDS: Board[] = [
   { model: 'NODEMCU', label: 'NodeMCU v2', chip: 'ESP8266', build: 'esp8266' },
   { model: 'D1_MINI', label: 'Wemos D1 mini', chip: 'ESP8266', build: 'esp8266' },
   { model: 'ESP32_DEVKIT', label: 'ESP32 DevKit', chip: 'ESP32', build: 'esp32dev' },
+  { model: 'ESP32_CAM', label: 'AI-Thinker ESP32-CAM', chip: 'ESP32', build: 'esp32cam' },
 ];
 
 const TEXTS = {
@@ -42,6 +43,11 @@ const TEXTS = {
       ESP32_DEVKIT: [
         'Аналогові входи: GPIO32–39 (ADC2 не працює разом із Wi-Fi).',
         'Кнопка BOOT (GPIO0): коротке натискання гортає сторінки дисплея, утримання 3 с відкриває сторінку налаштування.',
+      ],
+      ESP32_CAM: [
+        'Камера розпізнає полум’я на самій платі; трансляція — на сторінці «Камери».',
+        'Вільні виводи: GPIO2, 4, 12–15 (аналогових немає). Кнопки BOOT немає: двічі натисніть RST протягом 5 с, щоб відкрити сторінку налаштування.',
+        'Прошивається через USB-адаптер (ESP32-CAM-MB) або UART із GPIO0 на GND під час старту.',
       ],
     } as Record<BoardModel, string[]>,
     download: 'Завантажити для USB',
@@ -71,6 +77,11 @@ const TEXTS = {
       ESP32_DEVKIT: [
         'Analog inputs: GPIO32–39 (ADC2 does not work together with Wi-Fi).',
         'BOOT button (GPIO0): a short press flips the display pages, holding it 3 s opens the setup page.',
+      ],
+      ESP32_CAM: [
+        'The camera detects flame on the board itself; watch it on the Cameras page.',
+        'Free pins: GPIO2, 4, 12–15 (no analog ones). No BOOT button: press RST twice within 5 s to open the setup page.',
+        'Flashed through a USB adapter (ESP32-CAM-MB) or a UART with GPIO0 to GND while it starts.',
       ],
     } as Record<BoardModel, string[]>,
     download: 'Download for USB install',

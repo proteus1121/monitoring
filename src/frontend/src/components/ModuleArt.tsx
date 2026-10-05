@@ -18,6 +18,7 @@ export type ModuleKey =
   | 'SOIL_MOISTURE'
   | 'ANALOG_INPUT'
   | 'RELAY'
+  | 'CAMERA'
   | 'ST7565'
   | 'SSD1306'
   | 'SH1106';
@@ -46,6 +47,8 @@ export const MODULE_HEADERS: Record<ModuleKey, HeaderPin[]> = {
   SOIL_MOISTURE: [POWER('GND'), POWER('VCC'), { label: 'AOUT', signal: 'AO' }],
   ANALOG_INPUT: [POWER('VCC'), { label: 'AO', signal: 'AO' }, POWER('GND')],
   RELAY: [POWER('VCC'), POWER('GND'), { label: 'IN', signal: 'IN' }],
+  // on the board's own connector, nothing to wire
+  CAMERA: [],
   // the ST7565 board labels its SPI lines this way
   ST7565: [
     { label: 'CS', signal: 'CS' },
@@ -199,6 +202,16 @@ function Body({ module }: { module: ModuleKey }): ReactNode {
           <rect x={16} y={16} width={30} height={4} fill="#3f6212" />
           <rect x={16} y={24} width={50} height={4} fill="#3f6212" />
           <rect x={16} y={32} width={40} height={4} fill="#3f6212" />
+        </>
+      );
+    case 'CAMERA':
+      return (
+        <>
+          <rect x={38} y={50} width={24} height={14} fill="#a16207" />
+          <rect x={30} y={10} width={40} height={42} rx={3} fill={PCB_BLACK} />
+          <circle cx={50} cy={30} r={14} fill="#020617" stroke="#64748b" strokeWidth={2} />
+          <circle cx={50} cy={30} r={7} fill="#1e3a8a" />
+          <circle cx={47} cy={27} r={2} fill="#93c5fd" />
         </>
       );
     case 'SSD1306':

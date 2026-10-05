@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/components/Select';
-import { DEVICE_TYPE_LABELS, getPinOptions } from '@src/lib/hardware';
+import { CAMERA_BUILD, DEVICE_TYPE_LABELS, getPinOptions, pinPlatform } from '@src/lib/hardware';
 import { ModuleEntry, buildModules, defaultDeviceName } from '@src/lib/modules';
 import {
   DeviceType,
@@ -164,7 +164,10 @@ export function ModuleCreationModal() {
         {!module && boards.length > 0 && (
           <div className="flex flex-col gap-5">
             {SECTIONS.map(kind => {
-              const list = modules.filter(m => m.kind === kind);
+              // the camera module exists only on an ESP32-CAM
+              const list = modules.filter(
+                m => m.kind === kind && (m.key !== 'CAMERA' || board?.board === CAMERA_BUILD)
+              );
               if (!list.length) return null;
               return (
                 <section key={kind} className="flex flex-col gap-2">
@@ -271,7 +274,7 @@ function SensorForm(props: { module: ModuleEntry; board: Controller; onDone: () 
   const [createDevice] = useCreateDeviceMutation();
   const t = useTexts(TEXTS);
 
-  const options = getPinOptions(board.platform, info, board.display);
+  const options = getPinOptions(pinPlatform(board), info, board.display);
   const signals = module.pins;
   const complete =
     signals.every(signal => pins[signal]) &&
@@ -288,7 +291,8 @@ function SensorForm(props: { module: ModuleEntry; board: Controller; onDone: () 
           type,
           controllerId: board.id,
           sensorModel: info.model as SensorModel,
-          pin: Number(pins[signals[0]]),
+          // the camera has no pins
+          pin: signals[0] ? Number(pins[signals[0]]) : undefined,
           secondaryPin: signals[1] ? Number(pins[signals[1]]) : undefined,
           delay: Math.round(Number(intervalSeconds) * 1000),
           forecastModel: 'NONE',

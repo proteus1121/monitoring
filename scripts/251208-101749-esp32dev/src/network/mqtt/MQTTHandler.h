@@ -5,7 +5,7 @@
 
 // may be set by the build, e.g. PLATFORMIO_BUILD_FLAGS=-DFIRMWARE_VERSION=\"2.3.9\" for a test build
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "2.7.0"
+#define FIRMWARE_VERSION "2.8.0"
 #endif
 
 // env name of platformio.ini, the site picks update files by it
@@ -29,6 +29,10 @@
  *   publish   users/<userId>/controllers/<hardwareId>/scan-result    what was found
  *   subscribe users/<userId>/controllers/<hardwareId>/update         new firmware to install
  *   publish   users/<userId>/controllers/<hardwareId>/update-status  its progress
+ * ESP32-CAM only (camera/Camera.h):
+ *   subscribe users/<userId>/controllers/<hardwareId>/stream         somebody watches the camera on the site
+ *   publish   users/<userId>/controllers/<hardwareId>/frame          JPEG frame
+ *   publish   users/<userId>/controllers/<hardwareId>/vision         what the flame detector sees in it
  */
 
 void initMQTT();
@@ -41,6 +45,9 @@ bool publishRaw(uint32_t deviceId, float value);
 bool publishScanResult(const String &payload);
 // progress of a firmware update (system/FirmwareUpdate.h)
 bool publishUpdateStatus(const String &payload);
+// live view of an ESP32-CAM (camera/Camera.h)
+bool publishCameraFrame(const uint8_t *jpeg, size_t length);
+bool publishCameraVision(const String &payload);
 
 // the board has an account and its own MQTT login (from "Sign in" on its page); without them it does not
 // connect to MQTT at all

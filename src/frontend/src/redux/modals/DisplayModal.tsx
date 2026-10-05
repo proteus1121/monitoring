@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@src/components/Select';
-import { DISPLAY_PIN_NAMES, getDisplayPinOptions } from '@src/lib/hardware';
+import { DISPLAY_PIN_NAMES, getDisplayPinOptions, pinPlatform } from '@src/lib/hardware';
 import { pick } from '@src/lib/lang';
 import clsx from 'clsx';
 
@@ -131,7 +131,7 @@ export function DisplayModal() {
     }
     return map;
   }, [devices, sensorModels, controller?.id]);
-  const options = getDisplayPinOptions(controller?.platform, usedBy, info?.bus === 'I2C');
+  const options = getDisplayPinOptions(pinPlatform(controller), usedBy, info?.bus === 'I2C');
 
   const complete = names.every(name => pins[name]);
 
