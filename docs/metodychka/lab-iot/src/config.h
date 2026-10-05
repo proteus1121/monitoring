@@ -1,4 +1,5 @@
 #pragma once
+#include <DHTesp.h>
 
 // мережа і брокер – дані від викладача
 #define WIFI_SSID      "lab-iot"
@@ -18,5 +19,14 @@ const uint8_t PIN_MQ2    = 34;
 const uint8_t PIN_SOIL   = 35;
 const uint8_t PIN_FLAME  = 14;
 const uint8_t PIN_PIR    = 13;
+const uint8_t PIN_SDA    = 21;
+const uint8_t PIN_SCL    = 22;
+
+// модель датчика: DHTesp::DHT22 або DHTesp::DHT11
+const DHTesp::DHT_MODEL_t DHT_TYPE = DHTesp::DHT22;
+
+// калібрування датчика ґрунту, мВ на GPIO35 (підрозділ 4.7)
+const float SOIL_DRY_MV = 2200;    // сухий субстрат
+const float SOIL_WET_MV = 1000;    // перезволожений субстрат
 
 const unsigned long PUBLISH_INTERVAL_MS = 10000;

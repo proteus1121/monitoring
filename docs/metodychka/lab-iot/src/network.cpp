@@ -42,5 +42,5 @@ void publish(const char *name, float value) {
     char topic[96], payload[16];
     snprintf(topic, sizeof(topic), "%s%s", TOPIC_PREFIX, name);
     snprintf(payload, sizeof(payload), "%.2f", value);
-    if (mqtt.connected()) mqtt.publish(topic, payload);
+    if (mqtt.connected()) mqtt.publish(topic, payload, false);  // QoS 0, без retain
 }
