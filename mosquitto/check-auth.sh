@@ -31,7 +31,9 @@ docker run -d --name auth-check-db --network $NET -e MYSQL_ROOT_PASSWORD=$DB_PAS
 
 echo "Waiting for MySQL ($MYSQL_IMAGE)"
 for i in $(seq 1 90); do
-    if docker exec auth-check-db mysql -uroot -p$DB_PASS -e 'SELECT 1' monitoring > /dev/null 2>&1; then
+    # the image answers on a temporary server while it initialises, then restarts it: wait for the real one
+    if docker logs auth-check-db 2>&1 | grep -q 'MySQL setup finished' &&
+        docker exec auth-check-db mysql -uroot -p$DB_PASS -e 'SELECT 1' monitoring > /dev/null 2>&1; then
         break
     fi
     [ "$i" = 90 ] && fail "MySQL did not start"

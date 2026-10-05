@@ -233,7 +233,11 @@ function UnwiredSection({ devices }: { devices: Device[] }) {
     confirm({
       description: t.deleteAllConfirm(owned.length),
       callback: async () => {
-        const results = await Promise.all(owned.map(d => deleteDevice({ id: d.id! })));
+        // one after another: each delete also clears the device's readings and incidents
+        const results = [];
+        for (const d of owned) {
+          results.push(await deleteDevice({ id: d.id! }));
+        }
         const failed = results.filter(r => 'error' in r);
         if (failed.length) {
           notification.error({
