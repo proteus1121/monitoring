@@ -12,6 +12,7 @@ import {
 } from '@src/components/PageHeader';
 import { PageLayout } from '@src/layouts/PageLayout';
 import { useTexts } from '@src/lib/lang';
+import { serverTime } from '@src/lib/readings';
 import { Camera, CameraVision, useGetCamerasQuery } from '@src/redux/generatedApi';
 
 const apiBaseURL = process.env.BASE_URL!;
@@ -42,7 +43,7 @@ const TEXTS = {
     reconnect: 'Перепідключити',
     alerts: 'Сповіщення про полум’я',
     noDevice: 'Датчик полум’я камери видалено: додайте модуль «ESP32-CAM camera» на сторінці «Мої пристрої», щоб отримувати сповіщення.',
-    note: 'Пороги детектора — зі статті: яскравість ≥ 180, насиченість ≥ 80, червоний над синім ≥ 30; частка ≥ 0,004, дисперсія за 8 кадрів ≥ 5·10⁻⁶, 3 підтвердження; тривога тримається ще 3 с.',
+    note: 'Пороги детектора: яскравість ≥ 180, насиченість ≥ 80, червоний над синім ≥ 30; частка ≥ 0,004, дисперсія за 8 кадрів ≥ 5·10⁻⁶, 3 підтвердження; тривога тримається ще 3 с.',
   },
   en: {
     title: 'Cameras',
@@ -69,7 +70,7 @@ const TEXTS = {
     reconnect: 'Reconnect',
     alerts: 'Flame alerts',
     noDevice: 'The camera’s flame device was deleted: add the “ESP32-CAM camera” module on the My devices page to get alerts.',
-    note: 'Detector thresholds from the paper: brightness ≥ 180, saturation ≥ 80, red over blue ≥ 30; share ≥ 0.004, variance over 8 frames ≥ 5·10⁻⁶, 3 confirmations; the alarm is held 3 s more.',
+    note: 'Detector thresholds: brightness ≥ 180, saturation ≥ 80, red over blue ≥ 30; share ≥ 0.004, variance over 8 frames ≥ 5·10⁻⁶, 3 confirmations; the alarm is held 3 s more.',
   },
 };
 
@@ -122,8 +123,9 @@ function CameraCard({ camera, t }: { camera: Camera; t: Texts }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
   const vision = camera.vision;
-  // a result older than this is from before the page was opened
-  const fresh = !!vision && Date.now() - new Date(vision.received).getTime() < 10000;
+  // a result older than this is from before the page was opened; the server's time is UTC without a zone
+  const received = serverTime(vision?.received);
+  const fresh = !!received && Date.now() - received.valueOf() < 10000;
 
   // the server ends a stream after 30 s without frames: connect again when the board comes back
   useEffect(() => {
