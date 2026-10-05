@@ -36,7 +36,6 @@ const TEXTS = {
     testFailed: 'Не вдалося надіслати тестове повідомлення',
     testSent: (channel: string) => `Тестове повідомлення надіслано через ${channel}`,
     chat: 'Чат',
-    severities: { CRITICAL: 'Критичні', WARNING: 'Попередження', INFO: 'Інформація' } as Record<string, string>,
     test: 'Тест',
     edit: 'Редагувати',
     delete: 'Видалити',
@@ -54,7 +53,6 @@ const TEXTS = {
     testFailed: 'Test message failed',
     testSent: (channel: string) => `Test message sent via ${channel}`,
     chat: 'Chat',
-    severities: { CRITICAL: 'CRITICAL', WARNING: 'WARNING', INFO: 'INFO' } as Record<string, string>,
     test: 'Test',
     edit: 'Edit',
     delete: 'Delete',
@@ -66,12 +64,6 @@ const CHANNELS = {
   TELEGRAM: { label: 'Telegram', icon: 'logos:telegram' },
   EMAIL: { label: 'E-mail', icon: 'lucide:mail' },
 } as const;
-
-const SEVERITY_STYLE: Record<string, string> = {
-  CRITICAL: 'bg-red-50 text-red-700 border-red-200',
-  WARNING: 'bg-orange-50 text-orange-700 border-orange-200',
-  INFO: 'bg-blue-50 text-blue-700 border-blue-200',
-};
 
 const AlertsPage = () => {
   const { data: notifications, isLoading } = useGetNotificationsQuery();
@@ -176,14 +168,6 @@ function NotificationCard({ item }: { item: TelegramNotification }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-medium">
               {item.channel === 'EMAIL' ? item.email : `${t.chat} ${item.telegramChatId}`}
-            </span>
-            <span
-              className={clsx(
-                'rounded-full border px-2 text-xs',
-                SEVERITY_STYLE[item.type ?? 'INFO']
-              )}
-            >
-              {t.severities[item.type ?? 'INFO'] ?? item.type}
             </span>
           </div>
           <pre className="mt-2 max-h-28 overflow-hidden font-sans text-xs whitespace-pre-wrap text-slate-500">

@@ -17,7 +17,6 @@ import org.proteus1121.model.dto.user.DeviceUser;
 import org.proteus1121.model.dto.user.User;
 import org.proteus1121.model.entity.NotificationEntity;
 import org.proteus1121.model.entity.UserEntity;
-import org.proteus1121.model.enums.NotificationType;
 import org.proteus1121.model.mapper.NotificationMapper;
 import org.proteus1121.model.telegram.SendMessageRequest;
 import org.proteus1121.repository.NotificationRepository;
@@ -108,8 +107,8 @@ public class TelegramNotificationService {
                                           byte[] image) {
 
         for (DeviceUser user : recipients) {
-            getNotifications(user.getUserId()).stream()
-                    .filter(n -> n.getType() == NotificationType.CRITICAL)
+            // every recipient gets every alert: incidents have one level and the site no longer lets you pick one
+            getNotifications(user.getUserId())
                     .forEach(n -> {
                         String message = withDescription(getMessage(n.getTemplate(), user, device, value),
                                 n.getTemplate(), description);

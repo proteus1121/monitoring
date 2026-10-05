@@ -20,10 +20,6 @@ const TEXTS = {
     chatRequired: 'Потрібен id чату',
     validEmail: 'Введіть правильну адресу e-mail',
     channel: 'Канал',
-    severity: 'Рівень',
-    critical: 'Критичні',
-    warning: 'Попередження',
-    info: 'Інформація',
     chatId: 'id чату Telegram',
     chatHelp: 'Спершу напишіть боту, потім дізнайтеся свій id чату, наприклад через @userinfobot.',
     messageTemplate: 'Шаблон повідомлення',
@@ -42,10 +38,6 @@ Time: {{timestamp}}
     chatRequired: 'Chat id is required',
     validEmail: 'Enter a valid e-mail',
     channel: 'Channel',
-    severity: 'Severity',
-    critical: 'Critical',
-    warning: 'Warning',
-    info: 'Info',
     chatId: 'Telegram chat id',
     chatHelp: 'Write to the bot first, then get your chat id, e.g. from @userinfobot.',
     messageTemplate: 'Message template',
@@ -59,7 +51,6 @@ export const NotificationSchema = z
     channel: z.enum(['TELEGRAM', 'EMAIL']),
     telegramChatId: z.string().optional(),
     email: z.string().optional(),
-    type: z.enum(['INFO', 'WARNING', 'CRITICAL']),
     template: z.string().min(1, { error: () => pick(TEXTS).templateRequired }),
   })
   .superRefine((value, ctx) => {
@@ -80,7 +71,6 @@ export function toNotificationFormValues(
     channel: (notification?.channel ?? 'TELEGRAM') as NotificationChannel,
     telegramChatId: notification?.telegramChatId ?? '',
     email: notification?.email ?? '',
-    type: notification?.type ?? 'CRITICAL',
     // a new one starts from the template in the interface language
     template: notification?.template ?? pick(TEXTS).template,
   };
@@ -93,7 +83,8 @@ export function toNotificationRequest(
     channel: value.channel,
     telegramChatId: value.channel === 'TELEGRAM' ? value.telegramChatId?.trim() : undefined,
     email: value.channel === 'EMAIL' ? value.email?.trim() : undefined,
-    type: value.type,
+    // every recipient gets every alert, a level is not chosen any more
+    type: 'CRITICAL',
     template: value.template,
   };
 }
@@ -103,33 +94,18 @@ export function NotificationFormFields({ form }: { form: any }) {
   const t = useTexts(TEXTS);
   return (
     <FieldGroup>
-      <div className="flex flex-wrap gap-2">
-        <form.AppField
-          name="channel"
-          children={(field: any) => (
-            <field.SelectField
-              label={t.channel}
-              options={[
-                { value: 'TELEGRAM', label: 'Telegram' },
-                { value: 'EMAIL', label: 'E-mail' },
-              ]}
-            />
-          )}
-        />
-        <form.AppField
-          name="type"
-          children={(field: any) => (
-            <field.SelectField
-              label={t.severity}
-              options={[
-                { value: 'CRITICAL', label: t.critical },
-                { value: 'WARNING', label: t.warning },
-                { value: 'INFO', label: t.info },
-              ]}
-            />
-          )}
-        />
-      </div>
+      <form.AppField
+        name="channel"
+        children={(field: any) => (
+          <field.SelectField
+            label={t.channel}
+            options={[
+              { value: 'TELEGRAM', label: 'Telegram' },
+              { value: 'EMAIL', label: 'E-mail' },
+            ]}
+          />
+        )}
+      />
 
       <form.Subscribe
         selector={(state: any) => state.values.channel}
