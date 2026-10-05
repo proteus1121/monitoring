@@ -67,7 +67,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 // the browser has Web Serial (Chrome / Edge on a computer) and the page is https
-const supported = () => typeof navigator !== 'undefined' && 'serial' in navigator && window.isSecureContext;
+export const serialSupported = () => typeof navigator !== 'undefined' && 'serial' in navigator && window.isSecureContext;
 
 /**
  * Flashes the full image at 0x0 over Web Serial with esptool-js. Every failure ends in a message and the button
@@ -77,7 +77,7 @@ export function UsbInstaller({ url, chip }: { url: string; chip: string }) {
   const t = useTexts(TEXTS);
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
 
-  if (!supported()) {
+  if (!serialSupported()) {
     return <p className="text-xs text-slate-500">{t.unsupported}</p>;
   }
 

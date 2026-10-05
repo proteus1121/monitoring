@@ -27,6 +27,7 @@ import { BoardDiagram } from './BoardDiagram';
 import { DisplayModalId } from '@src/redux/modals/DisplayModal';
 import { ScanPanel } from './ScanPanel';
 import { BoardFirmware } from './BoardFirmware';
+import { SerialLogPanel } from './SerialLogPanel';
 
 const library = (text: string) => (
   <Link to="/settings/library" className="underline">
@@ -74,6 +75,8 @@ const TEXTS = {
     pendingHint: 'Плата ще не підтвердила останні налаштування',
     scanHint: 'Пошук модулів на вільних пінах',
     scan: 'Сканувати плату',
+    logs: 'Логи',
+    logsHint: 'Вивід плати, під’єднаної до цього комп’ютера через USB',
     resend: 'Надіслати налаштування ще раз',
     rename: 'Перейменувати',
     deleteBoard: 'Видалити плату',
@@ -122,6 +125,8 @@ const TEXTS = {
     pendingHint: 'The board has not confirmed the latest configuration yet',
     scanHint: 'Look for modules on the free pins',
     scan: 'Scan board',
+    logs: 'Logs',
+    logsHint: 'The output of the board plugged into this computer over USB',
     resend: 'Send configuration again',
     rename: 'Rename',
     deleteBoard: 'Delete board',
@@ -185,6 +190,7 @@ export function ControllerPanel(props: {
   const [deleteController] = useDeleteControllerMutation();
   const [scanController, { isLoading: isScanStarting }] = useScanControllerMutation();
   const [showScan, setShowScan] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   const [updateBoardModel, { isLoading: isBoardModelSaving }] = useUpdateBoardModelMutation();
   const isOwner = !controller.role || controller.role === 'OWNER';
   const { setState: confirm } = useModal(AppAlertDialogModalId);
@@ -304,6 +310,10 @@ export function ControllerPanel(props: {
               {t.scan}
             </Button>
           )}
+          <Button size="sm" variant="secondary" title={t.logsHint} onClick={() => setShowLogs(!showLogs)}>
+            <Icon icon="lucide:terminal" />
+            {t.logs}
+          </Button>
           <Button size="icon" variant="ghost" title={t.resend} disabled={isSyncing} onClick={sync}>
             <Icon icon="lucide:refresh-cw" />
           </Button>
@@ -342,6 +352,7 @@ export function ControllerPanel(props: {
       </div>
 
       {showScan && <ScanPanel controller={controller} onClose={() => setShowScan(false)} />}
+      {showLogs && <SerialLogPanel controller={controller} onClose={() => setShowLogs(false)} />}
 
       <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
         <div className="min-w-0 overflow-x-auto">
