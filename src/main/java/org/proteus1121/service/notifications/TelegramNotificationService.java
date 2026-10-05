@@ -23,6 +23,7 @@ import org.proteus1121.repository.NotificationRepository;
 import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -47,6 +48,11 @@ public class TelegramNotificationService {
 
     @Value("${telegram.bot-token:}")
     private String telegramBotToken;
+
+    @Value("${notifications.time-zone:Europe/Kyiv}")
+    private ZoneId timeZone;
+
+    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
 
     // sending can take seconds (SMTP, Telegram retries); never block the MQTT thread with it
     private final ExecutorService sender = Executors.newSingleThreadExecutor(r -> {
@@ -203,7 +209,7 @@ public class TelegramNotificationService {
      *  - {{lower_value}}
      *  - {{critical_value}}
      *  - {{device_location}}
-     *  - {{timestamp}}  -> ISO-8601 date/time
+     *  - {{timestamp}}  -> date and time in notifications.time-zone, e.g. 05.10.2026 04:31:52
      * Null fields are replaced with "N/A".
      */
     private String getMessage(String template, DeviceUser user, Device device, Double value) {
@@ -219,8 +225,8 @@ public class TelegramNotificationService {
         values.put("critical_value", safeNumber(device != null ? device.getCriticalValue() : null));
         values.put("device_location", safe(device != null ? device.getDescription() : null));
 
-        // Timestamp in ISO-8601 with zone
-        String timestamp = ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        // read by people: the server runs in UTC, they live in the configured zone
+        String timestamp = ZonedDateTime.now(timeZone).format(TIMESTAMP);
         values.put("timestamp", timestamp);
 
         // Replace both styles: {{key}} and %{key}
