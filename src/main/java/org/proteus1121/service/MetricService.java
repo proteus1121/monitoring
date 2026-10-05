@@ -211,7 +211,8 @@ public class MetricService {
             }
             
             log.warn("Critical alert triggered for device {}: value = {}", device.getId(), value);
-            alertPipeline.raise("%s is above %s: %s".formatted(device.getName(), criticalValue, value), device, value);
+            alertPipeline.raise("%s: %s, вище порогу %s".formatted(device.getName(), number(value), number(criticalValue)),
+                    device, value);
             return true;
         } else if (lowerValue != null && value <= lowerValue) {
             // Check if there's already an unresolved incident for this device
@@ -224,11 +225,18 @@ public class MetricService {
             }
             
             log.warn("Lower alert triggered for device {}: value = {}", device.getId(), value);
-            alertPipeline.raise("%s is below %s: %s".formatted(device.getName(), lowerValue, value), device, value);
+            alertPipeline.raise("%s: %s, нижче порогу %s".formatted(device.getName(), number(value), number(lowerValue)),
+                    device, value);
             return true;
         }
         
         return false; // No anomaly detected
+    }
+
+    // 31.5 rather than 31.500000001, 30 rather than 30.0
+    private static String number(double value) {
+        return java.math.BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP)
+                .stripTrailingZeros().toPlainString();
     }
 
     /**

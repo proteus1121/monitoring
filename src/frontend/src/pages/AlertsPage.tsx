@@ -26,7 +26,8 @@ import { useTexts } from '@src/lib/lang';
 const TEXTS = {
   uk: {
     title: 'Сповіщення',
-    description: 'Куди надходять сповіщення. Пороги задаються для кожного пристрою на сторінці «Мої пристрої».',
+    description:
+      'Кому надсилати тривоги: чати Telegram і адреси e-mail. Кожен отримувач отримує всі тривоги ваших пристроїв. Тривогу піднімають вбудовані правила безпеки (полум’я, дим, газ, температура, вологість, різкі зміни) або пороги, які задаються для кожного пристрою на сторінці «Мої пристрої». Поки тривогу пристрою не закрито, повторних сповіщень від нього немає.',
     add: 'Додати отримувача',
     none: 'Отримувачів ще немає — додайте чат Telegram або адресу e-mail.',
     checking: 'Перевірка…',
@@ -43,7 +44,8 @@ const TEXTS = {
   },
   en: {
     title: 'Alerts',
-    description: 'Where alerts are delivered. Thresholds are set per device on the My devices page.',
+    description:
+      'Who gets the alerts: Telegram chats and e-mail addresses. Every recipient gets every alert of your devices. Alerts are raised by built-in safety rules (flame, smoke, gas, temperature, humidity, sudden changes) or by the thresholds set per device on the My devices page. While an alert of a device is open, it sends no repeated notifications.',
     add: 'Add notification',
     none: 'No notifications yet — add a Telegram chat or an e-mail address.',
     checking: 'Checking…',

@@ -1,5 +1,6 @@
 package org.proteus1121.service.ml;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.model.enums.DeviceType;
 import org.proteus1121.model.ml.IncidentContext;
@@ -17,7 +18,12 @@ import java.util.*;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class LightweightLlmService implements LocalLlmService {
+
+    private static final int TITLE_LIMIT = 160;
+
+    private final RuleBasedAnomalyDetectionService rules;
 
     private static final double HIGH_THRESHOLD = 0.8;
     private static final double MEDIUM_THRESHOLD = 0.5;
@@ -35,23 +41,15 @@ public class LightweightLlmService implements LocalLlmService {
         }
     }
 
+    /**
+     * "Полум'я в кадрі: виявлено полум'я": the device and what the fired rules mean. It used to list the largest
+     * feature values, which were mostly the defaults put in for missing sensors (pressure=1013 + light=200).
+     */
     private String generateTitle(IncidentContext ctx) {
-        double prob = ctx.probability();
-        String severity = prob > HIGH_THRESHOLD ? "Critical" : 
-                         prob > MEDIUM_THRESHOLD ? "Warning" : "Alert";
-        
-        List<String> contributors = ctx.topContributors();
-        String sensorSummary = summarizeSensors(contributors);
-        
-        String title = String.format("%s: %s - %s (%.0f%%)", 
-            severity, 
-            ctx.device().getName(),
-            sensorSummary.isEmpty() ? "Environmental anomaly" : sensorSummary,
-            prob * 100
-        );
-        
-        // Trim to 80 chars max
-        return title.length() > 80 ? title.substring(0, 77) + "..." : title;
+        List<String> reasons = rules.reasons(ctx.engineeredFeatures());
+        String title = "%s: %s".formatted(ctx.device().getName(),
+                reasons.isEmpty() ? "незвичні показники" : String.join("; ", reasons));
+        return title.length() > TITLE_LIMIT ? title.substring(0, TITLE_LIMIT - 1) + "…" : title;
     }
 
     private String generateBody(IncidentContext ctx) {
@@ -119,18 +117,6 @@ public class LightweightLlmService implements LocalLlmService {
         // Trim to 200 chars max
         String result = body.toString();
         return result.length() > 200 ? result.substring(0, 197) + "..." : result;
-    }
-
-    private String summarizeSensors(List<String> sensors) {
-        if (sensors.isEmpty()) {
-            return "";
-        }
-        
-        List<String> names = sensors.stream()
-            .limit(2)
-            .toList();
-        
-        return String.join(" + ", names);
     }
 
     private String formatSensorNames(List<DeviceType> sensors) {

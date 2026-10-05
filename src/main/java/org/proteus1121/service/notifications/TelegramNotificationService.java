@@ -52,7 +52,7 @@ public class TelegramNotificationService {
     @Value("${notifications.time-zone:Europe/Kyiv}")
     private ZoneId timeZone;
 
-    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss");
+    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("HH:mm:ss dd.MM.yy");
 
     // sending can take seconds (SMTP, Telegram retries); never block the MQTT thread with it
     private final ExecutorService sender = Executors.newSingleThreadExecutor(r -> {
@@ -209,7 +209,7 @@ public class TelegramNotificationService {
      *  - {{lower_value}}
      *  - {{critical_value}}
      *  - {{device_location}}
-     *  - {{timestamp}}  -> date and time in notifications.time-zone, e.g. 05.10.2026 04:31:52
+     *  - {{timestamp}}  -> date and time in notifications.time-zone, e.g. 04:46:13 05.10.25
      * Null fields are replaced with "N/A".
      */
     private String getMessage(String template, DeviceUser user, Device device, Double value) {
