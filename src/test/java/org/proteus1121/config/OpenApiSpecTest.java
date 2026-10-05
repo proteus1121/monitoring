@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "spring.jpa.hibernate.ddl-auto=create",
         "spring.session.jdbc.initialize-schema=always",
         "mqtt.broker.url=tcp://localhost:1",
-        "logging.config=classpath:logback-openapi-spec.xml",
+        "logging.level.root=WARN",
 })
 class OpenApiSpecTest {
 

@@ -7,22 +7,29 @@
         </encoder>
     </appender>
 
-    <!-- Loki Logging to Grafana Cloud -->
-    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
-        <http>
-            <url>https://logs-prod-012.grafana.net/loki/api/v1/push</url>
-            <auth>
-                <username>1648611</username>
-                <password>${GRAFANA_KEY}</password>
-            </auth>
-        </http>
+    <!-- Root Logger: Loki only on the server (profile docker), local runs and tests log to the console -->
+    <springProfile name="docker">
+        <!-- Loki Logging to Grafana Cloud -->
+        <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+            <http>
+                <url>https://logs-prod-012.grafana.net/loki/api/v1/push</url>
+                <auth>
+                    <username>1648611</username>
+                    <password>${GRAFANA_KEY}</password>
+                </auth>
+            </http>
 
-    </appender>
+        </appender>
 
-    <!-- Root Logger -->
-    <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="LOKI"/>
-    </root>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="LOKI"/>
+        </root>
+    </springProfile>
+    <springProfile name="!docker">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
 
 </configuration>
