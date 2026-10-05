@@ -97,7 +97,7 @@ const TEXTS = {
     ),
     mustDiffer: 'Значення «сухо» й «у воді» мають відрізнятися.',
     alertsHelp:
-      'Сповіщення спрацьовує, коли значення виходить вище верхнього або нижче нижнього порогу. Залиште порожнім, щоб вимкнути. Канали сповіщень налаштовуються на сторінці «Сповіщення».',
+      'Кожне значення спершу перевіряють вбудовані правила безпеки: полум’я, дим понад 300 ppm, газ (пропан, метан) понад 400 ppm, температура поза 0…45 °C, вологість поза 20…80 %, різкі зміни за 5 хвилин. Якщо правила нічого не знайшли, значення порівнюється з порогами нижче: сповіщення спрацьовує, коли воно вище верхнього або нижче нижнього. Залиште поріг порожнім, щоб вимкнути його. Поки інцидент датчика не закрито, нові сповіщення від нього не надходять. Канали сповіщень налаштовуються на сторінці «Сповіщення».',
     upper: 'Верхній поріг',
     lower: 'Нижній поріг',
     notSet: 'не задано',
@@ -187,7 +187,7 @@ const TEXTS = {
     ),
     mustDiffer: 'Dry and wet must differ.',
     alertsHelp:
-      'An alert is raised when a value goes above the upper or below the lower threshold. Leave empty to disable. Notification channels are set on the Alerts page.',
+      'Every value is first checked by built-in safety rules: flame, smoke over 300 ppm, gas (LPG, methane) over 400 ppm, temperature outside 0…45 °C, humidity outside 20…80 %, sudden changes within 5 minutes. When the rules find nothing, the value is compared with the thresholds below: an alert is raised when it is above the upper or below the lower one. Leave a threshold empty to disable it. While an incident of the device is open, it sends no new alerts. Notification channels are set on the Alerts page.',
     upper: 'Upper threshold',
     lower: 'Lower threshold',
     notSet: 'not set',
