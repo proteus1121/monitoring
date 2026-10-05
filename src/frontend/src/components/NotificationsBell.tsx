@@ -5,6 +5,7 @@ import { notification } from 'antd';
 import { fromNow } from '@src/lib/readings';
 import { Lang, pick, useTexts } from '@src/lib/lang';
 import { AiExplanation } from './AiExplanation';
+import { IncidentImage } from '@src/components/IncidentImage';
 import {
   Incident,
   useGetOpenIncidentCountQuery,
@@ -166,6 +167,7 @@ function AlertRow({ incident }: { incident: Incident }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-snug">{incident.message}</p>
         {incident.description && <AiExplanation text={incident.description} />}
+        {incident.image && incident.id && <IncidentImage id={incident.id} />}
         <p className="mt-1 text-xs text-slate-500">
           {incident.devices?.map(d => d.name).join(', ') || t.unknownDevice} ·{' '}
           {fromNow(incident.created)}

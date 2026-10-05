@@ -44,6 +44,7 @@ public class TelegramNotificationService {
     private final NotificationMapper notificationMapper;
     private final TelegramClient telegramClient;
     private final EmailSender emailSender;
+    private final TelegramPhotoSender photoSender;
 
     @Value("${telegram.bot-token:}")
     private String telegramBotToken;
@@ -95,14 +96,16 @@ public class TelegramNotificationService {
     }
 
     public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value) {
-        sendCriticalNotifications(recipients, device, value, null);
+        sendCriticalNotifications(recipients, device, value, null, null);
     }
 
     /**
      * @param description explanation from the language model; replaces {{description}} in the template or,
      *                    when the template has no such placeholder, is added after the message
+     * @param image       JPEG attached to the message (the frame of a camera's flame alarm), null for none
      */
-    public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value, String description) {
+    public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value, String description,
+                                          byte[] image) {
 
         for (DeviceUser user : recipients) {
             getNotifications(user.getUserId()).stream()
@@ -113,7 +116,7 @@ public class TelegramNotificationService {
                         String subject = "Critical alert: " + (device != null ? device.getName() : "device");
                         sender.submit(() -> {
                             try {
-                                deliver(n, subject, message);
+                                deliver(n, subject, message, image);
                             } catch (Exception e) {
                                 log.error("Failed to send {} notification {}", n.getChannel(), n.getId(), e);
                             }
@@ -148,12 +151,27 @@ public class TelegramNotificationService {
     }
 
     private void deliver(TelegramNotification notification, String subject, String message) {
+        deliver(notification, subject, message, null);
+    }
+
+    /**
+     * @param image JPEG to attach (the frame of a camera alarm), null for none
+     */
+    private void deliver(TelegramNotification notification, String subject, String message, byte[] image) {
         if (notification.getChannel() == NotificationChannel.EMAIL) {
-            emailSender.send(notification.getEmail(), "[Smart Sensor Network] " + subject, message);
+            if (image != null) {
+                emailSender.send(notification.getEmail(), "[Smart Sensor Network] " + subject, message, image, FLAME_FILE);
+            } else {
+                emailSender.send(notification.getEmail(), "[Smart Sensor Network] " + subject, message);
+            }
+        } else if (image != null) {
+            photoSender.send(notification.getTelegramChatId(), image, FLAME_FILE, message);
         } else {
             sendNotification(notification.getTelegramChatId(), message);
         }
     }
+
+    private static final String FLAME_FILE = "flame.jpg";
 
     private static void validate(TelegramNotification notification) {
         if (notification.getChannel() == null) {

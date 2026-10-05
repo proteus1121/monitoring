@@ -1,5 +1,10 @@
 package org.proteus1121.controller;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import java.time.Duration;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +64,17 @@ public class IncidentController {
         return incidentService.getIncident(id, principal.getId());
     }
     
+    @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_JPEG_VALUE)
+    @Operation(summary = "Get the picture of an incident", description = "The frame a camera raised its flame alarm on, with the flame's box; 404 without one")
+    public ResponseEntity<byte[]> getIncidentImage(@PathVariable Long id) {
+        return incidentService.getImage(id, getCurrentUser().getId())
+                .map(jpeg -> ResponseEntity.ok()
+                        .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePrivate())
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(jpeg))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/{id}/resolve")
     @Operation(summary = "Resolve an incident", description = "Marks an incident as resolved for the current user")
     public void resolveIncident(@PathVariable Long id) {

@@ -71,6 +71,11 @@ uint16_t sharedW = 0, sharedH = 0;
 // private copies of the detection task and of the sender in loop()
 uint8_t *workJpeg = nullptr;
 uint8_t *sendJpeg = nullptr;
+// the frame the alarm was raised on, with what the detector saw in it, until loop() sends it
+uint8_t *alarmJpeg = nullptr;
+size_t alarmLen = 0;
+Camera::Vision alarmVision{};
+volatile bool alarmPending = false;
 uint8_t *rgb = nullptr;
 
 Camera::Vision current{};
@@ -290,6 +295,7 @@ void detectionTask(void *) {
             LockGuard guard;
             if (alarm != current.alarm)
                 Serial.printf("[CAM] Flame %s, ratio %.4f\n", alarm ? "DETECTED" : "gone", ratio);
+            bool raised = alarm && !current.alarm;
             current.alarm = alarm;
             current.ratio = ratio;
             current.variance = variance;
@@ -307,6 +313,13 @@ void detectionTask(void *) {
             current.frame = frameNo;
             for (int c = 0; c < 3; c++)
                 current.mean[c] = sum[c] / pixels;
+            // the evidence for the alert: this very frame, the site draws the box on it
+            if (raised && !alarmPending) {
+                memcpy(alarmJpeg, workJpeg, len);
+                alarmLen = len;
+                alarmVision = current;
+                alarmPending = true;
+            }
         }
         // let the Wi-Fi and the main loop run
         vTaskDelay(1);
@@ -382,9 +395,10 @@ bool begin() {
     sharedJpeg = (uint8_t *)heap_caps_malloc(MAX_JPEG_SIZE, MALLOC_CAP_SPIRAM);
     workJpeg = (uint8_t *)heap_caps_malloc(MAX_JPEG_SIZE, MALLOC_CAP_SPIRAM);
     sendJpeg = (uint8_t *)heap_caps_malloc(MAX_JPEG_SIZE, MALLOC_CAP_SPIRAM);
+    alarmJpeg = (uint8_t *)heap_caps_malloc(MAX_JPEG_SIZE, MALLOC_CAP_SPIRAM);
     rgb = (uint8_t *)heap_caps_malloc(MAX_RGB_SIZE, MALLOC_CAP_SPIRAM);
     lock = xSemaphoreCreateMutex();
-    if (!sharedJpeg || !workJpeg || !sendJpeg || !rgb || !lock) {
+    if (!sharedJpeg || !workJpeg || !sendJpeg || !alarmJpeg || !rgb || !lock) {
         Serial.println("[CAM] Not enough memory for the frame buffers");
         return false;
     }
@@ -427,6 +441,22 @@ void loop() {
     if (!sleepOff && WiFi.status() == WL_CONNECTED) {
         WiFi.setSleep(false);
         sleepOff = true;
+    }
+
+    // the alarm's frame goes out whether anybody watches or not: the site attaches it to the notifications
+    if (alarmPending && mqttConnected()) {
+        size_t len;
+        Vision v;
+        {
+            LockGuard guard;
+            len = alarmLen;
+            memcpy(sendJpeg, alarmJpeg, len);
+            v = alarmVision;
+            alarmPending = false;
+        }
+        publishCameraVision(visionJson(v));
+        if (publishCameraSnapshot(sendJpeg, len))
+            Serial.printf("[CAM] Sent the alarm frame (%u bytes)\n", (unsigned)len);
     }
 
     unsigned long now = millis();

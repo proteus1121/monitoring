@@ -73,13 +73,13 @@ public class MqttConfig {
     }
 
     /**
-     * JPEG frames of ESP32-CAM boards (CameraFrameConsumer): binary payloads, and a client of their own so a
-     * stream of frames does not hold up the measurements.
+     * JPEG frames of ESP32-CAM boards (CameraFrameConsumer), live ones and the frame of an alarm: binary
+     * payloads, and a client of their own so a stream of frames does not hold up the measurements.
      */
     @Bean
     public MqttPahoMessageDrivenChannelAdapter cameraFrameInbound(DefaultMqttPahoClientFactory mqttClientFactory) {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(MQTT_CAMERA_ID,
-                mqttClientFactory, "users/+/controllers/+/frame");
+                mqttClientFactory, "users/+/controllers/+/frame", "users/+/controllers/+/snapshot");
         DefaultPahoMessageConverter converter = new DefaultPahoMessageConverter();
         converter.setPayloadAsBytes(true);
         adapter.setConverter(converter);

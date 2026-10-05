@@ -56,6 +56,8 @@ public class CameraService {
     // without any frame for this long the stream ends; the page connects again
     private static final long GIVE_UP_MS = 30000;
     private static final long FLAME_DEVICE_DELAY_MS = 60000;
+    // an alarm's frame older than this is from another alarm
+    private static final long ALARM_FRAME_MAX_AGE_MS = 120000;
 
     private final ControllerService controllerService;
     private final ControllerRepository controllerRepository;
@@ -79,6 +81,8 @@ public class CameraService {
         volatile Frame frame;
         // the board sends the result first, then its frame
         volatile CameraVision vision;
+        // the frame the latest alarm was raised on
+        volatile Frame alarmFrame;
         long seq;
 
         Feed(Long userId, String hardwareId) {
@@ -129,6 +133,52 @@ public class CameraService {
             feed.frame = new Frame(jpeg, ++feed.seq, System.currentTimeMillis(), feed.vision);
             feed.notifyAll();
         }
+    }
+
+    /**
+     * The frame the board raised an alarm on; it is also the camera's latest frame.
+     */
+    public void handleAlarmFrame(Long userId, String hardwareId, byte[] jpeg) {
+        Feed feed = feed(userId, hardwareId);
+        synchronized (feed) {
+            Frame frame = new Frame(jpeg, ++feed.seq, System.currentTimeMillis(), feed.vision);
+            feed.frame = frame;
+            feed.alarmFrame = frame;
+            feed.notifyAll();
+        }
+        log.info("Camera {} raised a flame alarm, frame of {} bytes", hardwareId, jpeg.length);
+    }
+
+    /**
+     * The frame of the current alarm of a camera's flame device with the flame's box drawn on it, for the
+     * notifications. The board sends it right after the alarm, so it may still be on its way: waits up to
+     * {@code waitMs} for it.
+     *
+     * @return the JPEG, or null when the device is not a camera's or no frame came
+     */
+    public byte[] alarmImage(Long deviceId, long waitMs) throws InterruptedException {
+        DeviceEntity device = deviceRepository.findById(deviceId).orElse(null);
+        if (device == null || device.getSensorModel() != SensorModel.CAMERA || device.getControllerId() == null) {
+            return null;
+        }
+        var controller = controllerRepository.findById(device.getControllerId()).orElse(null);
+        if (controller == null) {
+            return null;
+        }
+        Feed feed = feed(controller.getUserId(), controller.getHardwareId());
+        long deadline = System.currentTimeMillis() + waitMs;
+        synchronized (feed) {
+            while (feed.alarmFrame == null
+                    || System.currentTimeMillis() - feed.alarmFrame.receivedAt() > ALARM_FRAME_MAX_AGE_MS) {
+                long left = deadline - System.currentTimeMillis();
+                if (left <= 0) {
+                    return null;
+                }
+                feed.wait(left);
+            }
+        }
+        Frame frame = feed.alarmFrame;
+        return FlameImage.annotate(frame.jpeg(), frame.vision());
     }
 
     // --- to the site ---

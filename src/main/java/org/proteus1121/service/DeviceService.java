@@ -89,6 +89,8 @@ public class DeviceService {
         List<Long> incidents = jdbcTemplate.queryForList("SELECT inc_id FROM incident_devices WHERE dev_id = ?", Long.class, id);
         jdbcTemplate.update("DELETE FROM incident_devices WHERE dev_id = ?", id);
         for (Long incident : incidents) {
+            jdbcTemplate.update("DELETE FROM incident_images WHERE incident_id = ? AND NOT EXISTS (SELECT 1 FROM incident_devices d WHERE d.inc_id = ?)",
+                    incident, incident);
             jdbcTemplate.update("DELETE FROM incidents WHERE id = ? AND NOT EXISTS (SELECT 1 FROM incident_devices d WHERE d.inc_id = ?)",
                     incident, incident);
         }

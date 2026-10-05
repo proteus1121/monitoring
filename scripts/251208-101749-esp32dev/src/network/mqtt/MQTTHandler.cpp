@@ -307,15 +307,23 @@ bool publishUpdateStatus(const String &payload) {
     return client.publish(topic.c_str(), payload.c_str());
 }
 
-bool publishCameraFrame(const uint8_t *jpeg, size_t length) {
+static bool publishJpeg(const char *kind, const uint8_t *jpeg, size_t length) {
     if (!client.connected())
         return false;
-    String topic = "users/" + userId + "/controllers/" + hardwareId() + "/frame";
+    String topic = "users/" + userId + "/controllers/" + hardwareId() + "/" + kind;
     // a frame is larger than the MQTT buffer: written straight to the connection
     if (!client.beginPublish(topic.c_str(), length, false))
         return false;
     size_t written = client.write(jpeg, length);
     return client.endPublish() && written == length;
+}
+
+bool publishCameraFrame(const uint8_t *jpeg, size_t length) {
+    return publishJpeg("frame", jpeg, length);
+}
+
+bool publishCameraSnapshot(const uint8_t *jpeg, size_t length) {
+    return publishJpeg("snapshot", jpeg, length);
 }
 
 bool publishCameraVision(const String &payload) {

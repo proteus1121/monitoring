@@ -395,6 +395,13 @@ const injectedRtkApi = api
         query: (queryArg) => ({ url: `/incidents/${queryArg.id}` }),
         providesTags: ["Incident Management"],
       }),
+      getIncidentImage: build.query<
+        GetIncidentImageApiResponse,
+        GetIncidentImageApiArg
+      >({
+        query: (queryArg) => ({ url: `/incidents/${queryArg.id}/image` }),
+        providesTags: ["Incident Management"],
+      }),
       getRecentIncidents: build.query<
         GetRecentIncidentsApiResponse,
         GetRecentIncidentsApiArg
@@ -656,6 +663,10 @@ export type GetAllIncidentsApiResponse = /** status 200 OK */ Incident[];
 export type GetAllIncidentsApiArg = void;
 export type GetIncidentApiResponse = /** status 200 OK */ Incident;
 export type GetIncidentApiArg = {
+  id: number;
+};
+export type GetIncidentImageApiResponse = unknown;
+export type GetIncidentImageApiArg = {
   id: number;
 };
 export type GetRecentIncidentsApiResponse = /** status 200 OK */ Incident[];
@@ -1016,6 +1027,7 @@ export type Incident = {
   devices?: Device[];
   status?: Resolution;
   severity?: Severity;
+  image?: boolean;
   created?: string;
 };
 export type RawReading = {
@@ -1130,6 +1142,8 @@ export const {
   useLazyGetAllIncidentsQuery,
   useGetIncidentQuery,
   useLazyGetIncidentQuery,
+  useGetIncidentImageQuery,
+  useLazyGetIncidentImageQuery,
   useGetRecentIncidentsQuery,
   useLazyGetRecentIncidentsQuery,
   useGetOpenIncidentCountQuery,

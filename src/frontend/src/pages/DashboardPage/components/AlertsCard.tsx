@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import { notification } from 'antd';
 import { Card } from '@src/components/Card';
 import { AiExplanation } from '@src/components/AiExplanation';
+import { IncidentImage } from '@src/components/IncidentImage';
 import { SEVERITY_STYLES } from '@src/components/NotificationsBell';
 import { fromNow, serverTime } from '@src/lib/readings';
 import { useTexts } from '@src/lib/lang';
@@ -142,6 +143,7 @@ function AlertItem({ incident }: { incident: Incident }) {
       <div className="min-w-0 flex-1">
         <p className="text-sm leading-snug">{incident.message}</p>
         {incident.description && <AiExplanation text={incident.description} />}
+        {incident.image && incident.id && <IncidentImage id={incident.id} />}
         <p
           className="mt-1 text-xs text-slate-500"
           title={serverTime(incident.created)?.format('YYYY-MM-DD HH:mm')}

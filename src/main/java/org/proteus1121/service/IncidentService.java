@@ -1,5 +1,12 @@
 package org.proteus1121.service;
 
+import org.proteus1121.model.entity.IncidentImageEntity;
+import org.proteus1121.repository.IncidentImageRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+import java.util.HashSet;
+import java.util.Set;
+
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.dto.device.Device;
@@ -28,15 +35,45 @@ public class IncidentService {
     private final DeviceService deviceService;
     private final IncidentMapper incidentMapper;
     private final DeviceMapper deviceMapper;
+    private final IncidentImageRepository incidentImageRepository;
 
     public List<Incident> getAllIncidents(Long userId) {
         List<Long> allDevices = deviceService.getAllDevices(userId).stream()
                 .map(Device::getId)
                 .toList();
         List<IncidentEntity> incidents = incidentRepository.findAllByDevices(allDevices);
-        return incidents.stream()
+        return withImages(incidents.stream()
                 .map(incidentMapper::toIncident)
-                .toList();
+                .toList());
+    }
+
+    /**
+     * Marks the incidents that have a picture.
+     */
+    private List<Incident> withImages(List<Incident> incidents) {
+        if (incidents.isEmpty()) {
+            return incidents;
+        }
+        Set<Long> withImage = new HashSet<>(incidentImageRepository.findIdsWithImage(
+                incidents.stream().map(Incident::getId).toList()));
+        incidents.forEach(incident -> incident.setImage(withImage.contains(incident.getId())));
+        return incidents;
+    }
+
+    public void saveImage(Long incidentId, byte[] jpeg) {
+        incidentImageRepository.save(new IncidentImageEntity(incidentId, jpeg));
+    }
+
+    /**
+     * The picture of an incident of the user's devices, empty when it has none.
+     */
+    public Optional<byte[]> getImage(Long id, Long userId) {
+        IncidentEntity incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Incident " + id + " not found"));
+        if (!isDeviceBelongToUser(userId, incident)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Incident " + id + " not found");
+        }
+        return incidentImageRepository.findById(id).map(IncidentImageEntity::getJpeg);
     }
 
     /**
@@ -53,9 +90,9 @@ public class IncidentService {
             return List.of();
         }
         List<Resolution> statuses = openOnly ? OPEN_STATUSES : List.of(Resolution.values());
-        return incidentRepository.findByDevicesAndStatuses(deviceIds, statuses, PageRequest.of(0, limit)).stream()
+        return withImages(incidentRepository.findByDevicesAndStatuses(deviceIds, statuses, PageRequest.of(0, limit)).stream()
                 .map(incidentMapper::toIncident)
-                .toList();
+                .toList());
     }
 
     public long countOpenIncidents(Long userId) {
@@ -87,7 +124,9 @@ public class IncidentService {
                 throw new IllegalArgumentException("User does not have permission to resolve this incident.");
             }
             
-            return incidentMapper.toIncident(incidentEntity);
+            Incident incident = incidentMapper.toIncident(incidentEntity);
+            incident.setImage(incidentImageRepository.existsById(id));
+            return incident;
         });
     }
 

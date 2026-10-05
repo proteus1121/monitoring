@@ -32,6 +32,8 @@
  *             {"a":0,"r":0.0012,"var":3.1e-7,"c":1,"n":3,"b":[x1,y1,x2,y2],"w":320,"h":240,"fps":8.9,
  *              "cfps":19.7,"m":[r,g,b]}  b in the w x h analysed frame, absent without flame-coloured pixels;
  *             m the mean colour of the analysed frame, for checking the channel order against the JPEG
+ *   publish   users/<userId>/controllers/<hardwareId>/snapshot the frame the alarm was raised on, after its
+ *             vision, also when nobody watches: the site attaches it, with the flame's box, to the alerts
  */
 namespace Camera {
 

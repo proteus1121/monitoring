@@ -12,8 +12,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * JPEG frames of ESP32-CAM boards on users/{userId}/controllers/{hardwareId}/frame. Binary, so they have an MQTT
- * client and channel of their own (MqttConfig) instead of going through the text consumers.
+ * JPEG frames of ESP32-CAM boards: users/{userId}/controllers/{hardwareId}/frame while somebody watches, .../snapshot
+ * when an alarm is raised. Binary, so they have an MQTT client and channel of their own (MqttConfig) instead of
+ * going through the text consumers.
  */
 @Slf4j
 @Component
@@ -21,7 +22,7 @@ import java.util.regex.Pattern;
 public class CameraFrameConsumer {
 
     static final Pattern FRAME_TOPIC_PATTERN = Pattern.compile(
-            "^/?users/(?<userId>\\d+)/controllers/(?<hardwareId>[A-Za-z0-9_-]{1,64})/frame$");
+            "^/?users/(?<userId>\\d+)/controllers/(?<hardwareId>[A-Za-z0-9_-]{1,64})/(?<kind>frame|snapshot)$");
 
     private final CameraService cameraService;
 
@@ -33,6 +34,11 @@ public class CameraFrameConsumer {
             log.warn("Ignoring a camera frame on {}", topic);
             return;
         }
-        cameraService.handleFrame(Long.parseLong(m.group("userId")), m.group("hardwareId"), jpeg);
+        Long userId = Long.parseLong(m.group("userId"));
+        if ("snapshot".equals(m.group("kind"))) {
+            cameraService.handleAlarmFrame(userId, m.group("hardwareId"), jpeg);
+        } else {
+            cameraService.handleFrame(userId, m.group("hardwareId"), jpeg);
+        }
     }
 }

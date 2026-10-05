@@ -18,6 +18,10 @@ public class Incident {
     private List<Device> devices;
     private Resolution status;
     private Severity severity;
+    /**
+     * A picture is attached (GET /incidents/{id}/image): the frame of a camera's flame alarm.
+     */
+    private boolean image;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS")
     private LocalDateTime created;
 
