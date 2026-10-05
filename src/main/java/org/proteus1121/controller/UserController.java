@@ -23,6 +23,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -94,6 +95,16 @@ public class UserController {
     public LoginResponse getUser() {
         User principal = getCurrentUser();
         return new LoginResponse(principal.getId(), principal.getUsername(),
-                RequestContextHolder.currentRequestAttributes().getSessionId());
+                RequestContextHolder.currentRequestAttributes().getSessionId(),
+                userService.getTimeZone(principal.getId()));
+    }
+
+    @PutMapping("/me/time-zone")
+    @Operation(summary = "Set the user's time zone", description = "IANA zone of the browser, e.g. Europe/Kyiv; times in the notifications are shown in it")
+    public void setTimeZone(@RequestBody TimeZoneRequest request) {
+        userService.setTimeZone(getCurrentUser().getId(), request.timeZone());
+    }
+
+    public record TimeZoneRequest(String timeZone) {
     }
 }

@@ -5,10 +5,10 @@ import Logo from '@src/components/logo/Logo';
 import { removeCookie } from '@src/lib/cookieUtils';
 import { useUi } from '@src/redux/ui/ui.hook';
 import clsx from 'clsx';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { NavLink, Outlet, To, useNavigate } from 'react-router-dom';
 import { LANGS, setLang, useLang } from '@src/lib/lang';
-import { useGetUserQuery } from '@src/redux/generatedApi';
+import { useGetUserQuery, useSetTimeZoneMutation } from '@src/redux/generatedApi';
 
 const TEXTS = {
   uk: {
@@ -69,6 +69,13 @@ export const MainLayout = () => {
   const lang = useLang();
   const t = TEXTS[lang];
   const { data: me } = useGetUserQuery();
+  const [setTimeZone] = useSetTimeZoneMutation();
+  // notifications show times in the user's zone: tell the server the browser's one when it is new
+  useEffect(() => {
+    if (!me) return;
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (zone && zone !== me.timeZone) setTimeZone({ timeZoneRequest: { timeZone: zone } });
+  }, [me?.timeZone, me?.userId]);
   const name = me?.name;
   // on a phone the menu covers the page: close it once a page is picked
   const closeOnPhone = () => setState({ ...state, isSidebarCollapsed: true });

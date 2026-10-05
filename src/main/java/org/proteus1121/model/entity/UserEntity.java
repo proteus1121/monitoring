@@ -27,6 +27,13 @@ public class UserEntity {
     private String password;
 
     /**
+     * IANA zone of the user (Europe/Kyiv), sent by the browser; notifications show times in it. Null until the
+     * user opened the site with this version.
+     */
+    @Column(name = "time_zone", length = 64)
+    private String timeZone;
+
+    /**
      * SSO provider (google, github) and the user's id there; null for users with a password.
      * Identity is matched by these, never by name, so a local account cannot be taken over via SSO.
      */

@@ -15,4 +15,12 @@ public class LoginResponse {
     private String name;
     @JsonProperty("SESSION")
     private String sessionId;
+    /**
+     * Zone the notifications use, null until the site sent one (only from /users/me).
+     */
+    private String timeZone;
+
+    public LoginResponse(Long userId, String name, String sessionId) {
+        this(userId, name, sessionId, null);
+    }
 }

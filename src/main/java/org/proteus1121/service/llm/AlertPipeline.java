@@ -67,6 +67,8 @@ public class AlertPipeline {
 
     public void raise(String title, Device device, double value) {
         IncidentEntity incident = incidentService.createIncident(title, Severity.CRITICAL, List.of(device));
+        // the time of the reading, not of sending: the explanation and the camera's frame take a few seconds
+        java.time.Instant occurred = java.time.Instant.now();
         Set<DeviceUser> recipients = deviceService.getUsersByDeviceId(device.getId());
 
         executor.submit(() -> {
@@ -87,7 +89,7 @@ public class AlertPipeline {
             } catch (Exception e) {
                 log.warn("Failed to describe incident {}: {}", incident.getId(), e.getMessage());
             }
-            notificationService.sendCriticalNotifications(recipients, device, value, description, image);
+            notificationService.sendCriticalNotifications(recipients, device, value, description, image, occurred);
         });
     }
 

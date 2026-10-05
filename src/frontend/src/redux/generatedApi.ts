@@ -1,10 +1,10 @@
 import { api } from "./api";
 export const addTagTypes = [
+  "Users",
   "Notifications",
   "Device Management",
   "Controller Management",
   "Telegram Webhook",
-  "Users",
   "Metrics",
   "Text generation",
   "Incident Management",
@@ -16,6 +16,14 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      setTimeZone: build.mutation<SetTimeZoneApiResponse, SetTimeZoneApiArg>({
+        query: (queryArg) => ({
+          url: `/users/me/time-zone`,
+          method: "PUT",
+          body: queryArg.timeZoneRequest,
+        }),
+        invalidatesTags: ["Users"],
+      }),
       getNotificationById: build.query<
         GetNotificationByIdApiResponse,
         GetNotificationByIdApiArg
@@ -486,6 +494,10 @@ const injectedRtkApi = api
     overrideExisting: false,
   });
 export { injectedRtkApi as generatedApi };
+export type SetTimeZoneApiResponse = unknown;
+export type SetTimeZoneApiArg = {
+  timeZoneRequest: TimeZoneRequest;
+};
 export type GetNotificationByIdApiResponse =
   /** status 200 OK */ TelegramNotification;
 export type GetNotificationByIdApiArg = {
@@ -709,6 +721,9 @@ export type UnshareControllerApiArg = {
   id: number;
   userId: number;
 };
+export type TimeZoneRequest = {
+  timeZone?: string;
+};
 export type GrantedAuthority = {
   authority?: string;
 };
@@ -918,6 +933,7 @@ export type UserRequest = {
 export type LoginResponse = {
   userId?: number;
   name?: string;
+  timeZone?: string;
   SESSION?: string;
 };
 export type LoginRequest = {
@@ -1083,6 +1099,7 @@ export type Camera = {
   vision?: CameraVision;
 };
 export const {
+  useSetTimeZoneMutation,
   useGetNotificationByIdQuery,
   useLazyGetNotificationByIdQuery,
   useUpdateNotificationMutation,

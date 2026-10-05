@@ -1,5 +1,8 @@
 package org.proteus1121.service;
 
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.proteus1121.model.dto.user.DeviceUser;
@@ -75,6 +78,25 @@ public class UserService implements UserDetailsService {
         return userRepository.findAll().stream()
                 .map((UserEntity userEntity) -> userMapper.toUser(userEntity, List.of(new SimpleGrantedAuthority("ROLE_USER"))))
                 .collect(toList());
+    }
+
+    /**
+     * Zone of the user's notifications, null when the site has not sent one yet.
+     */
+    public String getTimeZone(Long userId) {
+        return userRepository.findById(userId).map(UserEntity::getTimeZone).orElse(null);
+    }
+
+    public void setTimeZone(Long userId, String timeZone) {
+        try {
+            ZoneId.of(timeZone);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown time zone " + timeZone);
+        }
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User " + userId + " not found"));
+        user.setTimeZone(timeZone);
+        userRepository.save(user);
     }
 
     public User getUser(Long id) {

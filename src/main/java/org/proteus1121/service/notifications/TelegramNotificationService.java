@@ -23,6 +23,7 @@ import org.proteus1121.repository.NotificationRepository;
 import org.proteus1121.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -49,8 +50,9 @@ public class TelegramNotificationService {
     @Value("${telegram.bot-token:}")
     private String telegramBotToken;
 
+    // for users whose browser has not told their zone yet
     @Value("${notifications.time-zone:Europe/Kyiv}")
-    private ZoneId timeZone;
+    private ZoneId defaultTimeZone;
 
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("HH:mm:ss dd.MM.yy");
 
@@ -101,22 +103,24 @@ public class TelegramNotificationService {
     }
 
     public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value) {
-        sendCriticalNotifications(recipients, device, value, null, null);
+        sendCriticalNotifications(recipients, device, value, null, null, Instant.now());
     }
 
     /**
      * @param description explanation from the language model; replaces {{description}} in the template or,
      *                    when the template has no such placeholder, is added after the message
      * @param image       JPEG attached to the message (the frame of a camera's flame alarm), null for none
+     * @param occurred    when it happened, {{timestamp}} shows it in each recipient's zone
      */
     public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value, String description,
-                                          byte[] image) {
+                                          byte[] image, Instant occurred) {
 
         for (DeviceUser user : recipients) {
+            String timestamp = timestamp(occurred, user.getUserId());
             // every recipient gets every alert: incidents have one level and the site no longer lets you pick one
             getNotifications(user.getUserId())
                     .forEach(n -> {
-                        String message = withDescription(getMessage(n.getTemplate(), user, device, value),
+                        String message = withDescription(getMessage(n.getTemplate(), user, device, value, timestamp),
                                 n.getTemplate(), description);
                         String subject = "Critical alert: " + (device != null ? device.getName() : "device");
                         sender.submit(() -> {
@@ -135,9 +139,27 @@ public class TelegramNotificationService {
      */
     public void sendTest(TelegramNotification notification) {
         String message = "Test notification from Smart Sensor Network.\n\n"
-                + withDescription(getMessage(notification.getTemplate(), null, null, null), notification.getTemplate(),
+                + withDescription(getMessage(notification.getTemplate(), null, null, null,
+                        timestamp(Instant.now(), notification.getUser() == null ? null : notification.getUser().getId())),
+                notification.getTemplate(),
                 "[the explanation written by the language model appears here]");
         deliver(notification, "Test notification", message);
+    }
+
+    /**
+     * "04:46:13 05.10.25" in the zone of the user (their browser's), the default zone until it is known.
+     */
+    private String timestamp(Instant instant, Long userId) {
+        ZoneId zone = defaultTimeZone;
+        String userZone = userId == null ? null : userRepository.findById(userId).map(UserEntity::getTimeZone).orElse(null);
+        if (userZone != null) {
+            try {
+                zone = ZoneId.of(userZone);
+            } catch (Exception e) {
+                log.warn("User {} has an unknown time zone {}", userId, userZone);
+            }
+        }
+        return instant.atZone(zone).format(TIMESTAMP);
     }
 
     private static String withDescription(String message, String template, String description) {
@@ -209,10 +231,10 @@ public class TelegramNotificationService {
      *  - {{lower_value}}
      *  - {{critical_value}}
      *  - {{device_location}}
-     *  - {{timestamp}}  -> date and time in notifications.time-zone, e.g. 04:46:13 05.10.25
+     *  - {{timestamp}}  -> when it happened in the recipient's zone, e.g. 04:46:13 05.10.25
      * Null fields are replaced with "N/A".
      */
-    private String getMessage(String template, DeviceUser user, Device device, Double value) {
+    private String getMessage(String template, DeviceUser user, Device device, Double value, String timestamp) {
         if (template == null || template.isEmpty()) {
             return StringUtils.EMPTY;
         }
@@ -225,8 +247,6 @@ public class TelegramNotificationService {
         values.put("critical_value", safeNumber(device != null ? device.getCriticalValue() : null));
         values.put("device_location", safe(device != null ? device.getDescription() : null));
 
-        // read by people: the server runs in UTC, they live in the configured zone
-        String timestamp = ZonedDateTime.now(timeZone).format(TIMESTAMP);
         values.put("timestamp", timestamp);
 
         // Replace both styles: {{key}} and %{key}
