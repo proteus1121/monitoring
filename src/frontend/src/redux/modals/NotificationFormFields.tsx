@@ -146,7 +146,7 @@ export function NotificationFormFields({ form }: { form: any }) {
               <form.AppField
                 name="telegramChatId"
                 children={(field: any) => (
-                  <field.TextField label={t.chatId} placeholder="392872938" />
+                  <field.TextField label={t.chatId} placeholder="000000000" />
                 )}
               />
               <p className="-mt-3 text-xs text-slate-500">{t.chatHelp}</p>
