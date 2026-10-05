@@ -23,6 +23,7 @@ import {
 } from '@src/components/Select';
 import { DISPLAY_PIN_NAMES, getDisplayPinOptions, pinPlatform } from '@src/lib/hardware';
 import { pick } from '@src/lib/lang';
+import { modelDescription } from '@src/lib/modules';
 import clsx from 'clsx';
 
 const TEXTS = {
@@ -176,7 +177,7 @@ export function DisplayModal() {
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[640px]">
         <DialogHeader>
           <DialogTitle>{pick(TEXTS).title(controller?.name ?? pick(TEXTS).theBoard)}</DialogTitle>
-          <DialogDescription>{info?.description ?? pick(TEXTS).noScreen}</DialogDescription>
+          <DialogDescription>{info ? modelDescription(info) : pick(TEXTS).noScreen}</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">

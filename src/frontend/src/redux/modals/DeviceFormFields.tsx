@@ -15,6 +15,7 @@ import {
 } from '@src/lib/hardware';
 import { fromNow } from '@src/lib/readings';
 import { pick, useTexts } from '@src/lib/lang';
+import { modelDescription } from '@src/lib/modules';
 import {
   Device,
   DeviceRequest,
@@ -490,7 +491,7 @@ function GeneralFields({ form }: { form: any }) {
 
               {bound && model && (
                 <>
-                  <p className="text-sm text-slate-500">{model.description}</p>
+                  <p className="text-sm text-slate-500">{modelDescription(model)}</p>
                   {(model.pins?.length ?? 0) > 0 && (
                   <div className="flex flex-wrap gap-2">
                     <form.AppField
