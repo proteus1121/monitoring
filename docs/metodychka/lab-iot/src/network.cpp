@@ -7,11 +7,11 @@ WiFiClient net;
 PubSubClient mqtt(net);
 unsigned long lastAttempt = 0;
 
+// без String: порівнюємо байти, інші значення команди ігноруємо
 void onMessage(char *topic, byte *payload, unsigned int len) {
-    String value((char *)payload, len);
-    if (String(topic) == TOPIC_PREFIX "relay/set") {
-        digitalWrite(PIN_RELAY, value == "1" ? HIGH : LOW);
-    }
+    if (strcmp(topic, TOPIC_PREFIX "relay/set") != 0 || len != 1) return;
+    if (payload[0] == '1') digitalWrite(PIN_RELAY, HIGH);
+    else if (payload[0] == '0') digitalWrite(PIN_RELAY, LOW);
 }
 
 void networkSetup() {
@@ -42,5 +42,6 @@ void publish(const char *name, float value) {
     char topic[96], payload[16];
     snprintf(topic, sizeof(topic), "%s%s", TOPIC_PREFIX, name);
     snprintf(payload, sizeof(payload), "%.2f", value);
-    if (mqtt.connected()) mqtt.publish(topic, payload, false);  // QoS 0, без retain
+    // QoS 0, без retain; без з'єднання показ втрачається – буферизації в практикумі немає
+    if (mqtt.connected()) mqtt.publish(topic, payload, false);
 }

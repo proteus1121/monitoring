@@ -5,13 +5,13 @@
 #define WIFI_SSID      "lab-iot"
 #define WIFI_PASS      "********"
 #define MQTT_HOST      "192.168.1.10"
-#define MQTT_PORT      1883
+#define MQTT_PORT      1883             // MQTT без шифрування; у реальній системі – TLS, порт 8883
 #define MQTT_USER      "student"
 #define MQTT_PASS      "********"
-#define TOPIC_PREFIX   "lab/ki-21/ivanenko/"
+#define TOPIC_PREFIX   "lab/GROUP/SURNAME/"   // замінити на свої, напр. lab/ki-21/petrenko/
 
 // розподіл виводів (додаток А)
-const uint8_t PIN_LED    = 25;
+const uint8_t PIN_LED    = 25;   // зовнішній світлодіод HL1, не вбудований LED плати
 const uint8_t PIN_RELAY  = 26;
 const uint8_t PIN_BUTTON = 27;
 const uint8_t PIN_DHT    = 4;

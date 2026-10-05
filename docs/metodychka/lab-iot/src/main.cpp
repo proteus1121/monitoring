@@ -17,17 +17,19 @@ SoilSensor soil;
 DigitalEvent flame("flame", PIN_FLAME, true);             // активний LOW
 DigitalEvent motion("motion", PIN_PIR, false);            // активний HIGH
 
-// новий модуль = новий об'єкт драйвера і рядок у цьому масиві
+// вимірювальні та подієві датчики; новий датчик = новий об'єкт драйвера і рядок у масиві.
+// Кнопка, реле і світлодіод HL1 обробляються окремо.
 ISensor *sensors[] = {&temperature, &humidity, &pressure, &gas, &soil, &flame, &motion};
 const size_t SENSOR_COUNT = sizeof(sensors) / sizeof(sensors[0]);
 float lastEvent[SENSOR_COUNT];                            // останнє опубліковане значення події
+bool eventSent[SENSOR_COUNT] = {};                        // чи публікували подію хоч раз
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0, U8X8_PIN_NONE, PIN_SCL, PIN_SDA);
 
 bool lastButton = HIGH;
 unsigned long lastSample = 0, lastPublish = 0, lastButtonChange = 0;
 
-// періодичні покази – на дисплей і в монітор порту, по рядку на драйвер
+// періодичні покази – на дисплей і в монітор порту: «T  23.5 C»
 void showReadings() {
     char line[24];
     int y = 10;
@@ -36,8 +38,8 @@ void showReadings() {
     for (ISensor *s : sensors) {
         float v;
         if (s->isEventDriven()) continue;
-        if (s->read(v)) snprintf(line, sizeof(line), "%-11s %8.2f", s->name(), v);
-        else snprintf(line, sizeof(line), "%-11s      ---", s->name());
+        if (s->read(v)) snprintf(line, sizeof(line), "%-5s %8.1f %s", s->label(), v, s->unit());
+        else snprintf(line, sizeof(line), "%-5s      ---", s->label());
         oled.drawStr(0, y, line);
         Serial.println(line);
         y += 12;
@@ -55,7 +57,9 @@ void publishPeriodic() {
 void publishEvents() {
     for (size_t i = 0; i < SENSOR_COUNT; i++) {
         float v;
-        if (sensors[i]->isEventDriven() && sensors[i]->read(v) && v != lastEvent[i]) {
+        if (!sensors[i]->isEventDriven() || !sensors[i]->read(v)) continue;
+        if (!eventSent[i] || v != lastEvent[i]) {               // перший стан або зміна
+            eventSent[i] = true;
             lastEvent[i] = v;
             publish(sensors[i]->name(), v);
         }
@@ -80,10 +84,7 @@ void setup() {
     pinMode(PIN_RELAY, OUTPUT);
     pinMode(PIN_BUTTON, INPUT_PULLUP);
     Wire.begin(PIN_SDA, PIN_SCL);
-    for (size_t i = 0; i < SENSOR_COUNT; i++) {
-        sensors[i]->init();
-        lastEvent[i] = NAN;                                     // перший стан теж публікується
-    }
+    for (ISensor *s : sensors) s->init();
     oled.begin();
     networkSetup();
 }

@@ -4,7 +4,8 @@
 #include "ISensor.h"
 #include "config.h"
 
-// середнє з 16 вимірювань; analogReadMilliVolts() враховує калібрування АЦП
+// середнє з 16 вимірювань; analogReadMilliVolts() враховує заводське калібрування АЦП,
+// але не замінює мультиметр: похибка залежить від конкретної плати
 inline float averageMv(uint8_t pin) {
     uint32_t sum = 0;
     for (int i = 0; i < 16; i++) sum += analogReadMilliVolts(pin);
@@ -38,6 +39,8 @@ class DhtChannel : public ISensor {
 public:
     DhtChannel(DhtReader &dht, bool humidity) : dht(dht), humidity(humidity) {}
     const char *name() override { return humidity ? "humidity" : "temperature"; }
+    const char *label() override { return humidity ? "RH" : "T"; }
+    const char *unit() override { return humidity ? "%" : "C"; }
     void init() override { dht.init(); }
     void update() override { dht.update(); }
     bool read(float &value) override {
@@ -52,6 +55,8 @@ private:
 class BmpSensor : public ISensor {
 public:
     const char *name() override { return "pressure"; }
+    const char *label() override { return "p"; }
+    const char *unit() override { return "hPa"; }
     void init() override { ok = bmp.begin(); }            // Wire.begin() – у setup()
     bool read(float &value) override {
         if (!ok) return false;
@@ -66,6 +71,8 @@ private:
 class Mq2Sensor : public ISensor {
 public:
     const char *name() override { return "gas_voltage"; }
+    const char *label() override { return "Gas"; }
+    const char *unit() override { return "V"; }
     void init() override { analogSetPinAttenuation(PIN_MQ2, ADC_11db); }   // діапазон до ~3,1 В
     bool read(float &value) override {
         value = averageMv(PIN_MQ2) / 1000.0 * 1.5;        // напруга AO, дільник 10/20 кОм
@@ -76,6 +83,8 @@ public:
 class SoilSensor : public ISensor {
 public:
     const char *name() override { return "soil"; }
+    const char *label() override { return "Soil"; }
+    const char *unit() override { return "%"; }
     void init() override { analogSetPinAttenuation(PIN_SOIL, ADC_11db); }
     bool read(float &value) override {                    // умовна шкала 0...100 %
         float mv = averageMv(PIN_SOIL);
@@ -86,8 +95,9 @@ public:
 
 class DigitalEvent : public ISensor {
 public:
-    DigitalEvent(const char *topic, uint8_t pin, bool activeLow) : topic(topic), pin(pin), activeLow(activeLow) {}
-    const char *name() override { return topic; }
+    // id – коротка назва показника, а не повний топік: publish() сам додає TOPIC_PREFIX
+    DigitalEvent(const char *id, uint8_t pin, bool activeLow) : id(id), pin(pin), activeLow(activeLow) {}
+    const char *name() override { return id; }
     void init() override { pinMode(pin, INPUT); }
     bool read(float &value) override {
         value = (digitalRead(pin) == HIGH) != activeLow;  // 1 – подія
@@ -95,7 +105,7 @@ public:
     }
     bool isEventDriven() override { return true; }
 private:
-    const char *topic;
+    const char *id;
     uint8_t pin;
     bool activeLow;
 };
