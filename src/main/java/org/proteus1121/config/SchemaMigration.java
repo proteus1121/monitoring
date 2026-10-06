@@ -29,25 +29,46 @@ public class SchemaMigration {
         createIndex("sensor_data", "idx_sensor_data_device_timestamp", "device_id, `timestamp`");
         // e-mail notifications have no Telegram chat
         makeNullable("notifications", "telegram_chat_id", "VARCHAR(64)");
-        enableDefaultForecasts();
+        migrateForecastModels();
     }
 
     /**
-     * Before forecast settings existed every device got an XGBoost forecast; keep that for numeric
-     * sensors once, when the column is still empty everywhere.
+     * A device used to have one forecast model in devices.forecast_model, now it has a set of them in
+     * device_forecast_models with the error of each in device_forecast_scores. The old column is copied
+     * once and dropped. Before forecast settings existed every device got an XGBoost forecast, so a
+     * column that is still empty everywhere enables XGBoost for numeric sensors, as it did before.
      */
-    private void enableDefaultForecasts() {
+    private void migrateForecastModels() {
         try {
+            if (!columnExists("devices", "forecast_model")) return;
             Integer configured = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM devices WHERE forecast_model IS NOT NULL", Integer.class);
+            int copied;
             if (configured != null && configured == 0) {
-                int updated = jdbcTemplate.update("UPDATE devices SET forecast_model = 'XGBOOST' WHERE type IN " +
+                copied = jdbcTemplate.update("INSERT INTO device_forecast_models (device_id, model) " +
+                        "SELECT id, 'XGBOOST' FROM devices WHERE type IN " +
                         "('TEMPERATURE', 'HUMIDITY', 'PRESSURE', 'LPG', 'CH4', 'SMOKE')");
-                log.info("Enabled XGBoost forecast for {} existing devices", updated);
+            } else {
+                copied = jdbcTemplate.update("INSERT INTO device_forecast_models (device_id, model) " +
+                        "SELECT id, forecast_model FROM devices WHERE forecast_model IS NOT NULL AND forecast_model <> 'NONE'");
+                if (columnExists("devices", "forecast_mae")) {
+                    jdbcTemplate.update("INSERT INTO device_forecast_scores (device_id, model, mae, rmse, updated_at) " +
+                            "SELECT id, forecast_model, forecast_mae, forecast_rmse, forecast_updated_at FROM devices " +
+                            "WHERE forecast_model IS NOT NULL AND forecast_model <> 'NONE' AND forecast_updated_at IS NOT NULL");
+                }
             }
+            jdbcTemplate.execute("ALTER TABLE devices DROP COLUMN forecast_model");
+            log.info("Moved forecast models of {} devices to device_forecast_models", copied);
         } catch (Exception e) {
-            log.error("Failed to enable default forecasts", e);
+            log.error("Failed to migrate forecast models", e);
         }
+    }
+
+    private boolean columnExists(String table, String column) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?",
+                Integer.class, table, column);
+        return count != null && count > 0;
     }
 
     private void makeNullable(String table, String column, String type) {

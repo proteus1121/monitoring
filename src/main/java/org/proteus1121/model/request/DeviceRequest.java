@@ -43,7 +43,10 @@ public class DeviceRequest {
     @Min(0)
     @Max(4095)
     private Integer calibrationWet;
-    private ForecastModel forecastModel;
+    /**
+     * Models that forecast the device; empty turns forecasting off.
+     */
+    private Set<ForecastModel> forecastModels;
     private Integer forecastHorizonHours;
     private Integer forecastHistoryDays;
     private Integer arimaP;
@@ -53,7 +56,13 @@ public class DeviceRequest {
     private Double kalmanMeasurementNoise;
     private Integer xgbRounds;
     private Integer xgbMaxDepth;
-    
+    @Min(12)
+    @Max(168)
+    private Integer transformerWindow;
+    @Min(5)
+    @Max(200)
+    private Integer transformerEpochs;
+
     private Set<Long> userIds;
 
 }

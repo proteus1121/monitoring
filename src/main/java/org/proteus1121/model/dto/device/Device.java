@@ -5,11 +5,13 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import org.proteus1121.model.dto.user.DeviceUser;
+import org.proteus1121.model.entity.ForecastScore;
 import org.proteus1121.model.enums.DeviceStatus;
 import org.proteus1121.model.enums.DeviceType;
 import org.proteus1121.model.enums.SensorModel;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 
 @Data
@@ -36,7 +38,7 @@ public class Device {
      */
     private Integer calibrationDry;
     private Integer calibrationWet;
-    private ForecastModel forecastModel;
+    private Set<ForecastModel> forecastModels;
     private Integer forecastHorizonHours;
     private Integer forecastHistoryDays;
     private Integer arimaP;
@@ -46,9 +48,11 @@ public class Device {
     private Double kalmanMeasurementNoise;
     private Integer xgbRounds;
     private Integer xgbMaxDepth;
-    private Double forecastMae;
-    private Double forecastRmse;
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime forecastUpdatedAt;
+    private Integer transformerWindow;
+    private Integer transformerEpochs;
+    /**
+     * Error of the last run of each model on the hours it had not seen.
+     */
+    private Map<ForecastModel, ForecastScore> forecastScores;
     private Set<DeviceUser> userDevices;
 }

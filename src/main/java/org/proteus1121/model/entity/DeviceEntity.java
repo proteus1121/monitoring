@@ -2,8 +2,13 @@ package org.proteus1121.model.entity;
 
 import org.proteus1121.model.enums.ForecastModel;
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.MapKeyEnumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -20,7 +25,9 @@ import org.proteus1121.model.enums.DeviceType;
 import org.proteus1121.model.enums.SensorModel;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Data
@@ -87,9 +94,14 @@ public class DeviceEntity {
 
     // --- forecast configuration, see service.forecast ---
 
+    /**
+     * Every selected model builds its own forecast, so they can be compared on the chart.
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "device_forecast_models", joinColumns = @JoinColumn(name = "device_id"))
     @Enumerated(EnumType.STRING)
-    @Column(name = "forecast_model", columnDefinition = "VARCHAR(16)")
-    private ForecastModel forecastModel;
+    @Column(name = "model", columnDefinition = "VARCHAR(16)")
+    private Set<ForecastModel> forecastModels = new HashSet<>();
 
     @Column(name = "forecast_horizon_hours")
     private Integer forecastHorizonHours;
@@ -118,16 +130,19 @@ public class DeviceEntity {
     @Column(name = "xgb_max_depth")
     private Integer xgbMaxDepth;
 
-    // --- result of the last forecast run: error on the held-out last hours ---
+    @Column(name = "transformer_window")
+    private Integer transformerWindow;
 
-    @Column(name = "forecast_mae")
-    private Double forecastMae;
+    @Column(name = "transformer_epochs")
+    private Integer transformerEpochs;
 
-    @Column(name = "forecast_rmse")
-    private Double forecastRmse;
+    // --- result of the last forecast run of each model ---
 
-    @Column(name = "forecast_updated_at")
-    private LocalDateTime forecastUpdatedAt;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "device_forecast_scores", joinColumns = @JoinColumn(name = "device_id"))
+    @MapKeyEnumerated(EnumType.STRING)
+    @MapKeyColumn(name = "model", columnDefinition = "VARCHAR(16)")
+    private Map<ForecastModel, ForecastScore> forecastScores = new HashMap<>();
 
     private LocalDateTime lastChecked = LocalDateTime.now();
 

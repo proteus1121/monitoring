@@ -1,10 +1,9 @@
 package org.proteus1121.model.enums;
 
 /**
- * Method used to forecast the values of a device.
+ * Method used to forecast the values of a device. A device may use several at once.
  */
 public enum ForecastModel {
-    NONE,
     /**
      * Gradient boosted trees on lagged values and calendar features.
      */
@@ -16,5 +15,9 @@ public enum ForecastModel {
     /**
      * Kalman filter with a damped local linear trend.
      */
-    KALMAN
+    KALMAN,
+    /**
+     * Small Transformer with causal self-attention over the last hours, trained on the device history.
+     */
+    TRANSFORMER
 }

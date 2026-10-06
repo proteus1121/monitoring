@@ -295,7 +295,7 @@ function SensorForm(props: { module: ModuleEntry; board: Controller; onDone: () 
           pin: signals[0] ? Number(pins[signals[0]]) : undefined,
           secondaryPin: signals[1] ? Number(pins[signals[1]]) : undefined,
           delay: Math.round(Number(intervalSeconds) * 1000),
-          forecastModel: 'NONE',
+          forecastModels: [],
         },
       });
       if ('error' in res) {

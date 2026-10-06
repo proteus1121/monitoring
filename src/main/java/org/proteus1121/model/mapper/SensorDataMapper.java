@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.proteus1121.model.entity.PredictedSensorDataEntity;
 import org.proteus1121.model.entity.SensorDataEntity;
+import org.proteus1121.model.response.metric.PredictedSensorData;
 import org.proteus1121.model.response.metric.SensorData;
 
 import java.time.LocalDateTime;
@@ -23,11 +24,13 @@ public interface SensorDataMapper {
 
     @Mapping(target = "timestamp", source = "timestamp")
     @Mapping(target = "value", source = "value")
-    SensorData toSensorData(PredictedSensorDataEntity sensorDataEntity);
+    @Mapping(target = "model", source = "model")
+    PredictedSensorData toPredictedSensorData(PredictedSensorDataEntity sensorDataEntity);
 
     @Mapping(target = "id", ignore = true) // ID will be auto-generated
     @Mapping(target = "device.id", source = "deviceId")
     @Mapping(target = "timestamp", source = "timestamp")
     @Mapping(target = "value", source = "value")
+    @Mapping(target = "model", ignore = true)
     PredictedSensorDataEntity toPredictedSensorDataEntity(Double value, Long deviceId, LocalDateTime timestamp);
 }

@@ -213,7 +213,7 @@ function FindingRow(props: {
     for (const suggested of option.devices) {
       const device = toDevice(suggested, controller.id!);
       const res = await createDevice({
-        deviceRequest: { ...device, delay: DEFAULT_DELAY_MS, name: device.name!, forecastModel: 'NONE' },
+        deviceRequest: { ...device, delay: DEFAULT_DELAY_MS, name: device.name!, forecastModels: [] },
       });
       if ('error' in res) {
         notification.error({ message: t.addFailed(suggested.name ?? ''), description: errorMessage(res.error) });

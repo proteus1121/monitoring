@@ -103,4 +103,12 @@ tasks.test {
         systemProperty("openapi.out", it)
         outputs.file(it)
     }
+    // ForecastBenchmark runs only with forecast.benchmark, see its javadoc
+    System.getProperties().stringPropertyNames().filter { it.startsWith("forecast.benchmark") }.forEach {
+        systemProperty(it, System.getProperty(it))
+    }
+    if (System.getProperty("forecast.benchmark") != null) {
+        maxHeapSize = "2g"
+        testLogging.showStandardStreams = true
+    }
 }

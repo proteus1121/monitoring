@@ -2,6 +2,8 @@ package org.proteus1121.model.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -10,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.proteus1121.model.enums.ForecastModel;
 
 import java.time.LocalDateTime;
 
@@ -32,5 +35,12 @@ public class PredictedSensorDataEntity {
 
     @Column(name = "value")
     private Double value;
-    
+
+    /**
+     * Model that made the forecast; null for forecasts made before a device could have several.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "model", columnDefinition = "VARCHAR(16)")
+    private ForecastModel model;
+
 }

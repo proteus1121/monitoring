@@ -15,6 +15,8 @@ import { serverTime } from '@src/lib/readings';
 import { useTexts } from '@src/lib/lang';
 import {
   Device,
+  ForecastModel,
+  PredictedSensorData,
   SensorData,
   useLazyGetMetricsPredictedQuery,
   useLazyGetMetricsQuery,
@@ -61,6 +63,22 @@ const TEXTS = {
   },
 };
 
+const MODEL_LABELS: Record<ForecastModel, string> = {
+  ARIMA: 'ARIMA',
+  KALMAN: 'Kalman',
+  XGBOOST: 'XGBoost',
+  TRANSFORMER: 'Transformer',
+};
+
+// every model of a device keeps the device colour and gets its own dash pattern
+const MODEL_DASHES: Record<string, number[]> = {
+  ARIMA: [6, 6],
+  KALMAN: [2, 4],
+  XGBOOST: [10, 4, 2, 4],
+  TRANSFORMER: [14, 6],
+  '': [6, 6],
+};
+
 interface DatasetConfig {
   label: string;
   data: (number | null)[];
@@ -77,7 +95,16 @@ interface ChartData {
   datasets: DatasetConfig[];
 }
 
-function toMap(entries?: SensorData[]) {
+// forecasts made before devices could have several models carry no model, keyed by ''
+function byModel(entries: PredictedSensorData[]) {
+  const groups: Record<string, PredictedSensorData[]> = {};
+  entries.forEach(entry => {
+    (groups[entry.model ?? ''] ??= []).push(entry);
+  });
+  return Object.entries(groups).map(([model, points]) => ({ model, points: toMap(points) }));
+}
+
+function toMap(entries?: (SensorData | PredictedSensorData)[]) {
   const map: Record<string, number> = {};
   entries?.forEach(entry => {
     if (entry.timestamp && entry.value !== undefined && entry.value !== null) {
@@ -132,9 +159,9 @@ const DeviceDataChart = ({
               // the forecast is optional, the chart still works without it
               getPredictedMetricsByDevice({ deviceId: id, start, end }, true)
                 .unwrap()
-                .catch(() => [] as SensorData[]),
+                .catch(() => [] as PredictedSensorData[]),
             ]);
-            return { id, actual: toMap(actual), predicted: toMap(predicted) };
+            return { id, actual: toMap(actual), predicted: byModel(predicted) };
           })
         );
         if (cancelled) return;
@@ -142,7 +169,7 @@ const DeviceDataChart = ({
         const timestamps = new Set<string>();
         responses.forEach(r => {
           Object.keys(r.actual).forEach(ts => timestamps.add(ts));
-          Object.keys(r.predicted).forEach(ts => timestamps.add(ts));
+          r.predicted.forEach(series => Object.keys(series.points).forEach(ts => timestamps.add(ts)));
         });
         const sorted = [...timestamps].sort();
 
@@ -160,18 +187,19 @@ const DeviceDataChart = ({
             spanGaps: true,
             pointRadius: 2,
           });
-          if (Object.keys(r.predicted).length > 0) {
+          r.predicted.forEach(series => {
+            const model = MODEL_LABELS[series.model as ForecastModel];
             datasets.push({
-              label: `${name} (${t.forecast})`,
-              data: sorted.map(ts => r.predicted[ts] ?? null),
+              label: model ? `${name} (${t.forecast} ${model})` : `${name} (${t.forecast})`,
+              data: sorted.map(ts => series.points[ts] ?? null),
               borderColor: color,
               backgroundColor: color,
               tension: 0.3,
               spanGaps: true,
               pointRadius: 0,
-              borderDash: [6, 6],
+              borderDash: MODEL_DASHES[series.model] ?? MODEL_DASHES[''],
             });
-          }
+          });
         });
 
         setChartData({

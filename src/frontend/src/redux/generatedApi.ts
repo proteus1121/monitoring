@@ -587,7 +587,7 @@ export type TestNotificationApiResponse = unknown;
 export type TestNotificationApiArg = {
   id: number;
 };
-export type PredictMetricsApiResponse = /** status 200 OK */ ForecastResult;
+export type PredictMetricsApiResponse = /** status 200 OK */ ForecastResult[];
 export type PredictMetricsApiArg = {
   deviceId: number;
 };
@@ -658,7 +658,8 @@ export type GetMetricsApiArg = {
   end: string;
   period?: Period;
 };
-export type GetMetricsPredictedApiResponse = /** status 200 OK */ SensorData[];
+export type GetMetricsPredictedApiResponse =
+  /** status 200 OK */ PredictedSensorData[];
 export type GetMetricsPredictedApiArg = {
   deviceId: number;
   start: string;
@@ -783,7 +784,12 @@ export type SensorModel =
   | "ANALOG_INPUT"
   | "RELAY"
   | "CAMERA";
-export type ForecastModel = "NONE" | "XGBOOST" | "ARIMA" | "KALMAN";
+export type ForecastModel = "XGBOOST" | "ARIMA" | "KALMAN" | "TRANSFORMER";
+export type ForecastScore = {
+  mae?: number;
+  rmse?: number;
+  updatedAt?: string;
+};
 export type DeviceRole = "OWNER" | "EDITOR" | "VIEWER";
 export type DeviceUser = {
   deviceId?: number;
@@ -808,7 +814,7 @@ export type Device = {
   secondaryPin?: number;
   calibrationDry?: number;
   calibrationWet?: number;
-  forecastModel?: ForecastModel;
+  forecastModels?: ForecastModel[];
   forecastHorizonHours?: number;
   forecastHistoryDays?: number;
   arimaP?: number;
@@ -818,9 +824,11 @@ export type Device = {
   kalmanMeasurementNoise?: number;
   xgbRounds?: number;
   xgbMaxDepth?: number;
-  forecastMae?: number;
-  forecastRmse?: number;
-  forecastUpdatedAt?: string;
+  transformerWindow?: number;
+  transformerEpochs?: number;
+  forecastScores?: {
+    [key: string]: ForecastScore;
+  };
   userDevices?: DeviceUser[];
 };
 export type DeviceRequest = {
@@ -836,7 +844,7 @@ export type DeviceRequest = {
   secondaryPin?: number;
   calibrationDry?: number;
   calibrationWet?: number;
-  forecastModel?: ForecastModel;
+  forecastModels?: ForecastModel[];
   forecastHorizonHours?: number;
   forecastHistoryDays?: number;
   arimaP?: number;
@@ -846,6 +854,8 @@ export type DeviceRequest = {
   kalmanMeasurementNoise?: number;
   xgbRounds?: number;
   xgbMaxDepth?: number;
+  transformerWindow?: number;
+  transformerEpochs?: number;
   userIds?: number[];
 };
 export type UnshareDeviceRequest = {
@@ -1025,6 +1035,11 @@ export type Period =
   | "SIX_HOURS"
   | "TWELVE_HOURS"
   | "ONE_DAY";
+export type PredictedSensorData = {
+  timestamp?: string;
+  value?: number;
+  model?: ForecastModel;
+};
 export type LatestReading = {
   deviceId: number;
   timestamp: string;

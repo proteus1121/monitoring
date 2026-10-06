@@ -45,6 +45,7 @@ const FORECAST_LABELS: Record<string, string> = {
   ARIMA: 'ARIMA',
   KALMAN: 'Kalman',
   XGBOOST: 'XGBoost',
+  TRANSFORMER: 'Transformer',
 };
 
 const TEXTS = {
@@ -392,13 +393,18 @@ function DevicesTable(props: {
                   </span>
                 </td>
                 {!compact && <td className="px-4 py-2.5 text-slate-600">
-                  {device.forecastModel && device.forecastModel !== 'NONE' ? (
-                    <>
-                      {FORECAST_LABELS[device.forecastModel]}
-                      {device.forecastMae !== undefined && device.forecastMae !== null && (
-                        <div className="text-xs text-slate-400">MAE {device.forecastMae.toFixed(2)}</div>
-                      )}
-                    </>
+                  {device.forecastModels?.length ? (
+                    device.forecastModels.map(model => {
+                      const mae = device.forecastScores?.[model]?.mae;
+                      return (
+                        <div key={model}>
+                          {FORECAST_LABELS[model]}
+                          {mae !== undefined && mae !== null && (
+                            <span className="ml-1 text-xs text-slate-400">MAE {mae.toFixed(2)}</span>
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}

@@ -16,6 +16,8 @@ import org.proteus1121.model.mapper.SensorDataMapper;
 import org.proteus1121.model.ml.AnomalyContext;
 import org.proteus1121.model.ml.IncidentContext;
 import org.proteus1121.model.ml.IncidentMessage;
+import org.proteus1121.model.enums.ForecastModel;
+import org.proteus1121.model.response.metric.PredictedSensorData;
 import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.repository.PredictedSensorDataRepository;
 import org.proteus1121.repository.SensorDataRepository;
@@ -27,11 +29,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.proteus1121.model.enums.Period.LIVE;
 
@@ -251,17 +256,20 @@ public class MetricService {
             .toList();
     }
 
-    public List<SensorData> getMetricsPredicted(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
+    public List<PredictedSensorData> getMetricsPredicted(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period) {
         Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER);
 
         List<PredictedSensorDataEntity> rawData = predictedSensorDataRepository
-                .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp).stream()
-                .toList();
+                .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp);
 
-        List<PredictedSensorDataEntity> downsampled = downsampleByPeriod(rawData, PredictedSensorDataEntity::getTimestamp, startTimestamp, period);
+        // every model is its own series: downsampling them together would keep one model per bucket
+        Map<Optional<ForecastModel>, List<PredictedSensorDataEntity>> byModel = rawData.stream()
+                .collect(Collectors.groupingBy(e -> Optional.ofNullable(e.getModel()), LinkedHashMap::new, Collectors.toList()));
 
-        return downsampled.stream()
-                .map(sensorDataMapper::toSensorData)
+        return byModel.values().stream()
+                .flatMap(series -> downsampleByPeriod(series, PredictedSensorDataEntity::getTimestamp, startTimestamp, period).stream())
+                .sorted(Comparator.comparing(PredictedSensorDataEntity::getTimestamp))
+                .map(sensorDataMapper::toPredictedSensorData)
                 .toList();
     }
 

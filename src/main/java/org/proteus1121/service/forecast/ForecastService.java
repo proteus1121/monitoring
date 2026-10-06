@@ -2,6 +2,7 @@ package org.proteus1121.service.forecast;
 
 import lombok.extern.slf4j.Slf4j;
 import org.proteus1121.model.entity.DeviceEntity;
+import org.proteus1121.model.entity.ForecastScore;
 import org.proteus1121.model.entity.PredictedSensorDataEntity;
 import org.proteus1121.model.enums.ForecastModel;
 import org.proteus1121.model.response.metric.ForecastResult;
@@ -14,15 +15,16 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Builds the forecast of a device with the model chosen in its configuration:
- * readings are averaged per hour in the database, gaps are interpolated, the model is first checked
- * on the last hours it has not seen (MAE / RMSE are stored on the device) and then refitted on the
- * whole history to forecast the next hours. The future part of the previous forecast is replaced.
+ * Builds the forecasts of a device with every model chosen in its configuration:
+ * readings are averaged per hour in the database, gaps are interpolated, each model is first checked
+ * on the last hours it has not seen (MAE / RMSE are stored per model on the device) and then refitted
+ * on the whole history to forecast the next hours. The future part of the previous forecasts is replaced.
  */
 @Slf4j
 @Service
@@ -49,29 +51,56 @@ public class ForecastService {
         forecasters.forEach(f -> this.forecasters.put(f.model(), f));
     }
 
-    public ForecastResult run(Long deviceId) {
+    public List<ForecastResult> run(Long deviceId) {
         DeviceEntity device = deviceRepository.findById(deviceId)
                 .orElseThrow(() -> new IllegalArgumentException("Device " + deviceId + " not found"));
         return run(device);
     }
 
-    public ForecastResult run(DeviceEntity device) {
+    public List<ForecastResult> run(DeviceEntity device) {
         ForecastSettings settings = ForecastSettings.of(device);
-        if (settings.model() == ForecastModel.NONE) {
-            return ForecastResult.skipped(settings.model(), "Forecast is disabled for this device");
+        if (settings.models().isEmpty()) {
+            return List.of(ForecastResult.skipped(null, "Forecast is disabled for this device"));
         }
-        Forecaster forecaster = forecasters.get(settings.model());
 
         HourlySeries series = loadSeries(device.getId(), settings.historyDays());
-        if (series.values().length < MIN_HOURS) {
-            return ForecastResult.skipped(settings.model(),
-                    "Not enough data: %d hours, at least %d needed".formatted(series.values().length, MIN_HOURS));
+        double[] values = series.values();
+        if (values.length < MIN_HOURS) {
+            String message = "Not enough data: %d hours, at least %d needed".formatted(values.length, MIN_HOURS);
+            return settings.models().stream().map(model -> ForecastResult.skipped(model, message)).toList();
         }
+        LocalDateTime last = series.start().plusHours(values.length - 1);
+
+        // models dropped from the configuration must not leave their future on the chart
+        predictedSensorDataRepository.deleteByDeviceIdAndTimestampAfter(device.getId(), last);
+
+        if (device.getForecastScores() == null) {
+            device.setForecastScores(new EnumMap<>(ForecastModel.class));
+        }
+        List<ForecastResult> results = new ArrayList<>();
+        List<PredictedSensorDataEntity> points = new ArrayList<>();
+        for (ForecastModel model : settings.models()) {
+            try {
+                results.add(runModel(device, forecasters.get(model), series, settings, last, points));
+            } catch (Exception e) {
+                log.error("Forecast {} for device {} failed", model, device.getId(), e);
+                results.add(ForecastResult.skipped(model, "Model failed: " + e.getMessage()));
+            }
+        }
+        predictedSensorDataRepository.saveAll(points);
+        deviceRepository.save(device);
+        return results;
+    }
+
+    private ForecastResult runModel(DeviceEntity device, Forecaster forecaster, HourlySeries series,
+                                    ForecastSettings settings, LocalDateTime last,
+                                    List<PredictedSensorDataEntity> points) {
+        ForecastModel model = forecaster.model();
+        double[] values = series.values();
 
         // backtest on the last hours the model has not seen
-        double[] values = series.values();
         int holdout = Math.max(1, Math.min(settings.horizonHours(), values.length / 4));
-        double[] train = java.util.Arrays.copyOf(values, values.length - holdout);
+        double[] train = Arrays.copyOf(values, values.length - holdout);
         double[] check = forecaster.forecast(train, series.start(), holdout, settings);
         double absSum = 0, squareSum = 0;
         for (int i = 0; i < holdout; i++) {
@@ -83,28 +112,22 @@ public class ForecastService {
         double rmse = Math.sqrt(squareSum / holdout);
 
         double[] future = forecaster.forecast(values, series.start(), settings.horizonHours(), settings);
-        LocalDateTime last = series.start().plusHours(values.length - 1);
-
-        predictedSensorDataRepository.deleteByDeviceIdAndTimestampAfter(device.getId(), last);
-        List<PredictedSensorDataEntity> points = new ArrayList<>();
+        int saved = 0;
         for (int i = 0; i < future.length; i++) {
             if (!Double.isFinite(future[i])) continue;
             PredictedSensorDataEntity point = new PredictedSensorDataEntity();
             point.setDevice(device);
             point.setTimestamp(last.plusHours(i + 1));
             point.setValue(future[i]);
+            point.setModel(model);
             points.add(point);
+            saved++;
         }
-        predictedSensorDataRepository.saveAll(points);
 
-        device.setForecastMae(mae);
-        device.setForecastRmse(rmse);
-        device.setForecastUpdatedAt(LocalDateTime.now());
-        deviceRepository.save(device);
-
-        log.info("Forecast {} for device {}: {} hours on {} points, MAE {}, RMSE {}", settings.model(),
-                device.getId(), points.size(), values.length, "%.3f".formatted(mae), "%.3f".formatted(rmse));
-        return new ForecastResult(settings.model(), true, null, values.length, points.size(), mae, rmse);
+        device.getForecastScores().put(model, new ForecastScore(mae, rmse, LocalDateTime.now()));
+        log.info("Forecast {} for device {}: {} hours on {} points, MAE {}, RMSE {}", model,
+                device.getId(), saved, values.length, "%.3f".formatted(mae), "%.3f".formatted(rmse));
+        return new ForecastResult(model, true, null, values.length, saved, mae, rmse);
     }
 
     /**

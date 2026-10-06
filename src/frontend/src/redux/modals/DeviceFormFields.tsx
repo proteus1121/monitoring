@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import z from 'zod';
 import { notification } from 'antd';
@@ -40,10 +40,10 @@ const TEXTS = {
     selectModule: 'Виберіть модуль, під’єднаний до плати',
     selectPin: 'Виберіть пін',
     forecastModels: {
-      NONE: ['Без прогнозу', 'Для пристрою не будується прогноз.'],
       ARIMA: ['ARIMA', 'Авторегресійна інтегрована модель ковзного середнього ARIMA(p, d, q). Добре для плавних рядів із трендом.'],
       KALMAN: ['Фільтр Калмана', 'Локальний рівень і згасаючий тренд, які відстежує фільтр Калмана. Стійкий до шумних датчиків, швидко підлаштовується.'],
       XGBOOST: ['XGBoost', 'Градієнтний бустинг дерев за часом доби, днем тижня й останніми значеннями. Враховує добові закономірності.'],
+      TRANSFORMER: ['Трансформер', 'Невелика нейромережа з механізмом самоуваги, навчена на історії цього датчика. Сама знаходить, які з останніх годин важливі для прогнозу; навчання триває кілька секунд.'],
     } as Record<string, [string, string]>,
     fields: {
       name: 'Назва пристрою',
@@ -106,7 +106,13 @@ const TEXTS = {
     forecastNotBuilt: 'Прогноз не побудовано',
     forecastBuilt: (hours: number) => `Прогноз побудовано: на ${hours} год уперед`,
     trainedOn: (hours: number, mae?: string, rmse?: string) => `Навчено на ${hours} год. MAE ${mae}, RMSE ${rmse}`,
-    model: 'Модель',
+    models: 'Моделі прогнозу',
+    modelsNote: 'Кожна вибрана модель будує свій прогноз, на графіку вони показані окремими лініями.',
+    noForecast: 'Не вибрано жодної моделі: прогноз для пристрою не будується.',
+    window: 'Вікно, годин',
+    epochs: 'Епохи навчання',
+    transformerNote:
+      'Скільки останніх годин бачить модель і скільки разів проходить історію під час навчання. Навчання зупиняється на епосі з найменшою похибкою на відкладених даних.',
     horizon: 'Горизонт, годин',
     history: 'Історія, днів',
     arimaP: 'p (порядок AR)',
@@ -130,10 +136,10 @@ const TEXTS = {
     selectModule: 'Select the module wired to the controller',
     selectPin: 'Select the pin',
     forecastModels: {
-      NONE: ['No forecast', 'The device is not forecast.'],
       ARIMA: ['ARIMA', 'Autoregressive integrated moving average ARIMA(p, d, q). Good for smooth series with a trend.'],
       KALMAN: ['Kalman filter', 'Local level + damped trend tracked by a Kalman filter. Robust to noisy sensors, adapts quickly.'],
       XGBOOST: ['XGBoost', 'Gradient boosted trees on the time of day, day of week and recent values. Captures daily patterns.'],
+      TRANSFORMER: ['Transformer', 'Small self-attention network trained on the history of this sensor. Learns which of the last hours matter for the forecast; training takes a few seconds.'],
     } as Record<string, [string, string]>,
     fields: {
       name: 'Device name',
@@ -196,7 +202,13 @@ const TEXTS = {
     forecastNotBuilt: 'Forecast was not built',
     forecastBuilt: (hours: number) => `Forecast built: ${hours} h ahead`,
     trainedOn: (hours: number, mae?: string, rmse?: string) => `Trained on ${hours} h. MAE ${mae}, RMSE ${rmse}`,
-    model: 'Model',
+    models: 'Forecast models',
+    modelsNote: 'Every selected model builds its own forecast, the chart shows them as separate lines.',
+    noForecast: 'No model selected: the device is not forecast.',
+    window: 'Window, hours',
+    epochs: 'Training epochs',
+    transformerNote:
+      'How many recent hours the model sees and how many passes over the history training makes. Training keeps the epoch with the lowest error on held-out data.',
     horizon: 'Horizon, hours',
     history: 'History, days',
     arimaP: 'p (AR order)',
@@ -237,7 +249,7 @@ export const DeviceSchema = z
     secondaryPin: z.string().optional(),
     calibrationDry: optionalNumber,
     calibrationWet: optionalNumber,
-    forecastModel: z.string().optional(),
+    forecastModels: z.array(z.string()).optional(),
     forecastHorizonHours: optionalNumber,
     forecastHistoryDays: optionalNumber,
     arimaP: optionalNumber,
@@ -247,6 +259,8 @@ export const DeviceSchema = z
     kalmanMeasurementNoise: optionalNumber,
     xgbRounds: optionalNumber,
     xgbMaxDepth: optionalNumber,
+    transformerWindow: optionalNumber,
+    transformerEpochs: optionalNumber,
   })
   .superRefine((value, ctx) => {
     if (!value.controllerId || value.controllerId === NO_CONTROLLER) return;
@@ -290,7 +304,7 @@ export function toDeviceFormValues(device: Device | null): DeviceFormValues {
     secondaryPin: str(device?.secondaryPin),
     calibrationDry: str(device?.calibrationDry),
     calibrationWet: str(device?.calibrationWet),
-    forecastModel: device?.forecastModel ?? 'NONE',
+    forecastModels: device?.forecastModels ?? [],
     forecastHorizonHours: str(device?.forecastHorizonHours, '24'),
     forecastHistoryDays: str(device?.forecastHistoryDays, '30'),
     arimaP: str(device?.arimaP, '2'),
@@ -300,6 +314,8 @@ export function toDeviceFormValues(device: Device | null): DeviceFormValues {
     kalmanMeasurementNoise: str(device?.kalmanMeasurementNoise, '1'),
     xgbRounds: str(device?.xgbRounds, '100'),
     xgbMaxDepth: str(device?.xgbMaxDepth, '4'),
+    transformerWindow: str(device?.transformerWindow, '48'),
+    transformerEpochs: str(device?.transformerEpochs, '40'),
   };
 }
 
@@ -322,7 +338,7 @@ export function toDeviceRequest(
     secondaryPin: bound ? num(value.secondaryPin) : undefined,
     calibrationDry: num(value.calibrationDry),
     calibrationWet: num(value.calibrationWet),
-    forecastModel: (value.forecastModel ?? 'NONE') as ForecastModel,
+    forecastModels: (value.forecastModels ?? []) as ForecastModel[],
     forecastHorizonHours: num(value.forecastHorizonHours),
     forecastHistoryDays: num(value.forecastHistoryDays),
     arimaP: num(value.arimaP),
@@ -332,6 +348,8 @@ export function toDeviceRequest(
     kalmanMeasurementNoise: num(value.kalmanMeasurementNoise),
     xgbRounds: num(value.xgbRounds),
     xgbMaxDepth: num(value.xgbMaxDepth),
+    transformerWindow: num(value.transformerWindow),
+    transformerEpochs: num(value.transformerEpochs),
   };
 }
 
@@ -339,7 +357,7 @@ const ALL_TYPES = (Object.keys(DEVICE_TYPE_LABELS) as DeviceTypeValue[]).filter(
   type => type !== 'UNKNOWN'
 );
 
-const FORECAST_MODELS: ForecastModel[] = ['NONE', 'ARIMA', 'KALMAN', 'XGBOOST'];
+const FORECAST_MODELS: ForecastModel[] = ['ARIMA', 'KALMAN', 'XGBOOST', 'TRANSFORMER'];
 
 type Tab = 'general' | 'alerts' | 'forecast' | 'calibration';
 
@@ -689,105 +707,164 @@ function ForecastFields({ form, device }: { form: any; device?: Device | null })
     const res = await runForecast({ deviceId: device.id });
     if ('error' in res) {
       notification.error({ message: t.forecastFailed, description: JSON.stringify(res.error) });
-    } else if (!res.data.done) {
-      notification.warning({ message: res.data.message ?? t.forecastNotBuilt });
-    } else {
-      notification.success({
-        message: t.forecastBuilt(res.data.forecastHours ?? 0),
-        description: t.trainedOn(res.data.trainingHours ?? 0, res.data.mae?.toFixed(3), res.data.rmse?.toFixed(3)),
-      });
+      return;
+    }
+    for (const result of res.data) {
+      const name = result.model ? t.forecastModels[result.model][0] : '';
+      if (!result.done) {
+        notification.warning({ message: [name, result.message ?? t.forecastNotBuilt].filter(Boolean).join(': ') });
+      } else {
+        notification.success({
+          message: `${name}: ${t.forecastBuilt(result.forecastHours ?? 0)}`,
+          description: t.trainedOn(result.trainingHours ?? 0, result.mae?.toFixed(3), result.rmse?.toFixed(3)),
+        });
+      }
     }
   };
 
   return (
     <form.Subscribe
-      selector={(state: any) => state.values.forecastModel}
-      children={(model: ForecastModel) => {
-        const info = t.forecastModels[model];
-        return (
-          <FieldGroup>
-            <form.AppField
-              name="forecastModel"
-              children={(field: any) => (
-                <field.SelectField
-                  label={t.model}
-                  className="w-[200px]"
-                  options={FORECAST_MODELS.map(m => ({ value: m, label: t.forecastModels[m][0] }))}
-                />
-              )}
-            />
-            {info && <p className="-mt-3 text-sm text-slate-500">{info[1]}</p>}
-
-            {model && model !== 'NONE' && (
-              <>
-                <div className="flex gap-2">
-                  <form.AppField
-                    name="forecastHorizonHours"
-                    children={(field: any) => <field.TextField label={t.horizon} />}
-                  />
-                  <form.AppField
-                    name="forecastHistoryDays"
-                    children={(field: any) => <field.TextField label={t.history} />}
-                  />
+      selector={(state: any) => state.values.forecastModels}
+      children={(selected: ForecastModel[] = []) => (
+        <FieldGroup>
+          <form.AppField
+            name="forecastModels"
+            children={(field: any) => {
+              const value: ForecastModel[] = field.state.value ?? [];
+              return (
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium">{t.models}</span>
+                  {FORECAST_MODELS.map(m => (
+                    <label key={m} className="flex cursor-pointer items-start gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 size-4 accent-blue-600"
+                        checked={value.includes(m)}
+                        onChange={e =>
+                          field.handleChange(
+                            e.target.checked
+                              ? FORECAST_MODELS.filter(x => x === m || value.includes(x))
+                              : value.filter(x => x !== m)
+                          )
+                        }
+                      />
+                      <span>
+                        <span className="font-medium">{t.forecastModels[m][0]}</span>
+                        <span className="block text-slate-500">{t.forecastModels[m][1]}</span>
+                      </span>
+                    </label>
+                  ))}
+                  <p className="text-xs text-slate-500">{selected.length ? t.modelsNote : t.noForecast}</p>
                 </div>
+              );
+            }}
+          />
 
-                {model === 'ARIMA' && (
+          {selected.length > 0 && (
+            <>
+              <div className="flex gap-2">
+                <form.AppField
+                  name="forecastHorizonHours"
+                  children={(field: any) => <field.TextField label={t.horizon} />}
+                />
+                <form.AppField
+                  name="forecastHistoryDays"
+                  children={(field: any) => <field.TextField label={t.history} />}
+                />
+              </div>
+
+              {selected.includes('ARIMA') && (
+                <ModelParams title={t.forecastModels.ARIMA[0]}>
                   <div className="flex gap-2">
                     <form.AppField name="arimaP" children={(field: any) => <field.TextField label={t.arimaP} />} />
                     <form.AppField name="arimaD" children={(field: any) => <field.TextField label={t.arimaD} />} />
                     <form.AppField name="arimaQ" children={(field: any) => <field.TextField label={t.arimaQ} />} />
                   </div>
-                )}
+                </ModelParams>
+              )}
 
-                {model === 'KALMAN' && (
-                  <>
-                    <div className="flex gap-2">
-                      <form.AppField
-                        name="kalmanProcessNoise"
-                        children={(field: any) => <field.TextField label={t.processNoise} />}
-                      />
-                      <form.AppField
-                        name="kalmanMeasurementNoise"
-                        children={(field: any) => <field.TextField label={t.measurementNoise} />}
-                      />
-                    </div>
-                    <p className="-mt-3 text-xs text-slate-500">{t.kalmanNote}</p>
-                  </>
-                )}
+              {selected.includes('KALMAN') && (
+                <ModelParams title={t.forecastModels.KALMAN[0]}>
+                  <div className="flex gap-2">
+                    <form.AppField
+                      name="kalmanProcessNoise"
+                      children={(field: any) => <field.TextField label={t.processNoise} />}
+                    />
+                    <form.AppField
+                      name="kalmanMeasurementNoise"
+                      children={(field: any) => <field.TextField label={t.measurementNoise} />}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500">{t.kalmanNote}</p>
+                </ModelParams>
+              )}
 
-                {model === 'XGBOOST' && (
+              {selected.includes('XGBOOST') && (
+                <ModelParams title={t.forecastModels.XGBOOST[0]}>
                   <div className="flex gap-2">
                     <form.AppField name="xgbRounds" children={(field: any) => <field.TextField label={t.rounds} />} />
                     <form.AppField name="xgbMaxDepth" children={(field: any) => <field.TextField label={t.depth} />} />
                   </div>
-                )}
+                </ModelParams>
+              )}
 
-                {device?.id && (
-                  <div className="flex flex-wrap items-center gap-3 rounded-lg bg-gray-50 p-3 text-sm">
-                    <div className="flex-1 text-slate-600">
-                      {device.forecastUpdatedAt ? (
-                        <>
-                          {t.lastRun(fromNow(device.forecastUpdatedAt))} · MAE{' '}
-                          <b>{device.forecastMae?.toFixed(3)}</b> · RMSE <b>{device.forecastRmse?.toFixed(3)}</b>
-                        </>
-                      ) : (
-                        t.notRun
-                      )}
-                    </div>
-                    <Button type="button" size="sm" variant="secondary" disabled={isLoading} onClick={run}>
-                      {isLoading && <Spinner />}
-                      {t.runNow}
-                    </Button>
+              {selected.includes('TRANSFORMER') && (
+                <ModelParams title={t.forecastModels.TRANSFORMER[0]}>
+                  <div className="flex gap-2">
+                    <form.AppField
+                      name="transformerWindow"
+                      children={(field: any) => <field.TextField label={t.window} />}
+                    />
+                    <form.AppField
+                      name="transformerEpochs"
+                      children={(field: any) => <field.TextField label={t.epochs} />}
+                    />
                   </div>
-                )}
-                {device?.id && (
-                  <p className="-mt-3 text-xs text-slate-500">{t.runNote}</p>
-                )}
-              </>
-            )}
-          </FieldGroup>
-        );
-      }}
+                  <p className="text-xs text-slate-500">{t.transformerNote}</p>
+                </ModelParams>
+              )}
+
+              {device?.id && (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg bg-gray-50 p-3 text-sm">
+                  <div className="flex flex-1 flex-col gap-0.5 text-slate-600">
+                    {selected.map(m => {
+                      const score = device.forecastScores?.[m];
+                      return (
+                        <div key={m}>
+                          <span className="font-medium">{t.forecastModels[m][0]}</span>
+                          {': '}
+                          {score?.updatedAt ? (
+                            <>
+                              {t.lastRun(fromNow(score.updatedAt))} · MAE <b>{score.mae?.toFixed(3)}</b> · RMSE{' '}
+                              <b>{score.rmse?.toFixed(3)}</b>
+                            </>
+                          ) : (
+                            t.notRun
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <Button type="button" size="sm" variant="secondary" disabled={isLoading} onClick={run}>
+                    {isLoading && <Spinner />}
+                    {t.runNow}
+                  </Button>
+                </div>
+              )}
+              {device?.id && <p className="-mt-3 text-xs text-slate-500">{t.runNote}</p>}
+            </>
+          )}
+        </FieldGroup>
+      )}
     />
+  );
+}
+
+function ModelParams({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 border-l-2 border-gray-200 pl-3">
+      <span className="text-xs font-semibold tracking-wide text-slate-500 uppercase">{title}</span>
+      {children}
+    </div>
   );
 }

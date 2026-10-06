@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.proteus1121.model.enums.Period;
+import org.proteus1121.model.response.metric.PredictedSensorData;
 import org.proteus1121.model.response.metric.SensorData;
 import org.proteus1121.service.MetricService;
 import org.proteus1121.service.DeviceService;
@@ -59,18 +60,17 @@ public class MetricController {
     }
 
     @GetMapping("/predicted")
-    @Operation(summary = "Get predicted metrics", description = "Retrieve predicted sensor metrics for a device within a time range")
-    public List<SensorData> getMetricsPredicted(@RequestParam("deviceId") Long deviceId,
-                                                @RequestParam("start") LocalDateTime startTimestamp,
-                                                @RequestParam("end") LocalDateTime endTimestamp,
-                                                @RequestParam(value = "period", defaultValue = "LIVE") Period period) {
-        return metricService.getMetricsPredicted(deviceId, startTimestamp, endTimestamp, period).stream()
-                .toList();
+    @Operation(summary = "Get predicted metrics", description = "Forecast points of a device within a time range, every point tagged with the model that made it")
+    public List<PredictedSensorData> getMetricsPredicted(@RequestParam("deviceId") Long deviceId,
+                                                         @RequestParam("start") LocalDateTime startTimestamp,
+                                                         @RequestParam("end") LocalDateTime endTimestamp,
+                                                         @RequestParam(value = "period", defaultValue = "LIVE") Period period) {
+        return metricService.getMetricsPredicted(deviceId, startTimestamp, endTimestamp, period);
     }
 
     @PostMapping("/predict")
-    @Operation(summary = "Run forecast", description = "Fits the forecast model configured for the device and replaces its forecast")
-    public ForecastResult predictMetrics(@RequestParam("deviceId") Long deviceId) {
+    @Operation(summary = "Run forecast", description = "Fits every forecast model configured for the device and replaces their forecasts")
+    public List<ForecastResult> predictMetrics(@RequestParam("deviceId") Long deviceId) {
         deviceService.checkDevice(deviceId, DeviceRole.EDITOR);
         return forecastService.run(deviceId);
     }
