@@ -1,55 +1,68 @@
+<div align="center">
+
+<img src="src/frontend/public/logo.svg" width="96" alt="logo">
+
 # Monitoring
 
-An IoT monitoring system for home and lab sensors: ESP8266 / ESP32 boards send readings over MQTT, a Spring Boot
-backend stores them, finds incidents, forecasts the next values and sends alerts, and a React site shows it all,
-configures the boards and updates their firmware.
+**IoT monitoring for home and lab sensors: ESP8266 / ESP32 boards, live dashboard, incidents, forecasts and alerts**
 
-Live at [ssn.pp.ua](https://ssn.pp.ua) (API: `api.ssn.pp.ua`). The interface is in Ukrainian and English.
+[![Release](https://github.com/proteus1121/monitoring/actions/workflows/release.yml/badge.svg)](https://github.com/proteus1121/monitoring/actions/workflows/release.yml)
+[![Site](https://img.shields.io/badge/site-ssn.pp.ua-3D7BD9)](https://ssn.pp.ua)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2F9E5B)](LICENSE)
 
-## Features
+![Java 17](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?logo=springboot&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![PlatformIO](https://img.shields.io/badge/PlatformIO-ESP8266_%7C_ESP32-F5822A?logo=platformio&logoColor=white)
+![MQTT](https://img.shields.io/badge/MQTT-Mosquitto-660066?logo=eclipsemosquitto&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-9-4479A1?logo=mysql&logoColor=white)
+![Docker Swarm](https://img.shields.io/badge/Docker-Swarm-2496ED?logo=docker&logoColor=white)
 
-- **Boards and sensors.** NodeMCU v2, Wemos D1 mini, ESP32 DevKit and AI-Thinker ESP32-CAM. Supported modules:
-  DHT11 / DHT22, MQ-2 (LPG, methane, smoke), BMP180, IR flame sensor, light sensor, PIR, soil moisture, any digital
-  or analog input, relays controlled from the site, the ESP32-CAM camera and an OLED display.
-- **Setup from the site.** A board is linked by signing in from its own access point page; the site scans its free
-  pins for modules, configures sensors and the display over MQTT, calibrates the soil moisture sensor and shows the
-  board's USB log. Each board gets its own broker login.
-- **Firmware.** One firmware for every board (PlatformIO), built by CI and published with the site. Boards update
-  from the site over Wi-Fi; the Library page flashes a board from the browser over USB (Web Serial, esptool-js).
-- **Dashboard.** Live readings, history charts, a map of the boards, sharing whole boards with other users.
-- **Incidents and alerts.** Rule-based anomaly detection with multi-sensor patterns (e.g. a fire signature); alerts by
-  Telegram and e-mail, in each user's own time zone. Gemini writes incident explanations and device descriptions.
-- **Forecasts.** Several models per device: ARIMA, Kalman filter, XGBoost and a small Transformer
-  (`service/forecast`), with uncertainty bounds.
-- **Cameras.** The ESP32-CAM detects flame on the board; the Cameras page shows the live view, and flame alerts carry
-  the frame with the flame outlined.
-- **Sign-in** with a password, Google or GitHub.
+[Features](#-features) · [Architecture](#-architecture) · [Running locally](#-running-locally) · [Deployment](#-deployment) · [VPS setup](#-vps-setup)
 
-## Architecture
+</div>
 
-```
-ESP8266 / ESP32 ──MQTT──▶ Mosquitto (go-auth, logins in MySQL) ◀──▶ Spring Boot backend ──▶ MySQL
-                                                                      │   ├─ Telegram, e-mail
-                                                                      │   ├─ Gemini
-                                                                      │   └─ Loki (logs)
-                                       React frontend ──REST (OpenAPI)─┘
-```
+---
 
-On the server everything runs as a Docker Swarm stack behind Traefik (HTTPS by Let's Encrypt).
+Boards send readings over MQTT; a Spring Boot backend stores them, finds incidents, forecasts the next values and sends
+alerts; a React site shows it all, configures the boards and updates their firmware. The interface is in Ukrainian
+and English.
+
+## ✨ Features
+
+| | |
+|---|---|
+| 📟 **Boards and sensors** | NodeMCU v2, Wemos D1 mini, ESP32 DevKit, AI-Thinker ESP32-CAM. Modules: DHT11 / DHT22, MQ-2 (LPG, methane, smoke), BMP180, IR flame, light, PIR, soil moisture, any digital or analog input, relays, camera, OLED display |
+| 🛠️ **Setup from the site** | Link a board by signing in from its access point page, scan its free pins for modules, configure sensors and the display over MQTT, calibrate the soil sensor, read the board's USB log. Each board gets its own broker login |
+| ⬆️ **Firmware** | One firmware for every board, built by CI and published with the site. Boards update from the site over Wi-Fi; the Library page flashes a board from the browser over USB (Web Serial) |
+| 📊 **Dashboard** | Live readings, history charts, a map of the boards, sharing whole boards with other users |
+| 🚨 **Incidents and alerts** | Rule-based anomaly detection with multi-sensor patterns (e.g. a fire signature); alerts by Telegram and e-mail in each user's own time zone; incident explanations written by Gemini |
+| 📈 **Forecasts** | Several models per device: ARIMA, Kalman filter, XGBoost and a small Transformer, with uncertainty bounds |
+| 🔥 **Cameras** | The ESP32-CAM detects flame on the board; live view on the Cameras page, flame alerts carry the frame with the flame outlined |
+| 🔐 **Sign-in** | Password, Google or GitHub |
+
+## 🏗️ Architecture
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="Architecture: boards, the Docker Swarm stack on the VPS, external services and CI">
+</p>
+
+<sub>Source: [`docs/architecture.puml`](docs/architecture.puml). After editing it, re-render with
+`java -jar plantuml.jar -tsvg docs/architecture.puml`.</sub>
 
 | Part | Where | Stack |
 |---|---|---|
-| Backend | `src/main/java/org/proteus1121` | Java 17, Spring Boot 3.2, JPA, Spring Integration MQTT, XGBoost4J |
-| Frontend | `src/frontend` | React 19, Redux Toolkit (RTK Query generated from the OpenAPI spec), Ant Design, Tailwind, Chart.js |
-| Firmware | `scripts/251208-101749-esp32dev` | Arduino on PlatformIO: `esp8266`, `esp32dev`, `esp32cam` (+ `-ota` envs) |
-| Broker | `mosquitto/` | mosquitto-go-auth |
-| Proxy | `traefik/` | Traefik v2 |
-| Deploy | `.github/workflows/release.yml`, `docker-compose.yml` | GitHub Actions → GHCR → Docker Swarm |
-| Docs | `docs/` | ML notes (`ml-architecture.md`), DB init script, teaching materials |
+| ☕ Backend | `src/main/java/org/proteus1121` | Java 17, Spring Boot 3.2, JPA, Spring Integration MQTT, XGBoost4J |
+| ⚛️ Frontend | `src/frontend` | React 19, RTK Query generated from the OpenAPI spec, Ant Design, Tailwind, Chart.js |
+| 🔌 Firmware | `scripts/251208-101749-esp32dev` | Arduino on PlatformIO: `esp8266`, `esp32dev`, `esp32cam` (+ `-ota` envs) |
+| 📨 Broker | `mosquitto/` | mosquitto-go-auth, logins from the site database |
+| 🌐 Proxy | `traefik/` | Traefik v2, HTTPS by Let's Encrypt |
+| 🚀 Deploy | `.github/workflows/release.yml`, `docker-compose.yml` | GitHub Actions → GHCR → Docker Swarm |
+| 📚 Docs | `docs/` | ML notes (`ml-architecture.md`), DB init script, teaching materials |
 
-## Running locally
+## 💻 Running locally
 
-Requirements: JDK 17, Node.js 20, Docker; Python with PlatformIO for the firmware.
+> **Requirements:** JDK 17, Node.js 20, Docker; Python with PlatformIO for the firmware.
 
 ```bash
 # MySQL (+ phpMyAdmin on :8081) and Mosquitto on :1883
@@ -66,11 +79,21 @@ npm run dev:local
 
 After a change to the backend API, regenerate the frontend client: `npm run api-typegen:local`.
 
-Optional settings come from environment variables (empty = the feature is off): `TELEGRAM_BOT_TOKEN`,
-`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`, `MAIL_HOST`, `MAIL_PORT`,
-`MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`, `GEMINI_KEY`, `GRAFANA_KEY`.
+<details>
+<summary><b>Environment variables</b> (empty = the feature is off)</summary>
 
-### Firmware
+| Variable | For |
+|---|---|
+| `TELEGRAM_BOT_TOKEN` | Telegram alerts |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Sign in with Google |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | Sign in with GitHub |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | E-mail alerts |
+| `GEMINI_KEY` | Incident explanations and device descriptions |
+| `GRAFANA_KEY` | Logs to Loki |
+
+</details>
+
+### 🔌 Firmware
 
 ```bash
 cd scripts/251208-101749-esp32dev
@@ -79,7 +102,7 @@ pio run -e esp8266 -t upload         # over USB
 pio run -e esp8266-ota -t upload     # over Wi-Fi
 ```
 
-### Tests
+### 🧪 Tests
 
 ```bash
 ./gradlew test
@@ -87,13 +110,17 @@ pio run -e esp8266-ota -t upload     # over Wi-Fi
 ./gradlew test --tests '*ForecastBenchmark' --rerun -Dforecast.benchmark=<dir of series csv> -Dforecast.benchmark.out=<csv>
 ```
 
-## Deployment
+## 🚀 Deployment
 
-A push to `main` runs `.github/workflows/release.yml`: it builds the backend, the firmware and the frontend, checks the
-broker logins, pushes the images to `ghcr.io/proteus1121/monitoring-backend` and `monitoring-frontend` and deploys
-`docker-compose.yml` as the `monitoring_stack` stack.
+A push to `main` runs [`release.yml`](.github/workflows/release.yml):
 
-Useful commands on the server:
+1. builds the backend, the firmware (`esp8266`, `esp32dev`, `esp32cam`) and the frontend;
+2. checks the broker logins;
+3. pushes `ghcr.io/proteus1121/monitoring-backend` and `monitoring-frontend`;
+4. deploys `docker-compose.yml` as the `monitoring_stack` stack.
+
+<details>
+<summary><b>Useful commands on the server</b></summary>
 
 ```bash
 docker stack services monitoring_stack
@@ -105,7 +132,10 @@ docker pull ghcr.io/proteus1121/monitoring-backend:latest
 docker stack rm monitoring_stack
 ```
 
-Building the images by hand:
+</details>
+
+<details>
+<summary><b>Building the images by hand</b></summary>
 
 ```bash
 ./gradlew build
@@ -114,9 +144,12 @@ docker build ./src/frontend --no-cache -t ghcr.io/proteus1121/monitoring-fronten
 docker run -e PROFILE=docker -t ghcr.io/proteus1121/monitoring-backend:latest
 ```
 
-## VPS setup
+</details>
 
-Setting up a new VPS for the stack: Docker, Docker Swarm, swap and Docker data on an extra disk.
+## 🖥️ VPS setup
+
+<details>
+<summary><b>New VPS for the stack:</b> Docker, Docker Swarm, swap and Docker data on an extra disk</summary>
 
 ### 1. Install Docker
 
@@ -165,8 +198,11 @@ sudo systemctl start docker
 docker info | grep "Docker Root Dir"
 ```
 
-Make sure the volume is mounted at boot (`/etc/fstab`).
+> [!NOTE]
+> Make sure the volume is mounted at boot (`/etc/fstab`).
 
-## License
+</details>
+
+## 📄 License
 
 [MIT](LICENSE)

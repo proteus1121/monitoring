@@ -1,0 +1,100 @@
+@startuml architecture
+' Rendered to docs/architecture.svg (README): java -jar plantuml.jar -tsvg docs/architecture.puml
+!pragma layout smetana
+left to right direction
+
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 12
+skinparam ArrowColor #5B6B7F
+skinparam ArrowFontColor #44505E
+skinparam ArrowFontSize 11
+skinparam ArrowThickness 1.3
+
+skinparam rectangle {
+  BorderColor #9AA8B8
+  FontStyle bold
+}
+skinparam node {
+  BackgroundColor #F4F7FB
+  BorderColor #7F93AA
+  FontStyle bold
+}
+skinparam component {
+  BackgroundColor #FFFFFF
+  BorderColor #3D7BD9
+  FontColor #1F2A37
+}
+skinparam database {
+  BackgroundColor #FFF6E5
+  BorderColor #D9962B
+}
+skinparam queue {
+  BackgroundColor #EAF7EF
+  BorderColor #2F9E5B
+}
+skinparam cloud {
+  BackgroundColor #F6F0FF
+  BorderColor #8A63D2
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #3D7BD9
+}
+
+actor "User" as user
+
+rectangle "Boards" as boards #EEF6FF {
+  component "ESP8266\nNodeMCU / D1 mini" as esp8266
+  component "ESP32 DevKit" as esp32
+  component "ESP32-CAM\nflame detection" as esp32cam
+}
+
+node "VPS · Docker Swarm stack" as vps {
+  component "Traefik\nHTTPS, Let's Encrypt" as traefik #FFFFFF
+  component "Frontend\nReact · nginx\nssn.pp.ua" as frontend
+  component "Backend\nSpring Boot\napi.ssn.pp.ua" as backend
+  queue "Mosquitto\ngo-auth · :1883" as mqtt
+  database "MySQL" as mysql
+  component "phpMyAdmin\ndb.ssn.pp.ua" as pma
+}
+
+cloud "External services" as ext {
+  component "Telegram" as telegram
+  component "SMTP e-mail" as smtp
+  component "Gemini" as gemini
+  component "Google / GitHub\nsign-in" as sso
+  component "Loki · Grafana" as loki
+}
+
+node "GitHub" as gh {
+  component "Actions\nbuild & deploy" as ci
+  component "GHCR\nimages" as ghcr
+}
+
+user --> traefik : HTTPS
+user ..> boards : USB flashing\n(Web Serial)
+traefik --> frontend
+traefik --> backend : REST
+traefik --> pma
+frontend ..> backend : OpenAPI client
+
+boards <--> mqtt : readings, frames /\nconfig, relays
+boards ..> traefik : firmware\n/firmware/
+
+mqtt <--> backend : MQTT
+mqtt --> mysql : logins
+backend --> mysql : JPA
+pma --> mysql
+
+backend <--> telegram : alerts, photos /\nwebhook
+backend --> smtp : alerts
+backend --> gemini : incident texts
+backend --> sso : OAuth2
+backend --> loki : logs
+
+ci --> ghcr : push images
+ghcr --> vps : docker stack deploy
+@enduml
