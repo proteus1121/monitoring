@@ -2,7 +2,7 @@
 
 <img src="src/frontend/public/logo.svg" width="96" alt="logo">
 
-# Monitoring
+# Smart Sensor Network
 
 **IoT monitoring for home and lab sensors: ESP8266 / ESP32 boards, live dashboard, incidents, forecasts and alerts**
 
