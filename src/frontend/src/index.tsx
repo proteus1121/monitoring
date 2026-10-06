@@ -14,6 +14,7 @@ import AuthGuard from './layouts/guards/AuthGuard';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
 import AuthLayout from './layouts/AuthLayout';
+import { HomePage } from './pages/HomePage';
 import DevicesPage from './pages/DevicesPage/DevicesPage';
 import { ApiProvider } from './lib/api/ApiProvider';
 import { Provider } from 'react-redux';
@@ -63,6 +64,8 @@ export const router = createBrowserRouter(
         </ApiProvider>
       }
     >
+      {/* guests get the project's page here, signed-in users their dashboard */}
+      <Route index element={<HomePage />} />
       <Route path="auth" element={<AuthLayout />}>
         <Route path="login" element={<SignInPage />} />
         <Route path="register" element={<SignUpPage />} />
@@ -71,7 +74,6 @@ export const router = createBrowserRouter(
       <Route path="/" element={<AuthGuard />}>
         {/* <Route path="/" element={<Outlet />}> */}
         <Route element={<MainLayout />}>
-          <Route index element={<Navigate to="/dashboard/overview" />} />
           <Route path="dashboard/overview" element={<DashboardPage />} />
           <Route path="dashboard/cameras" element={<CamerasPage />} />
           {/* Map and Configurations were merged into Devices */}

@@ -9,7 +9,8 @@
     "api-typegen": "npx @rtk-query/codegen-openapi openapi-config.ts",
     "api-typegen:local": "node openapi-local.mjs",
     "dev:staging": "npm-run-all --parallel proxy webpack",
-    "build": "cross-env NODE_ENV=production webpack --config webpack.config.mjs"
+    "build": "cross-env NODE_ENV=production webpack --config webpack.config.mjs && npm run prerender",
+    "prerender": "webpack --config webpack.prerender.mjs && node .prerender/prerender.cjs build"
   },
   "dependencies": {
     "@ant-design/v5-patch-for-react-19": "^1.0.3",

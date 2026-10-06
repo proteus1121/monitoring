@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+# the app itself is behind the sign-in
+Disallow: /dashboard/
+Disallow: /settings/
+Disallow: /connect
+Disallow: /pair
+
+Sitemap: https://ssn.pp.ua/sitemap.xml

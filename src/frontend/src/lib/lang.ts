@@ -55,7 +55,8 @@ export function pick<T>(texts: Record<Lang, T>): T {
  * The interface language, Ukrainian by default; one choice for the sign-in page and the app.
  */
 export function useLang(): Lang {
-  return useSyncExternalStore(subscribe, () => current);
+  // the server snapshot is for the prerendered home page (src/prerender.tsx)
+  return useSyncExternalStore(subscribe, () => current, () => current);
 }
 
 /**

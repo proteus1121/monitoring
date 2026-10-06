@@ -1,6 +1,7 @@
 node_modules
 .webpack_cache
 build
+.prerender
 csr.pem
 certificate.pem
 private-key.pem

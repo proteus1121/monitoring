@@ -1,5 +1,4 @@
-import { useOutletContext } from 'react-router-dom';
-import type { Lang } from '@src/lib/lang';
+import { type Lang, useLang } from '@src/lib/lang';
 
 export const UNIVERSITY_URL = 'https://suitt.edu.ua';
 
@@ -147,7 +146,7 @@ const en: AuthTexts = {
 
 export const AUTH_TEXTS: Record<Lang, AuthTexts> = { uk, en };
 
-// texts of the language chosen in AuthLayout
+// texts of the language chosen in AuthLayout; not from the outlet, the home page renders the form without one
 export function useAuthTexts() {
-  return useOutletContext<AuthTexts>();
+  return AUTH_TEXTS[useLang()];
 }

@@ -7,6 +7,7 @@ import CopyWebpackPlugin from 'copy-webpack-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
 import TerserPlugin from 'terser-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import { createRequire } from 'module';
 
@@ -18,6 +19,10 @@ const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV !== 'production';
 console.log(`🧬 App is in ${isDev ? 'development' : 'production'} mode`);
+
+// production styles are a <link> in the page head: the prerendered home page (src/prerender.tsx) is styled
+// before the scripts run
+const styleLoader = isDev ? 'style-loader' : MiniCssExtractPlugin.loader;
 
 export default {
   entry: ['regenerator-runtime/runtime.js', './src/index.tsx'],
@@ -67,7 +72,7 @@ export default {
       {
         test: /\.css$/,
         use: [
-          'style-loader',
+          styleLoader,
           {
             loader: 'css-loader',
             options: {
@@ -84,7 +89,7 @@ export default {
         test: /\.scss$/,
         exclude: /\.module\.scss$/,
         use: [
-          'style-loader',
+          styleLoader,
           {
             loader: 'css-loader',
             options: {
@@ -99,7 +104,7 @@ export default {
       {
         test: /\.module\.scss$/,
         use: [
-          'style-loader',
+          styleLoader,
           {
             loader: 'css-loader',
             options: {
@@ -159,6 +164,10 @@ export default {
     ...(isDev
       ? []
       : [
+          new MiniCssExtractPlugin({
+            filename: 'static/[name]-[contenthash].css',
+            chunkFilename: 'static/[name].[contenthash].css',
+          }),
           new BundleAnalyzerPlugin({
             analyzerMode: 'disabled',
             generateStatsFile: true,

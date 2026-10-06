@@ -1,11 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="uk">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Sensor Network</title>
+    <title>Smart Sensor Network — платформа моніторингу IoT-датчиків на ESP32</title>
+    <meta
+      name="description"
+      content="Відкрита платформа для збору, аналізу й керування даними датчиків на ESP32 та ESP8266: конфігурування плат через MQTT без перепрошивки, графіки, виявлення аномалій, прогнози та сповіщення в Telegram."
+    />
+    <link rel="canonical" href="https://ssn.pp.ua/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Smart Sensor Network" />
+    <meta property="og:url" content="https://ssn.pp.ua/" />
+    <meta property="og:title" content="Smart Sensor Network — платформа моніторингу IoT-датчиків" />
+    <meta
+      property="og:description"
+      content="Збір, аналіз і керування даними розподілених IoT-пристроїв: ESP32, MQTT, виявлення аномалій, сповіщення в Telegram."
+    />
+    <meta property="og:locale" content="uk_UA" />
     <base href="/" />
+    <script>
+      // signed-in users skip the home page before it is shown (HomePage.tsx does the same once the app runs)
+      if (location.pathname === '/' && /(^|; )SESSION=/.test(document.cookie)) {
+        location.replace('/dashboard/overview');
+      }
+    </script>
   </head>
   <body class="">
     <div id="root"></div>

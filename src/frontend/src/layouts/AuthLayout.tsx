@@ -1,13 +1,17 @@
 import { notification } from 'antd';
 import clsx from 'clsx';
-import { useEffect } from 'react';
-import { NavLink, Outlet, useSearchParams } from 'react-router-dom';
+import { ReactNode, useEffect } from 'react';
+import { NavLink, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import { AUTH_TEXTS, AuthTexts, UNIVERSITY_URL } from '@src/pages/auth/authTexts';
 import { Lang, setLang, useLang } from '@src/lib/lang';
 import { SsoButtons } from '@src/pages/auth/SsoButtons';
 import Logo from '@src/components/logo/Logo';
 
-const AuthLayout = () => {
+/**
+ * The project's public page with the sign-in or sign-up form; the home page passes the form as children,
+ * /auth/* routes through the outlet. Also rendered to static HTML at build time (src/prerender.tsx).
+ */
+const AuthLayout = ({ children }: { children?: ReactNode }) => {
   const lang = useLang();
   const t = AUTH_TEXTS[lang];
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,7 +63,7 @@ const AuthLayout = () => {
                 <AuthTab to="/auth/login">{t.signIn}</AuthTab>
                 <AuthTab to="/auth/register">{t.signUp}</AuthTab>
               </nav>
-              <Outlet context={t} />
+              {children ?? <Outlet />}
               <SsoButtons texts={t} />
             </div>
           </div>
@@ -168,6 +172,9 @@ function University({ t }: { t: AuthTexts }) {
 }
 
 function AuthTab(props: { to: string; children: string }) {
+  const { pathname } = useLocation();
+  // the home page shows the sign-in form
+  const isHome = pathname === '/' && props.to === '/auth/login';
   return (
     <NavLink
       to={props.to}
@@ -175,7 +182,7 @@ function AuthTab(props: { to: string; children: string }) {
       className={({ isActive }) =>
         clsx(
           '-mb-px border-b-2 pb-2',
-          isActive
+          isActive || isHome
             ? 'border-[#1d4f91] font-semibold text-black'
             : 'border-transparent text-black/50 hover:text-black'
         )
