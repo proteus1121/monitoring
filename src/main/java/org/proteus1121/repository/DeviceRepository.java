@@ -11,11 +11,13 @@ import java.util.Optional;
 
 public interface DeviceRepository extends JpaRepository<DeviceEntity, Long> {
 
-    @EntityGraph(attributePaths = { "userDevices", "userDevices.user" })
+    // LOAD, not the default FETCH: a fetch graph turns every attribute it does not list lazy, and the eager
+    // forecast collections then fail to load outside a session (MQTT consumer, schedulers)
+    @EntityGraph(attributePaths = { "userDevices", "userDevices.user" }, type = EntityGraph.EntityGraphType.LOAD)
     @Query("SELECT DISTINCT d FROM DeviceEntity d JOIN d.userDevices ud WHERE ud.userId = :userId")
     List<DeviceEntity> findDevicesByUserId(@Param("userId") Long userId);
 
-    @EntityGraph(attributePaths = { "userDevices", "userDevices.user" })
+    @EntityGraph(attributePaths = { "userDevices", "userDevices.user" }, type = EntityGraph.EntityGraphType.LOAD)
     @Query("SELECT d FROM DeviceEntity d JOIN d.userDevices ud WHERE d.id = :id")
     Optional<DeviceEntity> findByIdWithUsers(@Param("id") Long id);
 
