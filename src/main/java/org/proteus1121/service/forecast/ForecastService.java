@@ -24,7 +24,8 @@ import java.util.Map;
  * Builds the forecasts of a device with every model chosen in its configuration:
  * readings are averaged per hour in the database, gaps are interpolated, each model is first checked
  * on the last hours it has not seen (MAE / RMSE are stored per model on the device) and then refitted
- * on the whole history to forecast the next hours. The future part of the previous forecasts is replaced.
+ * on the whole history to forecast the next hours. Forecasts are rounded like the sensor's own readings.
+ * The future part of the previous forecasts is replaced.
  */
 @Slf4j
 @Service
@@ -77,11 +78,12 @@ public class ForecastService {
         if (device.getForecastScores() == null) {
             device.setForecastScores(new EnumMap<>(ForecastModel.class));
         }
+        ValuePrecision precision = ValuePrecision.of(sensorDataRepository.findRecentDistinctValues(device.getId()));
         List<ForecastResult> results = new ArrayList<>();
         List<PredictedSensorDataEntity> points = new ArrayList<>();
         for (ForecastModel model : settings.models()) {
             try {
-                results.add(runModel(device, forecasters.get(model), series, settings, last, points));
+                results.add(runModel(device, forecasters.get(model), series, settings, precision, last, points));
             } catch (Exception e) {
                 log.error("Forecast {} for device {} failed", model, device.getId(), e);
                 results.add(ForecastResult.skipped(model, "Model failed: " + e.getMessage()));
@@ -93,7 +95,7 @@ public class ForecastService {
     }
 
     private ForecastResult runModel(DeviceEntity device, Forecaster forecaster, HourlySeries series,
-                                    ForecastSettings settings, LocalDateTime last,
+                                    ForecastSettings settings, ValuePrecision precision, LocalDateTime last,
                                     List<PredictedSensorDataEntity> points) {
         ForecastModel model = forecaster.model();
         double[] values = series.values();
@@ -104,7 +106,7 @@ public class ForecastService {
         double[] check = forecaster.forecast(train, series.start(), holdout, settings);
         double absSum = 0, squareSum = 0;
         for (int i = 0; i < holdout; i++) {
-            double error = check[i] - values[train.length + i];
+            double error = precision.apply(check[i]) - values[train.length + i];
             absSum += Math.abs(error);
             squareSum += error * error;
         }
@@ -118,7 +120,7 @@ public class ForecastService {
             PredictedSensorDataEntity point = new PredictedSensorDataEntity();
             point.setDevice(device);
             point.setTimestamp(last.plusHours(i + 1));
-            point.setValue(future[i]);
+            point.setValue(precision.apply(future[i]));
             point.setModel(model);
             points.add(point);
             saved++;

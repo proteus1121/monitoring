@@ -32,14 +32,18 @@ ChartJS.register(
   Title
 );
 
+// every line gets its own hue, so a forecast is told apart by colour, not by the dash
 const COLORS = [
-  'rgb(37, 99, 235)',
-  'rgb(234, 88, 12)',
-  'rgb(22, 163, 74)',
-  'rgb(219, 39, 119)',
-  'rgb(124, 58, 237)',
-  'rgb(8, 145, 178)',
-  'rgb(202, 138, 4)',
+  '#2563eb', // blue
+  '#ea580c', // orange
+  '#16a34a', // green
+  '#db2777', // pink
+  '#7c3aed', // violet
+  '#0891b2', // cyan
+  '#ca8a04', // amber
+  '#dc2626', // red
+  '#4b5563', // grey
+  '#65a30d', // lime
 ];
 
 const TEXTS = {
@@ -70,23 +74,22 @@ const MODEL_LABELS: Record<ForecastModel, string> = {
   TRANSFORMER: 'Transformer',
 };
 
-// every model of a device keeps the device colour and gets its own dash pattern
-const MODEL_DASHES: Record<string, number[]> = {
-  ARIMA: [6, 6],
-  KALMAN: [2, 4],
-  XGBOOST: [10, 4, 2, 4],
-  TRANSFORMER: [14, 6],
-  '': [6, 6],
-};
+// the dash only says "forecast", the same for every model
+const FORECAST_DASH = [6, 4];
+
+// forecasts of a device always come in the same order, so a model keeps its colour between reloads
+const MODEL_ORDER = ['', 'XGBOOST', 'ARIMA', 'KALMAN', 'TRANSFORMER'];
 
 interface DatasetConfig {
   label: string;
   data: (number | null)[];
   borderColor: string;
   backgroundColor: string;
+  borderWidth: number;
   tension: number;
   spanGaps: boolean;
   pointRadius: number;
+  pointHoverRadius: number;
   borderDash?: number[];
 }
 
@@ -101,7 +104,9 @@ function byModel(entries: PredictedSensorData[]) {
   entries.forEach(entry => {
     (groups[entry.model ?? ''] ??= []).push(entry);
   });
-  return Object.entries(groups).map(([model, points]) => ({ model, points: toMap(points) }));
+  return Object.entries(groups)
+    .sort(([a], [b]) => MODEL_ORDER.indexOf(a) - MODEL_ORDER.indexOf(b))
+    .map(([model, points]) => ({ model, points: toMap(points) }));
 }
 
 function toMap(entries?: (SensorData | PredictedSensorData)[]) {
@@ -174,8 +179,9 @@ const DeviceDataChart = ({
         const sorted = [...timestamps].sort();
 
         const datasets: DatasetConfig[] = [];
-        responses.forEach((r, index) => {
-          const color = COLORS[index % COLORS.length];
+        const nextColor = () => COLORS[datasets.length % COLORS.length];
+        responses.forEach(r => {
+          const color = nextColor();
           const name =
             devicesRef.current?.find(d => d.id === r.id)?.name ?? `${t.device} ${r.id}`;
           datasets.push({
@@ -183,21 +189,26 @@ const DeviceDataChart = ({
             data: sorted.map(ts => r.actual[ts] ?? null),
             borderColor: color,
             backgroundColor: color,
+            borderWidth: 2.5,
             tension: 0.3,
             spanGaps: true,
             pointRadius: 2,
+            pointHoverRadius: 5,
           });
           r.predicted.forEach(series => {
+            const forecastColor = nextColor();
             const model = MODEL_LABELS[series.model as ForecastModel];
             datasets.push({
               label: model ? `${name} (${t.forecast} ${model})` : `${name} (${t.forecast})`,
               data: sorted.map(ts => series.points[ts] ?? null),
-              borderColor: color,
-              backgroundColor: color,
+              borderColor: forecastColor,
+              backgroundColor: forecastColor,
+              borderWidth: 2,
               tension: 0.3,
               spanGaps: true,
               pointRadius: 0,
-              borderDash: MODEL_DASHES[series.model] ?? MODEL_DASHES[''],
+              pointHoverRadius: 4,
+              borderDash: FORECAST_DASH,
             });
           });
         });
@@ -245,7 +256,14 @@ const DeviceDataChart = ({
             maintainAspectRatio: false,
             animation: false,
             interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { position: 'bottom' } },
+            plugins: {
+              // line samples in the legend and tooltip show solid readings and dashed forecasts
+              legend: {
+                position: 'bottom',
+                labels: { usePointStyle: true, pointStyle: 'line', pointStyleWidth: 28, padding: 16 },
+              },
+              tooltip: { usePointStyle: true },
+            },
             scales: { x: { ticks: { maxTicksLimit: 12 } } },
           }}
         />

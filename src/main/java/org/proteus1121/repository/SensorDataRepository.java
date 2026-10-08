@@ -35,6 +35,14 @@ public interface SensorDataRepository extends JpaRepository<SensorDataEntity, Lo
             "GROUP BY hour ORDER BY hour", nativeQuery = true)
     List<Object[]> findHourlyAverages(@Param("deviceId") Long deviceId, @Param("from") LocalDateTime from);
 
+    /**
+     * Distinct raw values of the latest readings, enough to tell how many decimals the sensor reports.
+     */
+    @Query(value = "SELECT DISTINCT r.value FROM (SELECT s.value FROM sensor_data s " +
+            "WHERE s.device_id = :deviceId AND s.value IS NOT NULL ORDER BY s.timestamp DESC LIMIT 500) r",
+            nativeQuery = true)
+    List<Number> findRecentDistinctValues(@Param("deviceId") Long deviceId);
+
     @Query("SELECT COUNT(s) FROM SensorDataEntity s WHERE s.device.id = :deviceId AND s.timestamp >= :timestamp")
     long countByDeviceIdAndTimestampAfter(
             @Param("deviceId") Long deviceId,
