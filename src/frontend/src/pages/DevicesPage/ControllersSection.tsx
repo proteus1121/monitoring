@@ -20,7 +20,9 @@ import {
   useSyncControllerMutation,
   useUpdateControllerMutation,
   BoardModel,
+  DisplayLanguage,
   useScanControllerMutation,
+  useUpdateDisplayLanguageMutation,
   useUpdateBoardModelMutation,
 } from '@src/redux/generatedApi';
 import { BoardDiagram } from './BoardDiagram';
@@ -66,6 +68,9 @@ const TEXTS = {
     syncFailed: 'Не вдалося надіслати налаштування',
     synced: 'Налаштування надіслано',
     boardType: 'Тип плати, для схеми',
+    language: 'Мова плати: екран і назви, які вона створює. Без перезапуску, з прошивкою 2.7.0 і новішою',
+    languageSet: 'Мову плати змінено',
+    languageFailed: 'Не вдалося змінити мову плати',
     seen: (when: string) => `на зв’язку ${when}`,
     online: 'ОНЛАЙН',
     offline: 'ОФЛАЙН',
@@ -116,6 +121,9 @@ const TEXTS = {
     syncFailed: 'Failed to send configuration',
     synced: 'Configuration sent',
     boardType: 'Board type, for the diagram',
+    language: 'Board language: its screen and the names it creates. No restart, firmware 2.7.0 or newer',
+    languageSet: 'Board language changed',
+    languageFailed: 'Could not change the board language',
     seen: (when: string) => `seen ${when}`,
     online: 'ONLINE',
     offline: 'OFFLINE',
@@ -192,6 +200,7 @@ export function ControllerPanel(props: {
   const [showScan, setShowScan] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [updateBoardModel, { isLoading: isBoardModelSaving }] = useUpdateBoardModelMutation();
+  const [updateLanguage, { isLoading: isLanguageSaving }] = useUpdateDisplayLanguageMutation();
   const isOwner = !controller.role || controller.role === 'OWNER';
   const { setState: confirm } = useModal(AppAlertDialogModalId);
   const { setState: editDevice } = useModal(DeviceUpdatingModalId);
@@ -223,6 +232,15 @@ export function ControllerPanel(props: {
     const res = await updateBoardModel({ id, boardModelRequest: { boardModel: value } });
     if ('error' in res) {
       notification.error({ message: t.boardFailed, description: errorMessage(res.error) });
+    }
+  };
+
+  const changeLanguage = async (language: DisplayLanguage) => {
+    const res = await updateLanguage({ id, displayLanguageRequest: { language } });
+    if ('error' in res) {
+      notification.error({ message: t.languageFailed, description: errorMessage(res.error) });
+    } else {
+      notification.success({ message: t.languageSet });
     }
   };
 
@@ -280,6 +298,18 @@ export function ControllerPanel(props: {
                   {model.label}
                 </option>
               ))}
+            </select>
+          )}
+          {isOwner && (
+            <select
+              value={controller.displayLanguage ?? 'UK'}
+              disabled={isLanguageSaving}
+              onChange={e => changeLanguage(e.target.value as DisplayLanguage)}
+              title={t.language}
+              className="rounded-md border border-black/15 bg-white px-2 py-0.5 text-xs text-slate-700"
+            >
+              <option value="UK">UA</option>
+              <option value="EN">EN</option>
             </select>
           )}
           <span

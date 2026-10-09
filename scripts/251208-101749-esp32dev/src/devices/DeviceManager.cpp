@@ -304,14 +304,16 @@ bool applyConfiguration(const uint8_t *payload, unsigned int length) {
         return false;
     }
 
+    // the language goes first: kept when the display change below restarts the board, and applied even to a
+    // configuration already applied, since the flash may hold another language than the server's (a UK default
+    // gives the same version as no choice at all)
+    Texts::setLanguage(doc["display"]["lang"] | "");
+
     String version = doc["v"] | "";
     if (version.length() > 0 && version == appliedVersion) {
         Serial.println("[CONFIG] Configuration " + version + " already applied");
         return true;
     }
-
-    // the language goes first: kept when the display change below restarts the board
-    Texts::setLanguage(doc["display"]["lang"] | "");
 
     // devices may need the pins of the old display: they are applied after the restart
     if (applyDisplay(doc["display"].as<JsonObject>())) {

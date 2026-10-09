@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 /**
- * Words on the board's screens in the language chosen on the site (the board card, "Display"). Ukrainian until
+ * Words on the board's screens in the language chosen on the site (the language select on the board card). Ukrainian until
  * the site sends a choice; the choice is kept in flash so the setup screens use it from power-on.
  *
  * The strings sit in flash (PROGMEM): the ESP8266 would keep them in RAM otherwise. Keep them short: the screen is
