@@ -1,11 +1,11 @@
-#ifndef MQTTHANDLER_H
+﻿#ifndef MQTTHANDLER_H
 #define MQTTHANDLER_H
 
 #include <Arduino.h>
 
 // may be set by the build, e.g. PLATFORMIO_BUILD_FLAGS=-DFIRMWARE_VERSION=\"2.3.9\" for a test build
 #ifndef FIRMWARE_VERSION
-#define FIRMWARE_VERSION "2.8.1"
+#define FIRMWARE_VERSION "2.8.2"
 #endif
 
 // env name of platformio.ini, the site picks update files by it
