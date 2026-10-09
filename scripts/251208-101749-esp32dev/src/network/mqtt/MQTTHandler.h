@@ -1,4 +1,4 @@
-﻿#ifndef MQTTHANDLER_H
+#ifndef MQTTHANDLER_H
 #define MQTTHANDLER_H
 
 #include <Arduino.h>
