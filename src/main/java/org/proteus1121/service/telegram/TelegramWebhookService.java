@@ -81,7 +81,7 @@ public class TelegramWebhookService {
             }
             
             StringBuilder message = new StringBuilder();
-            message.append("📊 *Latest Sensor Readings*\n\n");
+            message.append("📊 <b>Latest Sensor Readings</b>\n\n");
             
             for (DeviceSensorValues device : deviceValues) {
                 // Skip null devices
@@ -95,18 +95,18 @@ public class TelegramWebhookService {
                     if (deviceName == null || deviceName.trim().isEmpty()) {
                         deviceName = "Unknown Device";
                     }
-                    message.append("*").append(escapeMarkdown(deviceName)).append("*");
+                    message.append("<b>").append(escapeHtml(deviceName)).append("</b>");
                     
                     String description = device.getDeviceDescription();
                     if (description != null && !description.trim().isEmpty()) {
-                        message.append(" (").append(escapeMarkdown(description)).append(")");
+                        message.append(" (").append(escapeHtml(description)).append(")");
                     }
                     message.append("\n");
                     
                     Map<DeviceType, DeviceSensorValues.SensorValue> values = device.getValues();
                     
                     if (values == null || values.isEmpty()) {
-                        message.append("  _No recent data_\n");
+                        message.append("  <i>No recent data</i>\n");
                     } else {
                         for (Map.Entry<DeviceType, DeviceSensorValues.SensorValue> entry : values.entrySet()) {
                             if (entry == null || entry.getKey() == null) {
@@ -126,15 +126,15 @@ public class TelegramWebhookService {
                                 String formattedValue = formatSensorValue(type, sensorValue.getValue());
                                 
                                 message.append("  ").append(emoji).append(" ")
-                                       .append(type.name()).append(": ")
-                                       .append(formattedValue)
+                                       .append(escapeHtml(type.name())).append(": ")
+                                       .append(escapeHtml(formattedValue))
                                        .append("\n");
 
                                 if (sensorValue.getTimestamp() != null) {
                                     try {
-                                        message.append("    _")
+                                        message.append("    <i>")
                                                .append(sensorValue.getTimestamp().format(DATE_TIME_FORMATTER))
-                                               .append("_\n");
+                                               .append("</i>\n");
                                     } catch (Exception e) {
                                         log.warn("Error formatting timestamp for device {}: {}", deviceName, e.getMessage());
                                         // Continue without timestamp
@@ -150,16 +150,16 @@ public class TelegramWebhookService {
                     message.append("\n");
                 } catch (Exception e) {
                     log.error("Error formatting device {}: {}", device.getDeviceId(), e.getMessage(), e);
-                    message.append("_Error formatting device data_\n\n");
+                    message.append("<i>Error formatting device data</i>\n\n");
                     // Continue with next device
                 }
             }
             
             try {
-                message.append("_Report Generated: ").append(LocalDateTime.now().format(DATE_TIME_FORMATTER)).append("_");
+                message.append("<i>Report Generated: ").append(LocalDateTime.now().format(DATE_TIME_FORMATTER)).append("</i>");
             } catch (Exception e) {
                 log.warn("Error formatting report timestamp: {}", e.getMessage());
-                message.append("_Report Generated: ").append(LocalDateTime.now()).append("_");
+                message.append("<i>Report Generated: ").append(LocalDateTime.now()).append("</i>");
             }
             
             return message.toString();
@@ -269,34 +269,16 @@ public class TelegramWebhookService {
         }
     }
 
-    private String escapeMarkdown(String text) {
+    /**
+     * The report is sent with parse_mode HTML: only &, < and > have to be escaped there, so type names
+     * like SOIL_MOISTURE or a device called "Kitchen (2.0)" no longer make Telegram reject the message.
+     */
+    private String escapeHtml(String text) {
         if (text == null || text.isEmpty()) {
             return "";
         }
-        
-        try {
-            // Escape special Markdown characters
-            return text.replace("_", "\\_")
-                       .replace("*", "\\*")
-                       .replace("[", "\\[")
-                       .replace("]", "\\]")
-                       .replace("(", "\\(")
-                       .replace(")", "\\)")
-                       .replace("~", "\\~")
-                       .replace("`", "\\`")
-                       .replace(">", "\\>")
-                       .replace("#", "\\#")
-                       .replace("+", "\\+")
-                       .replace("-", "\\-")
-                       .replace("=", "\\=")
-                       .replace("|", "\\|")
-                       .replace("{", "\\{")
-                       .replace("}", "\\}")
-                       .replace(".", "\\.")
-                       .replace("!", "\\!");
-        } catch (Exception e) {
-            log.warn("Error escaping markdown for text: {}", e.getMessage());
-            return text; // Return original text if escaping fails
-        }
+        return text.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;");
     }
 }

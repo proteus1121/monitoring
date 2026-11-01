@@ -99,7 +99,16 @@ public class TelegramNotificationService {
                 .text(message)
                 .parseMode("Markdown")
                 .build();
-        telegramClient.sendMessage(messageRequest);
+        try {
+            telegramClient.sendMessage(messageRequest);
+        } catch (feign.FeignException.BadRequest e) {
+            // an odd "_" or "*" in a device name or the model's text makes Telegram refuse the Markdown;
+            // the alert still has to arrive, so it goes again as plain text
+            log.warn("Telegram refused the Markdown of an alert for chat {}, sending plain text: {}",
+                    telegramChatId, e.contentUTF8());
+            messageRequest.setParseMode(null);
+            telegramClient.sendMessage(messageRequest);
+        }
     }
 
     public void sendCriticalNotifications(Set<DeviceUser> recipients, Device device, Double value) {

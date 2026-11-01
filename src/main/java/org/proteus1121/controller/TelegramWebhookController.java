@@ -12,6 +12,8 @@ import org.proteus1121.service.telegram.TelegramWebhookService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import feign.FeignException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,6 +26,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Telegram Webhook", description = "Webhook endpoint for Telegram bot integration")
 public class TelegramWebhookController {
+
+    // Telegram's limit for the text of one message
+    private static final int MESSAGE_LIMIT = 4096;
 
     private final TelegramWebhookService webhookService;
     private final TelegramClient telegramClient;
@@ -87,14 +92,10 @@ public class TelegramWebhookController {
             // Format as message
             String message = webhookService.formatValuesAsMessage(values);
             
-            // Send back to user
-            SendMessageRequest messageRequest = SendMessageRequest.builder()
-                    .chatId(chatId)
-                    .text(message)
-                    .parseMode("Markdown")
-                    .build();
-            
-            telegramClient.sendMessage(messageRequest);
+            // Send back to user; a message is at most 4096 characters, many devices need several
+            for (String part : split(message)) {
+                send(chatId, part);
+            }
             log.info("Sent report to chat ID: {}", chatId);
             
         } catch (Exception e) {
@@ -118,9 +119,52 @@ public class TelegramWebhookController {
             return false;
         }
         
-        String lowerText = text.toLowerCase().trim();
-        
-        // Check for various report request patterns
-        return lowerText.equals("/latest");
+        // first word only, without the bot name Telegram adds in groups: "/latest@SsnBot" -> "/latest"
+        String command = text.trim().split("\\s+", 2)[0].toLowerCase();
+        int at = command.indexOf('@');
+        if (at >= 0) {
+            command = command.substring(0, at);
+        }
+        return command.equals("/latest") || command.equals("/report");
+    }
+
+    private void send(String chatId, String html) {
+        try {
+            telegramClient.sendMessage(SendMessageRequest.builder()
+                    .chatId(chatId)
+                    .text(html)
+                    .parseMode("HTML")
+                    .build());
+        } catch (FeignException.BadRequest e) {
+            // the formatting was refused ("can't parse entities"): the readings still go out, without it
+            log.warn("Telegram refused the HTML report for chat {}, sending plain text: {}", chatId, e.contentUTF8());
+            telegramClient.sendMessage(SendMessageRequest.builder()
+                    .chatId(chatId)
+                    .text(html.replaceAll("<[^>]+>", "")
+                            .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&"))
+                    .build());
+        }
+    }
+
+    /**
+     * Cuts the report into messages within Telegram's limit, at line ends so no tag is cut in half.
+     */
+    static List<String> split(String message) {
+        List<String> parts = new ArrayList<>();
+        StringBuilder part = new StringBuilder();
+        for (String line : message.split("\n", -1)) {
+            if (part.length() > 0 && part.length() + line.length() + 1 > MESSAGE_LIMIT) {
+                parts.add(part.toString());
+                part.setLength(0);
+            }
+            if (part.length() > 0) {
+                part.append('\n');
+            }
+            part.append(line);
+        }
+        if (!part.toString().isBlank()) {
+            parts.add(part.toString());
+        }
+        return parts;
     }
 }

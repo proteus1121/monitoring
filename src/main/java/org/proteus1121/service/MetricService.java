@@ -60,15 +60,30 @@ public class MetricService {
     public List<SensorData> getMetrics(Long deviceId, LocalDateTime startTimestamp, LocalDateTime endTimestamp, Period period, boolean bypass) {
         Device device = deviceService.checkDevice(deviceId, DeviceRole.VIEWER, bypass);
 
-        List<SensorDataEntity> rawData = sensorDataRepository
-                .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp).stream()
-                .toList();
+        if (period == LIVE) {
+            return sensorDataRepository
+                    .findByDeviceIdAndTimestampRange(device.getId(), startTimestamp, endTimestamp).stream()
+                    .sorted(Comparator.comparing(SensorDataEntity::getTimestamp))
+                    .map(sensorDataMapper::toSensorData)
+                    .toList();
+        }
 
-        List<SensorDataEntity> downsampled = downsampleByPeriod(rawData, SensorDataEntity::getTimestamp, startTimestamp, period);
-
-        return downsampled.stream()
-                .map(sensorDataMapper::toSensorData)
+        // a month of raw readings is hundreds of thousands of rows: thin them out in the database
+        int stepSeconds = period.stepSeconds();
+        return sensorDataRepository.findFirstPerBucket(device.getId(), startTimestamp, endTimestamp,
+                        alignToBoundary(startTimestamp, stepSeconds), stepSeconds).stream()
+                .map(row -> new SensorData(toLocalDateTime(row[0]), row[1] == null ? null : ((Number) row[1]).doubleValue()))
                 .toList();
+    }
+
+    private static LocalDateTime toLocalDateTime(Object value) {
+        if (value instanceof LocalDateTime ldt) {
+            return ldt;
+        }
+        if (value instanceof java.sql.Timestamp ts) {
+            return ts.toLocalDateTime();
+        }
+        return LocalDateTime.parse(value.toString().replace(' ', 'T'));
     }
 
     /**

@@ -18,6 +18,23 @@ public interface SensorDataRepository extends JpaRepository<SensorDataEntity, Lo
     );
 
     /**
+     * The first reading of every {@code stepSeconds} bucket counted from {@code alignedStart}: [timestamp, value],
+     * oldest first. Thinned out in the database, so a month of readings is never loaded row by row.
+     */
+    @Query(value = "SELECT s.timestamp, s.value FROM sensor_data s JOIN (" +
+            "SELECT MIN(r.id) AS id FROM sensor_data r " +
+            "WHERE r.device_id = :deviceId AND r.timestamp BETWEEN :startTimestamp AND :endTimestamp " +
+            "GROUP BY FLOOR(TIMESTAMPDIFF(SECOND, :alignedStart, r.timestamp) / :stepSeconds)) f ON f.id = s.id " +
+            "ORDER BY s.timestamp", nativeQuery = true)
+    List<Object[]> findFirstPerBucket(
+            @Param("deviceId") Long deviceId,
+            @Param("startTimestamp") LocalDateTime startTimestamp,
+            @Param("endTimestamp") LocalDateTime endTimestamp,
+            @Param("alignedStart") LocalDateTime alignedStart,
+            @Param("stepSeconds") int stepSeconds
+    );
+
+    /**
      * Device type and value of every reading in the window, newest first; a projection so devices are not loaded per row.
      */
     @Query("SELECT d.type, s.value FROM SensorDataEntity s JOIN s.device d WHERE s.timestamp BETWEEN :startTimestamp AND :endTimestamp ORDER BY s.timestamp DESC")
